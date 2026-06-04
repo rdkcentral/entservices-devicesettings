@@ -26,6 +26,9 @@
 #include <chrono>
 #include <cstdint>
 #include <list>
+#include <vector>
+#include <functional>
+#include <utility>
 
 #include <com/com.h>
 #include <core/core.h>
@@ -97,6 +100,8 @@ namespace Plugin {
         // Audio Port Management
         Core::hresult GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle);
         // Removed GetAudioPorts and GetSupportedAudioPorts - iterator type doesn't exist
+        Core::hresult GetAudioConfig(IAudioTypeConfigIterator*& audioTypes,
+                         IAudioPortConfigIterator*& audioPorts);
         Core::hresult GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig);
         Core::hresult GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
         Core::hresult GetAudioCapabilities(const int32_t handle, int32_t &capabilities);
@@ -254,6 +259,8 @@ namespace Plugin {
         void OnAudioModeEvent(AudioPortType audioPortType, AudioStereoMode audioMode) override;
 
     private:
+        void InitializeAudioConfigCache();
+
         template<typename Func, typename... Args>
         void dispatchAudioEvent(Func notifyFunc, Args&&... args);
 
@@ -265,7 +272,10 @@ namespace Plugin {
 
         Audio _audio;
         std::list<DeviceSettingsAudio::INotification*> _AudioNotifications;
+        mutable Core::CriticalSection _configLock;
         mutable Core::CriticalSection _callbackLock;
+        std::vector<AudioTypeConfigInfo> _cachedAudioTypeConfigs;
+        std::vector<AudioPortConfigInfo> _cachedAudioPortConfigs;
     };
 } // namespace Plugin
 } // namespace WPEFramework

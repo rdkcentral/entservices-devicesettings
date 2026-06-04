@@ -231,6 +231,10 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_fpdSettings, SetFPDMode, fpdMode)
     }
 
+    Core::hresult DeviceSettingsImp::GetFrontPanelConfig(IFPDTextDisplayConfigIterator*& textDisplays, IFPDIndicatorConfigIterator*& indicators, IFPDColorConfigIterator*& colors, IFPDColorBindingIterator*& colorBindings) {
+        DELEGATE_TO_COMPONENT(_fpdSettings, GetFrontPanelConfig, textDisplays, indicators, colors, colorBindings)
+    }
+
     // ============================================================================
     // IDeviceSettingsHDMIIn interface implementation - delegate to _hdmiInSettings interface
     // ============================================================================
@@ -341,6 +345,11 @@ namespace Plugin {
     
     Core::hresult DeviceSettingsImp::GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioPort, type, index, handle)
+    }
+
+    Core::hresult DeviceSettingsImp::GetAudioConfig(IAudioTypeConfigIterator*& audioTypes,
+                                                    IAudioPortConfigIterator*& audioPorts) {
+        DELEGATE_TO_COMPONENT(_audioSettings, GetAudioConfig, audioTypes, audioPorts)
     }
     
     // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
@@ -672,6 +681,12 @@ namespace Plugin {
     
     Core::hresult DeviceSettingsImp::GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle) {
         DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPort, videoPort, index, handle)
+    }
+
+    Core::hresult DeviceSettingsImp::GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
+                                                        IVideoPortPortConfigIterator*& videoPorts,
+                                                        IVideoPortResolutionIterator*& resolutions) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortConfig, videoPortTypes, videoPorts, resolutions)
     }
     
     Core::hresult DeviceSettingsImp::IsVideoPortEnabled(const int32_t handle, bool &enabled) {

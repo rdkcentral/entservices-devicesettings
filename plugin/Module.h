@@ -19,7 +19,7 @@
 
 #pragma once
 #ifndef MODULE_NAME
-#define MODULE_NAME Plugin_DeviceSettings
+#define MODULE_NAME Plugin_DeviceSettingsManager
 #endif
 
 #include <plugins/plugins.h>
