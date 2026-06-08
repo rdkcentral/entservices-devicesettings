@@ -127,18 +127,18 @@ jobs:
           path: entservices-testframework
           ref: 1.0.1
 
-      - name: Checkout entservices-frontpanel
+      - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
         with:
-          path: entservices-frontpanel
+          path: entservices-devicesettings
 
-      - name: Checkout entservices-frontpanel-testframework
+      - name: Checkout entservices-devicesettings-testframework
         if: ${{ inputs.caller_source == 'testframework' }}
         uses: actions/checkout@v3
         with:
-          repository: rdkcentral/entservices-frontpanel
-          path: entservices-frontpanel
+          repository: rdkcentral/entservices-devicesettings
+          path: entservices-devicesettings
           ref: develop
 
       - name: Checkout googletest
@@ -347,7 +347,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
-          -I $GITHUB_WORKSPACE/entservices-frontpanel/helpers
+          -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core
           -I $GITHUB_WORKSPACE/install/usr/include
@@ -383,11 +383,11 @@ jobs:
           &&
           cmake --install build/mocks
 
-      - name: Build entservices-frontpanel
+      - name: Build entservices-devicesettings
         run: >
           cmake -G Ninja
-          -S "$GITHUB_WORKSPACE/entservices-frontpanel"
-          -B build/entservices-frontpanel
+          -S "$GITHUB_WORKSPACE/entservices-devicesettings"
+          -B build/entservices-devicesettings
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
           -DCMAKE_CXX_FLAGS="
@@ -399,8 +399,8 @@ jobs:
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
           -DRDK_SERVICES_L1_TEST
-          -I $GITHUB_WORKSPACE/entservices-frontpanel/plugin
-          -I $GITHUB_WORKSPACE/entservices-frontpanel/helpers
+          -I $GITHUB_WORKSPACE/entservices-devicesettings/plugin
+          -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
@@ -456,9 +456,9 @@ jobs:
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           &&
-          cmake --build build/entservices-frontpanel -j8
+          cmake --build build/entservices-devicesettings -j8
           &&
-          cmake --install build/entservices-frontpanel
+          cmake --install build/entservices-devicesettings
 
       - name: Build entservices-testframework
         run: >
@@ -483,7 +483,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
-          -I $GITHUB_WORKSPACE/entservices-frontpanel/helpers
+          -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core
@@ -654,12 +654,12 @@ jobs:
           &&
           lcov -c
           -o coverage.info
-          -d build/entservices-frontpanel
+          -d build/entservices-devicesettings
           &&
           lcov
           -r coverage.info
           '/usr/include/*'
-          '*/build/entservices-frontpanel/_deps/*'
+          '*/build/entservices-devicesettings/_deps/*'
           '*/install/usr/include/*'
           '*/Tests/headers/*'
           '*/Tests/mocks/*'
@@ -669,7 +669,7 @@ jobs:
           &&
           genhtml
           -o coverage
-          -t "entservices-frontpanel coverage"
+          -t "entservices-devicesettings coverage"
           filtered_coverage.info
 
       - name: Upload artifacts
