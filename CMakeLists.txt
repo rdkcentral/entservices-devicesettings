@@ -33,7 +33,7 @@ string(TOLOWER ${NAMESPACE} STORAGE_DIRECTORY)
 include(CmakeHelperFunctions)
 
 if(PLUGIN_DEVICESETTINGS)
-    add_subdirectory(plugin/DeviceSettings)
+    add_subdirectory(plugin)
 endif()
 
 if(RDK_SERVICES_L1_TEST)
