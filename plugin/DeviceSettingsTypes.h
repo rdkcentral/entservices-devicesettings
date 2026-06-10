@@ -183,7 +183,9 @@ using VideoDeviceZoom = DeviceSettingsVideoDevice::VideoZoom;
 using VideoDeviceCodec = DeviceSettingsVideoDevice::VideoCodec;
 using VideoDeviceCodecHEVCProfile = DeviceSettingsVideoDevice::VideoCodecHEVCProfile;
 using VideoDeviceCodecProfileSupport = DeviceSettingsVideoDevice::VideoCodecProfileSupport;
+using VideoDeviceConfigInfo = DeviceSettingsVideoDevice::dsVideoDeviceConfigInfo_t;
 using IDeviceSettingsVideoCodecProfileSupportIterator = DeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator;
+using IVideoDeviceConfigIterator = DeviceSettingsVideoDevice::IVideoDeviceConfigIterator;
 
 // Host type aliases for convenience
 using HostSleepMode = DeviceSettingsHost::SleepMode;

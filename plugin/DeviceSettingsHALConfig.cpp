@@ -38,6 +38,7 @@
 #include "fpd.h"
 #include "Audio.h"
 #include "VideoPort.h"
+#include "VideoDevice.h"
 
 #include <dlfcn.h>
 #include <cstring>
@@ -263,6 +264,66 @@ static bool LoadVideoPortConfigFromHAL(videoPortConfigs_t& config, void*& outHan
         (config.pKResolutionsSettings == NULL) || (config.pKVideoPortConfigs_size == NULL) ||
         (config.pKVideoPortPorts_size == NULL) || (config.pKResolutionsSettings_size == NULL)) {
         LOGWARN("LoadVideoPortConfigFromHAL: HAL symbols loaded but one or more pointers are null");
+        dlclose(pDLHandle);
+        return false;
+    }
+
+    outHandle = pDLHandle;
+    return true;
+}
+
+// ── VideoDevice ─────────────────────────────────────────────────────────────
+
+typedef struct _videoDeviceConfigs {
+    const dsVideoConfig_t* pKConfigs;
+    int*                   pKVideoDeviceConfigs_size;
+} videoDeviceConfigs_t;
+
+static uint32_t ToVideoZoomMask(const dsVideoZoom_t* values, const size_t count)
+{
+    uint32_t mask = 0;
+    for (size_t index = 0; index < count; ++index) {
+        const int32_t bit = static_cast<int32_t>(values[index]);
+        if ((bit >= 0) && (bit < static_cast<int32_t>(sizeof(mask) * 8))) {
+            mask |= (1u << static_cast<uint32_t>(bit));
+        }
+    }
+    return mask;
+}
+
+static bool LoadVideoDeviceConfigFromHAL(videoDeviceConfigs_t& config, void*& outHandle)
+{
+    void* pDLHandle       = NULL;
+    bool  isSymbolsLoaded = false;
+
+    outHandle = NULL;
+    memset(&config, 0, sizeof(config));
+
+    dlerror();
+    pDLHandle = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
+    if (pDLHandle == NULL) {
+        const char* dlErr = dlerror();
+        LOGWARN("LoadVideoDeviceConfigFromHAL: dlopen failed for %s: %s",
+                RDK_DSHAL_NAME, (dlErr ? dlErr : "unknown"));
+        return false;
+    }
+
+    dlSymbolLookup videoDeviceConfigSymbols[] = {
+        {"kVideoDeviceConfigs",      (void**)&config.pKConfigs},
+        {"kVideoDeviceConfigs_size", (void**)&config.pKVideoDeviceConfigs_size}
+    };
+
+    isSymbolsLoaded = LoadDLSymbols(pDLHandle, videoDeviceConfigSymbols,
+                                    sizeof(videoDeviceConfigSymbols) / sizeof(dlSymbolLookup));
+
+    if (!isSymbolsLoaded) {
+        LOGWARN("LoadVideoDeviceConfigFromHAL: Failed to load all video device symbols from HAL");
+        dlclose(pDLHandle);
+        return false;
+    }
+
+    if ((config.pKConfigs == NULL) || (config.pKVideoDeviceConfigs_size == NULL)) {
+        LOGWARN("LoadVideoDeviceConfigFromHAL: HAL symbols loaded but one or more pointers are null");
         dlclose(pDLHandle);
         return false;
     }
@@ -645,6 +706,63 @@ void DumpVideoPortConfig(
     }
 
     LOGINFO("=============== Dump DeviceSettings VideoPort Cached Config done ===============\n");
+}
+
+// ── VideoDevice ───────────────────────────────────────────────────────────
+
+void PopulateVideoDeviceConfig(
+    std::vector<VideoDeviceConfigInfo>& videoDeviceConfigs)
+{
+    videoDeviceConfigs_t halConfig;
+    void* halHandle = NULL;
+    memset(&halConfig, 0, sizeof(halConfig));
+    const bool loadedFromHAL = LoadVideoDeviceConfigFromHAL(halConfig, halHandle);
+
+    videoDeviceConfigs.clear();
+
+    if (!loadedFromHAL) {
+        LOGWARN("PopulateVideoDeviceConfig: HAL config not available, returning empty config");
+        return;
+    }
+
+    const int configCount = *(halConfig.pKVideoDeviceConfigs_size);
+    for (int i = 0; i < configCount; i++) {
+        const dsVideoConfig_t& cfg = halConfig.pKConfigs[i];
+
+        VideoDeviceConfigInfo videoCfg;
+        videoCfg.numSupportedDFCs = static_cast<uint32_t>(cfg.numSupportedDFCs);
+        videoCfg.supportedDFCsMask = (cfg.supportedDFCs != NULL)
+            ? ToVideoZoomMask(cfg.supportedDFCs, cfg.numSupportedDFCs)
+            : 0;
+        videoCfg.defaultDFC = static_cast<VideoDeviceZoom>(cfg.defaultDFC);
+        videoDeviceConfigs.push_back(videoCfg);
+    }
+
+    LOGINFO("PopulateVideoDeviceConfig: Loaded config from HAL (videoDeviceConfigs=%zu)",
+            videoDeviceConfigs.size());
+    dlclose(halHandle);
+    halHandle = NULL;
+}
+
+void DumpVideoDeviceConfig(
+    const std::vector<VideoDeviceConfigInfo>& videoDeviceConfigs)
+{
+    if (-1 == access("/opt/dsMgrDumpDeviceConfigs", F_OK)) {
+        LOGINFO("DumpVideoDeviceConfig: Dumping of Device configs is disabled");
+        return;
+    }
+
+    LOGINFO("\n=============== Dump DeviceSettings VideoDevice Cached Config ===============");
+    LOGINFO("VideoDeviceConfigs count=%zu", videoDeviceConfigs.size());
+    for (size_t i = 0; i < videoDeviceConfigs.size(); ++i) {
+        const VideoDeviceConfigInfo& cfg = videoDeviceConfigs[i];
+        LOGINFO("videoDeviceConfigs[%zu]: numSupportedDFCs=%u supportedDFCsMask=0x%x defaultDFC=%d",
+                i,
+                static_cast<unsigned int>(cfg.numSupportedDFCs),
+                static_cast<unsigned int>(cfg.supportedDFCsMask),
+                static_cast<int>(cfg.defaultDFC));
+    }
+    LOGINFO("=============== Dump DeviceSettings VideoDevice Cached Config done ===============\n");
 }
 
 } // namespace DeviceSettingsHAL
