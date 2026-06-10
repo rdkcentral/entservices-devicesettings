@@ -82,4 +82,12 @@ namespace DeviceSettingsHAL {
         const std::vector<VideoPortPortConfig>& videoPorts,
         const std::vector<VideoPortResolution>& resolutions);
 
+    // ─── Video Device ──────────────────────────────────────────────────────────
+
+    void PopulateVideoDeviceConfig(
+        std::vector<VideoDeviceConfigInfo>& videoDeviceConfigs);
+
+    void DumpVideoDeviceConfig(
+        const std::vector<VideoDeviceConfigInfo>& videoDeviceConfigs);
+
 } // namespace DeviceSettingsHAL

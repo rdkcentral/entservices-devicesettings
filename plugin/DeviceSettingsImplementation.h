@@ -333,6 +333,7 @@ namespace Plugin {
         Core::hresult GetFRFMode(const int32_t handle , int32_t &frfmode /* @out */) override;
         Core::hresult GetCurrentDisplayFrameRate(const int32_t handle , string &framerate /* @out */) override;
         Core::hresult SetDisplayFrameRate(const int32_t handle , const string framerate ) override;
+        Core::hresult GetVideoDeviceConfig(Exchange::IDeviceSettingsVideoDevice::IVideoDeviceConfigIterator*& videoConfigs /* @out */) override;
         
         //=========================================================================
         // IDeviceSettingsHost interface methods

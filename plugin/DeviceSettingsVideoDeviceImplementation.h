@@ -25,6 +25,7 @@
 #include <unordered_map>
 #include <chrono>
 #include <cstdint>
+#include <vector>
 
 #include <com/com.h>
 #include <core/core.h>
@@ -96,13 +97,18 @@ namespace Plugin {
         uint32_t GetFRFMode(const int32_t handle, int32_t &frfmode);
         uint32_t GetCurrentDisplayFrameRate(const int32_t handle, string &framerate);
         uint32_t SetDisplayFrameRate(const int32_t handle, const string framerate);
+        Core::hresult GetVideoDeviceConfig(IVideoDeviceConfigIterator*& videoConfigs);
 
     private:
+        void InitializeVideoDeviceConfigCache();
+
         std::list<Exchange::IDeviceSettingsVideoDevice::INotification*> _VideoDeviceNotifications;
 
         // Thread-safety locks
         mutable Core::CriticalSection _apiLock;
         mutable Core::CriticalSection _callbackLock;
+
+        std::vector<VideoDeviceConfigInfo> _cachedVideoDeviceConfigs;
 
         VideoDevice _videoDevice;
     };

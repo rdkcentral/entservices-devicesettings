@@ -915,6 +915,10 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_videoDeviceSettings, SetDisplayFrameRate, handle, frameRate)
     }
 
+    Core::hresult DeviceSettingsImp::GetVideoDeviceConfig(Exchange::IDeviceSettingsVideoDevice::IVideoDeviceConfigIterator*& videoDeviceConfigs) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetVideoDeviceConfig, videoDeviceConfigs)
+    }
+
     Core::hresult DeviceSettingsImp::GetCodecInfo(const int32_t handle, const Exchange::IDeviceSettingsVideoDevice::VideoCodec videoCodec, Exchange::IDeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator *&codecInfo) {
         DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetCodecInfo, handle, static_cast<VideoCodec>(videoCodec), codecInfo)
     }
