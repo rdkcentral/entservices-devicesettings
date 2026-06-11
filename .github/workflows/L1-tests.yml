@@ -140,6 +140,13 @@ jobs:
           path: devicesettings
           ref: main
 
+      - name: Checkout iarmbus
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/iarmbus
+          path: iarmbus
+          ref: develop
+
       - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
@@ -377,6 +384,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/iarmbus/core/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
@@ -440,6 +448,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/iarmbus/core/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
@@ -516,6 +525,8 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
+          -I $GITHUB_WORKSPACE/iarmbus/core/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
