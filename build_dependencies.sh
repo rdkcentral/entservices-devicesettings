@@ -73,5 +73,8 @@ cmake -G Ninja -S entservices-apis -B build/entservices-apis \
 
 cmake --build build/entservices-apis --target install
 
+mkdir -p "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces"
+cp "$GITHUB_WORKSPACE/entservices-apis/apis/DeviceSettings/"IDeviceSettings*.h "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces/"
+
 echo "======================================================================================"
 echo "device-settings repository dependencies are ready"

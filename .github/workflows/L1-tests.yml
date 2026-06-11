@@ -230,6 +230,11 @@ jobs:
           &&
           cmake --install build/entservices-apis
 
+      - name: Copy DeviceSettings interface headers
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces"
+          cp "$GITHUB_WORKSPACE/entservices-apis/apis/DeviceSettings/"IDeviceSettings*.h "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces/"
+
       - name: Generate external headers
         # Empty headers to mute errors
         run: >
