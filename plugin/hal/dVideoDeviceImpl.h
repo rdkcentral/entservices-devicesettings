@@ -140,9 +140,12 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("GetVideoDeviceHandle: index=%d", index);
         
-        dsError_t eError = dsGetVideoDevice(index, &handle);
+        // Use intptr_t locally for HAL call - dsGetVideoDevice expects intptr_t*
+        intptr_t halHandle = 0;
+        dsError_t eError = dsGetVideoDevice(index, &halHandle);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
+            handle = static_cast<int32_t>(halHandle);  // Cast result back to int32_t for interface
             LOGINFO("GetVideoDeviceHandle: SUCCESS - handle=%d", handle);
         } else {
             LOGERR("GetVideoDeviceHandle: dsGetVideoDevice failed with error: %d", eError);
