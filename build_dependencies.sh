@@ -7,14 +7,23 @@ ls -la "${GITHUB_WORKSPACE}"
 cd "${GITHUB_WORKSPACE}"
 
 apt update
-apt install -y libcurl4-openssl-dev valgrind lcov clang libsystemd-dev libboost-all-dev meson curl libunwind-dev libdrm-dev
+apt install -y libsqlite3-dev libcurl4-openssl-dev valgrind lcov clang libsystemd-dev libboost-all-dev libwebsocketpp-dev meson libcunit1 libcunit1-dev curl protobuf-compiler-grpc libgrpc-dev libgrpc++-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libdrm-dev
 pip install jsonref
+
+if [ ! -d "trower-base64" ]; then
+    git clone https://github.com/xmidt-org/trower-base64.git
+fi
+cd trower-base64
+meson setup --warnlevel 3 --werror build
+ninja -C build
+ninja -C build install
+cd ..
 
 git clone --branch R4.4.3 https://github.com/rdkcentral/ThunderTools.git
 git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git
-git clone --branch feature/RDKEMW-6078_DeviceSettings_Interface https://github.com/rdkcentral/entservices-apis.git
+git clone --branch develop https://github.com/rdkcentral/entservices-apis.git
 git clone --branch 1.0.14 https://github.com/rdkcentral/entservices-testframework.git
-git clone --branch 1.0.34 https://github.com/rdkcentral/devicesettings.git
+git clone --branch main https://github.com/rdkcentral/rdk-halif-device_settings.git
 
 echo "======================================================================================"
 echo "building thunderTools"
@@ -63,75 +72,6 @@ cmake -G Ninja -S entservices-apis -B build/entservices-apis \
     -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
 
 cmake --build build/entservices-apis --target install
-
-echo "======================================================================================"
-echo "generating mock DeviceSettings HAL headers"
-cd "$GITHUB_WORKSPACE"
-cd entservices-testframework/Tests
-echo "Empty mocks creation to avoid compilation errors"
-echo "======================================================================================"
-mkdir -p headers
-mkdir -p headers/audiocapturemgr
-mkdir -p headers/rdk/ds
-mkdir -p headers/rdk/iarmbus
-mkdir -p headers/rdk/iarmmgrs-hal
-mkdir -p headers/ccec/drivers
-mkdir -p headers/network
-echo "dir created successfully"
-echo "======================================================================================"
-
-echo "======================================================================================"
-echo "empty headers creation"
-cd headers
-
-DS_MOCK_HEADERS="
-dsMgr.h
-dsTypes.h
-dsUtl.h
-dsError.h
-dsRpc.h
-dsDisplay.h
-dsVideoPort.h
-dsVideoDevice.h
-dsAudio.h
-dsHdmiIn.h
-dsHdmiInTypes.h
-dsFPD.h
-dsFPDTypes.h
-dsCompositeIn.h
-dsHost.h
-exception.hpp
-hdmiIn.hpp
-host.hpp
-list.hpp
-manager.hpp
-sleepMode.hpp
-videoDevice.hpp
-videoOutputPort.hpp
-videoOutputPortConfig.hpp
-videoOutputPortType.hpp
-videoResolution.hpp
-audioOutputPort.hpp
-audioOutputPortType.hpp
-audioOutputPortConfig.hpp
-compositeIn.hpp
-pixelResolution.hpp
-frontPanelIndicator.hpp
-frontPanelConfig.hpp
-frontPanelTextDisplay.hpp
-"
-
-for DEST in \
-    "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds" \
-    "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers"; do
-    printf '%s\n' "$DS_MOCK_HEADERS" | while IFS= read -r HEADER; do
-        if [ -n "$HEADER" ]; then
-            touch "$DEST/$HEADER"
-        fi
-    done
-done
-
-cd "$GITHUB_WORKSPACE"
 
 echo "======================================================================================"
 echo "device-settings repository dependencies are ready"

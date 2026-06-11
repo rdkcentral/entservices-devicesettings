@@ -16,7 +16,7 @@ on:
 env:
   BUILD_TYPE: Debug
   THUNDER_REF: "R4.4.1"
-  INTERFACES_REF: "feature/RDKEMW-6078_DeviceSettings_Interface"
+  INTERFACES_REF: "develop"
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME}}
   AUTOMATICS_PASSCODE: ${{ secrets. AUTOMATICS_PASSCODE}}
 
@@ -127,12 +127,12 @@ jobs:
           path: entservices-testframework
           ref: 1.0.14
 
-      - name: Checkout devicesettings
+      - name: Checkout rdk-halif-device_settings
         uses: actions/checkout@v3
         with:
-          repository: rdkcentral/devicesettings
-          path: devicesettings
-          ref: 1.0.34
+          repository: rdkcentral/rdk-halif-device_settings
+          path: rdk-halif-device_settings
+          ref: main
 
       - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
@@ -257,17 +257,16 @@ jobs:
           rdk/ds/dsMgr.h
           rdk/ds/dsTypes.h
           rdk/ds/dsUtl.h
-          rdk/ds/dsError.h
-          rdk/ds/dsRpc.h
-          rdk/ds/dsDisplay.h
-          rdk/ds/dsVideoPort.h
-          rdk/ds/dsVideoDevice.h
           rdk/ds/dsAudio.h
           rdk/ds/dsHdmiIn.h
           rdk/ds/dsHost.h
           rdk/ds/dsFPD.h
           rdk/ds/dsFPDTypes.h
           rdk/ds/dsCompositeIn.h
+          rdk/ds/dsCompositeInTypes.h
+          rdk/ds/dsAVDTypes.h
+          rdk/ds/dsHdmiInTypes.h
+          rdk/ds/dsHostTypes.h
           rdk/ds/exception.hpp
           rdk/ds/hdmiIn.hpp
           rdk/ds/host.hpp
@@ -358,6 +357,7 @@ jobs:
           -DTHUNDER_VERSION_MINOR=4
           -DRDK_SERVICES_L1_TEST
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/rdk-halif-device_settings/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
@@ -366,7 +366,6 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
           -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
-          -I $GITHUB_WORKSPACE/devicesettings/ds/include
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core
           -I $GITHUB_WORKSPACE/install/usr/include
@@ -420,8 +419,8 @@ jobs:
           -DRDK_SERVICES_L1_TEST
           -I $GITHUB_WORKSPACE/entservices-devicesettings/plugin
           -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
-          -I $GITHUB_WORKSPACE/devicesettings/ds/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/rdk-halif-device_settings/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
@@ -497,6 +496,7 @@ jobs:
           -DTHUNDER_VERSION_MINOR=4
           -DRDK_SERVICES_L1_TEST
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/rdk-halif-device_settings/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
@@ -504,7 +504,6 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
           -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
-          -I $GITHUB_WORKSPACE/devicesettings/ds/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core
@@ -697,7 +696,7 @@ jobs:
         if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-L1-frontpanel
+          name: artifacts-L1-devicesettings
           path: |
             coverage/
             valgrind_log
