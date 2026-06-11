@@ -133,6 +133,13 @@ jobs:
           path: rdk-halif-device_settings
           ref: main
 
+      - name: Checkout devicesettings
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/devicesettings
+          path: devicesettings
+          ref: main
+
       - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
@@ -365,6 +372,8 @@ jobs:
           -DRDK_SERVICES_L1_TEST
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
           -I $GITHUB_WORKSPACE/rdk-halif-device_settings/include
+          -I $GITHUB_WORKSPACE/devicesettings/rpc/include
+          -I $GITHUB_WORKSPACE/devicesettings/ds/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
@@ -428,6 +437,8 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
           -I $GITHUB_WORKSPACE/rdk-halif-device_settings/include
+          -I $GITHUB_WORKSPACE/devicesettings/rpc/include
+          -I $GITHUB_WORKSPACE/devicesettings/ds/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
@@ -504,6 +515,8 @@ jobs:
           -DRDK_SERVICES_L1_TEST
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
           -I $GITHUB_WORKSPACE/rdk-halif-device_settings/include
+          -I $GITHUB_WORKSPACE/devicesettings/rpc/include
+          -I $GITHUB_WORKSPACE/devicesettings/ds/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
