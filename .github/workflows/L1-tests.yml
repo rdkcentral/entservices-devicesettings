@@ -257,6 +257,7 @@ jobs:
           rdk/ds/dsVideoDevice.h
           rdk/ds/dsAudio.h
           rdk/ds/dsHdmiIn.h
+          rdk/ds/dsHost.h
           rdk/ds/dsFPD.h
           rdk/ds/dsFPDTypes.h
           rdk/ds/dsCompositeIn.h
