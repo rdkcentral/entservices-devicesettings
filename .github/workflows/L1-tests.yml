@@ -233,7 +233,7 @@ jobs:
       - name: Copy DeviceSettings interface headers
         run: |
           mkdir -p "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces"
-          cp "$GITHUB_WORKSPACE/entservices-apis/apis/DeviceSettings/"IDeviceSettings*.h "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces/"
+          find "$GITHUB_WORKSPACE/entservices-apis/apis/DeviceSettings" -name "IDeviceSettings*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces/" \; 2>/dev/null || true
 
       - name: Generate external headers
         # Empty headers to mute errors
