@@ -38,9 +38,7 @@ add_library(${MODULE_NAME} SHARED ${TEST_SRC})
 
 target_include_directories(${MODULE_NAME}
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/plugin
-        ${CMAKE_SOURCE_DIR}/../rdk-halif-device_settings/include
-        ${CMAKE_SOURCE_DIR}/../devicesettings/ds/include)
+        ${CMAKE_SOURCE_DIR}/plugin)
 
 target_link_libraries(${MODULE_NAME} PRIVATE ${TEST_LIB})
 
