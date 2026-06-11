@@ -64,4 +64,90 @@ cmake -G Ninja -S entservices-apis -B build/entservices-apis \
 cmake --build build/entservices-apis --target install
 
 echo "======================================================================================"
+echo "generating mock DeviceSettings HAL headers"
+mkdir -p "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds"
+mkdir -p "$GITHUB_WORKSPACE/install/usr/include/rdk/ds"
+mkdir -p "$GITHUB_WORKSPACE/install/usr/include/rdk/halif/ds-hal"
+mkdir -p "$GITHUB_WORKSPACE/install/usr/include/rdk/ds-rpc"
+
+cd "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds"
+
+touch dsMgr.h
+touch dsTypes.h
+touch dsUtl.h
+touch dsError.h
+touch dsRpc.h
+touch dsDisplay.h
+touch dsVideoPort.h
+touch dsVideoDevice.h
+touch dsAudio.h
+touch dsHdmiIn.h
+touch dsFPD.h
+touch dsFPDTypes.h
+touch dsCompositeIn.h
+touch exception.hpp
+touch hdmiIn.hpp
+touch host.hpp
+touch list.hpp
+touch manager.hpp
+touch sleepMode.hpp
+touch videoDevice.hpp
+touch videoOutputPort.hpp
+touch videoOutputPortConfig.hpp
+touch videoOutputPortType.hpp
+touch videoResolution.hpp
+touch audioOutputPort.hpp
+touch audioOutputPortType.hpp
+touch audioOutputPortConfig.hpp
+touch compositeIn.hpp
+touch pixelResolution.hpp
+touch frontPanelIndicator.hpp
+touch frontPanelConfig.hpp
+touch frontPanelTextDisplay.hpp
+
+# Also create headers in install directory for CMake FindDS.cmake
+cd "$GITHUB_WORKSPACE/install/usr/include/rdk/ds"
+
+touch dsMgr.h
+touch dsTypes.h
+touch dsUtl.h
+touch dsError.h
+touch dsRpc.h
+touch dsDisplay.h
+touch dsVideoPort.h
+touch dsVideoDevice.h
+touch dsAudio.h
+touch dsHdmiIn.h
+touch dsFPD.h
+touch dsFPDTypes.h
+touch dsCompositeIn.h
+touch exception.hpp
+touch hdmiIn.hpp
+touch host.hpp
+touch list.hpp
+touch manager.hpp
+touch sleepMode.hpp
+touch videoDevice.hpp
+touch videoOutputPort.hpp
+touch videoOutputPortConfig.hpp
+touch videoOutputPortType.hpp
+touch videoResolution.hpp
+touch audioOutputPort.hpp
+touch audioOutputPortType.hpp
+touch audioOutputPortConfig.hpp
+touch compositeIn.hpp
+touch pixelResolution.hpp
+touch frontPanelIndicator.hpp
+touch frontPanelConfig.hpp
+touch frontPanelTextDisplay.hpp
+
+# Create HAL headers
+touch "$GITHUB_WORKSPACE/install/usr/include/rdk/halif/ds-hal/dsTypes.h"
+
+# Create RPC headers
+touch "$GITHUB_WORKSPACE/install/usr/include/rdk/ds-rpc/dsMgr.h"
+
+cd "$GITHUB_WORKSPACE"
+
+echo "======================================================================================"
 echo "device-settings repository dependencies are ready"
