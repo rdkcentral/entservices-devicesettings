@@ -26,8 +26,6 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-devicesettings \
     -I ${GITHUB_WORKSPACE}/devicesettings/rpc/include \
     -I ${GITHUB_WORKSPACE}/devicesettings/ds/include \
     -I ${GITHUB_WORKSPACE}/rdk-halif-device_settings/include \
-    -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/headers/rdk/iarmbus \
-    -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/headers/rdk/ds \
     -Wall -Werror -Wno-error=format \
     -DUSE_THUNDER_R4=ON -DTHUNDER_VERSION=4 -DTHUNDER_VERSION_MAJOR=4 -DTHUNDER_VERSION_MINOR=4" \
 

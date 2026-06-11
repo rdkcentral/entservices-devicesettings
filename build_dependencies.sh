@@ -25,6 +25,7 @@ git clone --branch feature/RDKEMW-6078_DeviceSettings_Interface https://github.c
 git clone --branch 1.0.14 https://github.com/rdkcentral/entservices-testframework.git
 git clone --branch main https://github.com/rdkcentral/rdk-halif-device_settings.git
 git clone --branch main https://github.com/rdkcentral/devicesettings.git
+git clone --branch develop https://github.com/rdkcentral/iarmbus.git
 
 echo "======================================================================================"
 echo "building thunderTools"
@@ -80,6 +81,14 @@ find "$GITHUB_WORKSPACE/entservices-apis/apis/DeviceSettings" -name "IDeviceSett
 cp -r "$GITHUB_WORKSPACE/rdk-halif-device_settings/include/." "$GITHUB_WORKSPACE/install/usr/include/"
 cp -r "$GITHUB_WORKSPACE/devicesettings/rpc/include/." "$GITHUB_WORKSPACE/install/usr/include/"
 cp -r "$GITHUB_WORKSPACE/devicesettings/ds/include/." "$GITHUB_WORKSPACE/install/usr/include/"
+
+# Real IARM headers from iarmbus repo
+cp -r "$GITHUB_WORKSPACE/iarmbus/core/include/." "$GITHUB_WORKSPACE/install/usr/include/"
+
+# rfcapi.h and other external stubs (no public repo available)
+find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \;
+cp -r "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal/." "$GITHUB_WORKSPACE/install/usr/include/"
+cp -r "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec" "$GITHUB_WORKSPACE/install/usr/include/"
 
 echo "======================================================================================"
 echo "device-settings repository dependencies are ready"
