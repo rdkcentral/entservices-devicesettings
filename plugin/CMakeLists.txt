@@ -99,6 +99,8 @@ include_directories(
 target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/../helpers  
+    ${CMAKE_SOURCE_DIR}/../rdk-halif-device_settings/include
+    ${CMAKE_SOURCE_DIR}/../devicesettings/ds/include
 )
 
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
