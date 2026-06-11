@@ -250,16 +250,7 @@ jobs:
           rdk/ds/dsMgr.h
           rdk/ds/dsTypes.h
           rdk/ds/dsUtl.h
-          rdk/ds/dsError.h
           rdk/ds/dsRpc.h
-          rdk/ds/dsDisplay.h
-          rdk/ds/dsVideoPort.h
-          rdk/ds/dsVideoDevice.h
-          rdk/ds/dsAudio.h
-          rdk/ds/dsHdmiIn.h
-          rdk/ds/dsFPD.h
-          rdk/ds/dsFPDTypes.h
-          rdk/ds/dsCompositeIn.h
           rdk/ds/exception.hpp
           rdk/ds/hdmiIn.hpp
           rdk/ds/host.hpp
