@@ -65,87 +65,70 @@ cmake --build build/entservices-apis --target install
 
 echo "======================================================================================"
 echo "generating mock DeviceSettings HAL headers"
-mkdir -p "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds"
-mkdir -p "$GITHUB_WORKSPACE/install/usr/include/rdk/ds"
-mkdir -p "$GITHUB_WORKSPACE/install/usr/include/rdk/halif/ds-hal"
-mkdir -p "$GITHUB_WORKSPACE/install/usr/include/rdk/ds-rpc"
+cd "$GITHUB_WORKSPACE"
+cd entservices-testframework/Tests
+echo "Empty mocks creation to avoid compilation errors"
+echo "======================================================================================"
+mkdir -p headers
+mkdir -p headers/audiocapturemgr
+mkdir -p headers/rdk/ds
+mkdir -p headers/rdk/iarmbus
+mkdir -p headers/rdk/iarmmgrs-hal
+mkdir -p headers/ccec/drivers
+mkdir -p headers/network
+echo "dir created successfully"
+echo "======================================================================================"
 
-cd "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds"
+echo "======================================================================================"
+echo "empty headers creation"
+cd headers
 
-touch dsMgr.h
-touch dsTypes.h
-touch dsUtl.h
-touch dsError.h
-touch dsRpc.h
-touch dsDisplay.h
-touch dsVideoPort.h
-touch dsVideoDevice.h
-touch dsAudio.h
-touch dsHdmiIn.h
-touch dsFPD.h
-touch dsFPDTypes.h
-touch dsCompositeIn.h
-touch exception.hpp
-touch hdmiIn.hpp
-touch host.hpp
-touch list.hpp
-touch manager.hpp
-touch sleepMode.hpp
-touch videoDevice.hpp
-touch videoOutputPort.hpp
-touch videoOutputPortConfig.hpp
-touch videoOutputPortType.hpp
-touch videoResolution.hpp
-touch audioOutputPort.hpp
-touch audioOutputPortType.hpp
-touch audioOutputPortConfig.hpp
-touch compositeIn.hpp
-touch pixelResolution.hpp
-touch frontPanelIndicator.hpp
-touch frontPanelConfig.hpp
-touch frontPanelTextDisplay.hpp
+DS_MOCK_HEADERS="
+dsMgr.h
+dsTypes.h
+dsUtl.h
+dsError.h
+dsRpc.h
+dsDisplay.h
+dsVideoPort.h
+dsVideoDevice.h
+dsAudio.h
+dsHdmiIn.h
+dsHdmiInTypes.h
+dsFPD.h
+dsFPDTypes.h
+dsCompositeIn.h
+dsHost.h
+exception.hpp
+hdmiIn.hpp
+host.hpp
+list.hpp
+manager.hpp
+sleepMode.hpp
+videoDevice.hpp
+videoOutputPort.hpp
+videoOutputPortConfig.hpp
+videoOutputPortType.hpp
+videoResolution.hpp
+audioOutputPort.hpp
+audioOutputPortType.hpp
+audioOutputPortConfig.hpp
+compositeIn.hpp
+pixelResolution.hpp
+frontPanelIndicator.hpp
+frontPanelConfig.hpp
+frontPanelTextDisplay.hpp
+"
 
-# Also create headers in install directory for CMake FindDS.cmake
-cd "$GITHUB_WORKSPACE/install/usr/include/rdk/ds"
-
-touch dsMgr.h
-touch dsTypes.h
-touch dsUtl.h
-touch dsError.h
-touch dsRpc.h
-touch dsDisplay.h
-touch dsVideoPort.h
-touch dsVideoDevice.h
-touch dsAudio.h
-touch dsHdmiIn.h
-touch dsFPD.h
-touch dsFPDTypes.h
-touch dsCompositeIn.h
-touch exception.hpp
-touch hdmiIn.hpp
-touch host.hpp
-touch list.hpp
-touch manager.hpp
-touch sleepMode.hpp
-touch videoDevice.hpp
-touch videoOutputPort.hpp
-touch videoOutputPortConfig.hpp
-touch videoOutputPortType.hpp
-touch videoResolution.hpp
-touch audioOutputPort.hpp
-touch audioOutputPortType.hpp
-touch audioOutputPortConfig.hpp
-touch compositeIn.hpp
-touch pixelResolution.hpp
-touch frontPanelIndicator.hpp
-touch frontPanelConfig.hpp
-touch frontPanelTextDisplay.hpp
-
-# Create HAL headers
-touch "$GITHUB_WORKSPACE/install/usr/include/rdk/halif/ds-hal/dsTypes.h"
-
-# Create RPC headers
-touch "$GITHUB_WORKSPACE/install/usr/include/rdk/ds-rpc/dsMgr.h"
+for DEST in \
+    "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds" \
+    "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers"; do
+    while IFS= read -r HEADER; do
+        if [ -n "$HEADER" ]; then
+            touch "$DEST/$HEADER"
+        fi
+    done <<< "$DS_MOCK_HEADERS"
+done
 
 cd "$GITHUB_WORKSPACE"
 
