@@ -125,7 +125,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: 1.0.1
+          ref: 1.0.14
 
       - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
@@ -204,7 +204,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
-          ref: ${{env.INTERFACES_REF}}
+          ref: feature/RDKEMW-6078_DeviceSettings_Interface
           #token : ${{ secrets.RDKCM_RDKE }}
           run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
