@@ -26,7 +26,6 @@ git clone --branch 1.0.14 https://github.com/rdkcentral/entservices-testframewor
 git clone --branch main https://github.com/rdkcentral/rdk-halif-device_settings.git
 git clone --branch main https://github.com/rdkcentral/devicesettings.git
 git clone --branch develop https://github.com/rdkcentral/iarmbus.git
-git clone --branch develop https://github.com/rdkcentral/iarmmgrs-hal.git
 
 echo "======================================================================================"
 echo "building thunderTools"
@@ -86,8 +85,9 @@ cp -r "$GITHUB_WORKSPACE/devicesettings/ds/include/." "$GITHUB_WORKSPACE/install
 # Real IARM headers from iarmbus repo
 cp -r "$GITHUB_WORKSPACE/iarmbus/core/include/." "$GITHUB_WORKSPACE/install/usr/include/"
 
-# Real iarmmgrs-hal headers (sysMgr.h, mfrMgr.h)
-find "$GITHUB_WORKSPACE/iarmmgrs-hal" -type f \( -name "sysMgr.h" -o -name "mfrMgr.h" \) -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
+# Mock IARM/iarmmgrs-hal headers from entservices-testframework for CI builds
+find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
+find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
 
 # Create stub header for rfcapi.h (external dependency with no public repo)
 touch "$GITHUB_WORKSPACE/install/usr/include/rfcapi.h"
