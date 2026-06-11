@@ -123,11 +123,11 @@ frontPanelTextDisplay.hpp
 for DEST in \
     "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds" \
     "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers"; do
-    while IFS= read -r HEADER; do
+    printf '%s\n' "$DS_MOCK_HEADERS" | while IFS= read -r HEADER; do
         if [ -n "$HEADER" ]; then
             touch "$DEST/$HEADER"
         fi
-    done <<< "$DS_MOCK_HEADERS"
+    done
 done
 
 cd "$GITHUB_WORKSPACE"
