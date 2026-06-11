@@ -127,6 +127,13 @@ jobs:
           path: entservices-testframework
           ref: 1.0.14
 
+      - name: Checkout devicesettings
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/devicesettings
+          path: devicesettings
+          ref: 1.0.34
+
       - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
@@ -359,6 +366,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
           -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
+          -I $GITHUB_WORKSPACE/devicesettings/ds/include
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core
           -I $GITHUB_WORKSPACE/install/usr/include
@@ -412,6 +420,7 @@ jobs:
           -DRDK_SERVICES_L1_TEST
           -I $GITHUB_WORKSPACE/entservices-devicesettings/plugin
           -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
+          -I $GITHUB_WORKSPACE/devicesettings/ds/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/audiocapturemgr
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/ds
@@ -495,6 +504,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
           -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
+          -I $GITHUB_WORKSPACE/devicesettings/ds/include
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core

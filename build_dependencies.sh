@@ -14,6 +14,7 @@ git clone --branch R4.4.3 https://github.com/rdkcentral/ThunderTools.git
 git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git
 git clone --branch feature/RDKEMW-6078_DeviceSettings_Interface https://github.com/rdkcentral/entservices-apis.git
 git clone --branch 1.0.14 https://github.com/rdkcentral/entservices-testframework.git
+git clone --branch 1.0.34 https://github.com/rdkcentral/devicesettings.git
 
 echo "======================================================================================"
 echo "building thunderTools"

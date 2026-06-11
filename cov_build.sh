@@ -23,6 +23,7 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-devicesettings \
     -DCMAKE_CXX_FLAGS="-DEXCEPTIONS_ENABLE=ON \
     -I ${GITHUB_WORKSPACE}/install/usr/include \
     -I ${GITHUB_WORKSPACE}/install/usr/include/WPEFramework \
+    -I ${GITHUB_WORKSPACE}/devicesettings/ds/include \
     -Wall -Werror -Wno-error=format \
     -DUSE_THUNDER_R4=ON -DTHUNDER_VERSION=4 -DTHUNDER_VERSION_MAJOR=4 -DTHUNDER_VERSION_MINOR=4" \
 
