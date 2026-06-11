@@ -77,5 +77,9 @@ cmake --build build/entservices-apis --target install
 mkdir -p "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces"
 find "$GITHUB_WORKSPACE/entservices-apis/apis/DeviceSettings" -name "IDeviceSettings*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces/" \; 2>/dev/null || true
 
+cp -r "$GITHUB_WORKSPACE/rdk-halif-device_settings/include/." "$GITHUB_WORKSPACE/install/usr/include/"
+cp -r "$GITHUB_WORKSPACE/devicesettings/rpc/include/." "$GITHUB_WORKSPACE/install/usr/include/"
+cp -r "$GITHUB_WORKSPACE/devicesettings/ds/include/." "$GITHUB_WORKSPACE/install/usr/include/"
+
 echo "======================================================================================"
 echo "device-settings repository dependencies are ready"
