@@ -85,6 +85,9 @@ cp -r "$GITHUB_WORKSPACE/devicesettings/ds/include/." "$GITHUB_WORKSPACE/install
 # Real IARM headers from iarmbus repo
 cp -r "$GITHUB_WORKSPACE/iarmbus/core/include/." "$GITHUB_WORKSPACE/install/usr/include/"
 
+# Create stub header for rfcapi.h (external dependency with no public repo)
+touch "$GITHUB_WORKSPACE/install/usr/include/rfcapi.h"
+
 # rfcapi.h and other external stubs (no public repo available)
 find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
 find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
