@@ -570,8 +570,8 @@ private:
             }
         }
         
-        // Register display event callback directly
-        dsError_t eError = dsRegisterDisplayEventCallback(handle, dsDisplayEventCallback);
+        // Register display event callback using wrapper that adapts int to intptr_t
+        dsError_t eError = dsRegisterDisplayEventCallback(handle, dsDisplayEventCallbackWrapper);
         if (eError == dsERR_NONE) {
             LOGINFO("registerDisplayEventCallbacks: SUCCESS - registered with handle=%d", static_cast<int>(handle));
         } else {
@@ -579,14 +579,21 @@ private:
         }
     }
 
-    // Static callback function to handle display events from HAL
-    static void dsDisplayEventCallback(intptr_t handle, dsDisplayEvent_t dsDisplayEvent, void* eventData)
+    // Wrapper callback that adapts int handle to intptr_t (for legacy devicesettings API compatibility)
+    static void dsDisplayEventCallbackWrapper(int handle, dsDisplayEvent_t dsDisplayEvent, void* eventData)
     {
-        LOGINFO("dsDisplayEventCallback: handle=%d, event=%d", static_cast<int>(handle), static_cast<int>(dsDisplayEvent));
+        // Cast int handle to intptr_t and call the implementation
+        dsDisplayEventCallbackImpl(static_cast<intptr_t>(handle), dsDisplayEvent, eventData);
+    }
+
+    // Static callback function to handle display events from HAL
+    static void dsDisplayEventCallbackImpl(intptr_t handle, dsDisplayEvent_t dsDisplayEvent, void* eventData)
+    {
+        LOGINFO("dsDisplayEventCallbackImpl: handle=%d, event=%d", static_cast<int>(handle), static_cast<int>(dsDisplayEvent));
         
         dDisplayImpl* instance = getInstance();
         if (!instance) {
-            LOGERR("dsDisplayEventCallback: No Display instance available");
+            LOGERR("dsDisplayEventCallbackImpl: No Display instance available");
             return;
         }
 
@@ -625,7 +632,7 @@ private:
                 break;
                 
             default:
-                LOGWARN("dsDisplayEventCallback: Unknown event=%d", static_cast<int>(dsDisplayEvent));
+                LOGWARN("dsDisplayEventCallbackImpl: Unknown event=%d", static_cast<int>(dsDisplayEvent));
                 break;
         }
     }
