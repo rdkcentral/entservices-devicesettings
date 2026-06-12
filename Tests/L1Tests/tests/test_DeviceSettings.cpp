@@ -29,7 +29,8 @@ TEST(DeviceSettingsImpTest, ExposesMainInterface)
 {
     Core::ProxyType<Plugin::DeviceSettingsImp> implementation = Core::ProxyType<Plugin::DeviceSettingsImp>::Create();
 
-    Exchange::IDeviceSettings* deviceSettings = implementation->QueryInterface<Exchange::IDeviceSettings>();
+    Exchange::IDeviceSettings* deviceSettings = static_cast<Exchange::IDeviceSettings*>(
+        implementation->QueryInterface(Exchange::IDeviceSettings::ID));
     ASSERT_NE(nullptr, deviceSettings);
 
     deviceSettings->Release();
@@ -39,14 +40,22 @@ TEST(DeviceSettingsImpTest, ExposesComponentInterfaces)
 {
     Core::ProxyType<Plugin::DeviceSettingsImp> implementation = Core::ProxyType<Plugin::DeviceSettingsImp>::Create();
 
-    Exchange::IDeviceSettingsFPD* fpd = implementation->QueryInterface<Exchange::IDeviceSettingsFPD>();
-    Exchange::IDeviceSettingsHDMIIn* hdmiIn = implementation->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
-    Exchange::IDeviceSettingsAudio* audio = implementation->QueryInterface<Exchange::IDeviceSettingsAudio>();
-    Exchange::IDeviceSettingsVideoPort* videoPort = implementation->QueryInterface<Exchange::IDeviceSettingsVideoPort>();
-    Exchange::IDeviceSettingsVideoDevice* videoDevice = implementation->QueryInterface<Exchange::IDeviceSettingsVideoDevice>();
-    Exchange::IDeviceSettingsHost* host = implementation->QueryInterface<Exchange::IDeviceSettingsHost>();
-    Exchange::IDeviceSettingsCompositeIn* compositeIn = implementation->QueryInterface<Exchange::IDeviceSettingsCompositeIn>();
-    Exchange::IDeviceSettingsDisplay* display = implementation->QueryInterface<Exchange::IDeviceSettingsDisplay>();
+    Exchange::IDeviceSettingsFPD* fpd = static_cast<Exchange::IDeviceSettingsFPD*>(
+        implementation->QueryInterface(Exchange::IDeviceSettingsFPD::ID));
+    Exchange::IDeviceSettingsHDMIIn* hdmiIn = static_cast<Exchange::IDeviceSettingsHDMIIn*>(
+        implementation->QueryInterface(Exchange::IDeviceSettingsHDMIIn::ID));
+    Exchange::IDeviceSettingsAudio* audio = static_cast<Exchange::IDeviceSettingsAudio*>(
+        implementation->QueryInterface(Exchange::IDeviceSettingsAudio::ID));
+    Exchange::IDeviceSettingsVideoPort* videoPort = static_cast<Exchange::IDeviceSettingsVideoPort*>(
+        implementation->QueryInterface(Exchange::IDeviceSettingsVideoPort::ID));
+    Exchange::IDeviceSettingsVideoDevice* videoDevice = static_cast<Exchange::IDeviceSettingsVideoDevice*>(
+        implementation->QueryInterface(Exchange::IDeviceSettingsVideoDevice::ID));
+    Exchange::IDeviceSettingsHost* host = static_cast<Exchange::IDeviceSettingsHost*>(
+        implementation->QueryInterface(Exchange::IDeviceSettingsHost::ID));
+    Exchange::IDeviceSettingsCompositeIn* compositeIn = static_cast<Exchange::IDeviceSettingsCompositeIn*>(
+        implementation->QueryInterface(Exchange::IDeviceSettingsCompositeIn::ID));
+    Exchange::IDeviceSettingsDisplay* display = static_cast<Exchange::IDeviceSettingsDisplay*>(
+        implementation->QueryInterface(Exchange::IDeviceSettingsDisplay::ID));
 
     EXPECT_NE(nullptr, fpd);
     EXPECT_NE(nullptr, hdmiIn);
