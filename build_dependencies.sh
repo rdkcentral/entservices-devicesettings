@@ -94,6 +94,7 @@ cp -r "$GITHUB_WORKSPACE/iarmbus/core/include/." "$GITHUB_WORKSPACE/install/usr/
 touch "$GITHUB_WORKSPACE/install/usr/include/rfcapi.h"
 touch "$GITHUB_WORKSPACE/install/usr/include/sysMgr.h"
 touch "$GITHUB_WORKSPACE/install/usr/include/mfrMgr.h"
+touch "$GITHUB_WORKSPACE/install/usr/include/secure_wrapper.h"
 
 # Copy external stubs from testframework (no public repos available)
 find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
