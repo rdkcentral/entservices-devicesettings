@@ -26,6 +26,7 @@ git clone --branch 1.0.14 https://github.com/rdkcentral/entservices-testframewor
 git clone --branch main https://github.com/rdkcentral/rdk-halif-device_settings.git
 git clone --branch main https://github.com/rdkcentral/devicesettings.git
 git clone --branch develop https://github.com/rdkcentral/iarmbus.git
+git clone https://github.com/rdkcentral/iarmmgrs.git
 
 # Ensure mock iarmmgrs-hal headers exist in testframework for CI builds.
 mkdir -p "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal"
@@ -92,14 +93,19 @@ cp -r "$GITHUB_WORKSPACE/iarmbus/core/include/." "$GITHUB_WORKSPACE/install/usr/
 
 # Create stub headers for external dependencies with no public repos
 touch "$GITHUB_WORKSPACE/install/usr/include/rfcapi.h"
-touch "$GITHUB_WORKSPACE/install/usr/include/sysMgr.h"
 touch "$GITHUB_WORKSPACE/install/usr/include/mfrMgr.h"
 touch "$GITHUB_WORKSPACE/install/usr/include/secure_wrapper.h"
+
+# Copy real iarmmgrs public headers used by DeviceSettings.
+cp "$GITHUB_WORKSPACE/iarmmgrs/sysmgr/include/sysMgr.h" "$GITHUB_WORKSPACE/install/usr/include/"
 
 # Copy external stubs from testframework (no public repos available)
 find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
 find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
 find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
+
+# Ensure real iarmmgrs headers take precedence after external stub copies.
+cp "$GITHUB_WORKSPACE/iarmmgrs/sysmgr/include/sysMgr.h" "$GITHUB_WORKSPACE/install/usr/include/"
 
 echo "======================================================================================"
 echo "device-settings repository dependencies are ready"

@@ -29,7 +29,6 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-devicesettings \
     -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/headers/rdk/iarmbus \
     -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal \
     -Wall -Werror -Wno-error=format \
-    -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/Iarm.h \
     -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/Rfc.h \
     -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/secure_wrappermock.h \
     -DUSE_THUNDER_R4=ON -DTHUNDER_VERSION=4 -DTHUNDER_VERSION_MAJOR=4 -DTHUNDER_VERSION_MINOR=4" \
