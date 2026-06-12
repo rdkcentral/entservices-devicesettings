@@ -26,6 +26,7 @@
 #include <fcntl.h>
 
 // C headers with built-in C++ protection
+extern "C" {
 #include "libIARM.h"
 #include "libIBusDaemon.h"
 #include "libIBus.h"
@@ -40,6 +41,7 @@
 #include "dsDisplay.h"
 #include "dsAudio.h"
 #include "rfcapi.h"
+}
 
 // For glib APIs - conditional include
 #ifdef GLIB_AVAILABLE
