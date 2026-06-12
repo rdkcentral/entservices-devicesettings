@@ -100,8 +100,8 @@ namespace Plugin {
             uint32_t l_Ref = Core::InterlockedDecrement(m_refCount);
             if (l_Ref == 0) {
                 delete this;
-                return (l_Ref);
             }
+            return (l_Ref);
         }
 
     public:
