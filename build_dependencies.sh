@@ -98,6 +98,7 @@ touch "$GITHUB_WORKSPACE/install/usr/include/secure_wrapper.h"
 
 # Copy real iarmmgrs public headers used by DeviceSettings.
 cp "$GITHUB_WORKSPACE/iarmmgrs/sysmgr/include/sysMgr.h" "$GITHUB_WORKSPACE/install/usr/include/"
+cp -r "$GITHUB_WORKSPACE/iarmmgrs/mfr/include/." "$GITHUB_WORKSPACE/install/usr/include/"
 
 # Copy external stubs from testframework (no public repos available)
 find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers" -maxdepth 1 -type f -name "*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/" \; 2>/dev/null || true
