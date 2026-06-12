@@ -707,6 +707,9 @@ jobs:
           lcov -c
           -o coverage.info
           -d build/entservices-devicesettings
+          -d build/mocks
+          -d build/entservices-testframework
+          -d $GITHUB_WORKSPACE
           &&
           lcov
           -r coverage.info
