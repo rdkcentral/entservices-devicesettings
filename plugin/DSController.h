@@ -96,10 +96,11 @@ namespace Plugin {
             Core::InterlockedIncrement(m_refCount);
         }
         
-        void Release() const override {
+        uint32_t Release() const override {
             uint32_t l_Ref = Core::InterlockedDecrement(m_refCount);
             if (l_Ref == 0) {
                 delete this;
+                return (l_Ref);
             }
         }
 
