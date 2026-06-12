@@ -107,6 +107,7 @@ find "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
 
 # Ensure real iarmmgrs headers take precedence after external stub copies.
 cp "$GITHUB_WORKSPACE/iarmmgrs/sysmgr/include/sysMgr.h" "$GITHUB_WORKSPACE/install/usr/include/"
+cp -r "$GITHUB_WORKSPACE/iarmmgrs/mfr/include/." "$GITHUB_WORKSPACE/install/usr/include/"
 
 echo "======================================================================================"
 echo "device-settings repository dependencies are ready"
