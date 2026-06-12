@@ -15,8 +15,10 @@ on:
 
 env:
   BUILD_TYPE: Debug
+  REPO_NAME: "entservices-devicesettings"
   THUNDER_REF: "R4.4.1"
   INTERFACES_REF: "develop"
+  ENABLE_CACHE: "false"
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME}}
   AUTOMATICS_PASSCODE: ${{ secrets. AUTOMATICS_PASSCODE}}
 
@@ -42,30 +44,30 @@ jobs:
         # https://github.com/actions/cache
         # https://docs.github.com/en/rest/actions/cache
         # Modify the key if changing the list.
-        if: ${{ !env.ACT }}
+        if: ${{ !env.ACT && env.ENABLE_CACHE == 'true' }}
         id: cache
         uses: actions/cache@v3
         with:
           path: |
-            thunder/build/Thunder
-            thunder/build/entservices-apis
-            thunder/build/ThunderTools
-            thunder/install
-            !thunder/install/etc/WPEFramework/plugins
-            !thunder/install/usr/bin/RdkServicesTest
-            !thunder/install/usr/include/gmock
-            !thunder/install/usr/include/gtest
-            !thunder/install/usr/lib/libgmockd.a
-            !thunder/install/usr/lib/libgmock_maind.a
-            !thunder/install/usr/lib/libgtestd.a
-            !thunder/install/usr/lib/libgtest_maind.a
-            !thunder/install/usr/lib/cmake/GTest
-            !thunder/install/usr/lib/pkgconfig/gmock.pc
-            !thunder/install/usr/lib/pkgconfig/gmock_main.pc
-            !thunder/install/usr/lib/pkgconfig/gtest.pc
-            !thunder/install/usr/lib/pkgconfig/gtest_main.pc
-            !thunder/install/usr/lib/wpeframework/plugins
-          key: ${{ runner.os }}-${{ env.THUNDER_REF }}-${{ env.INTERFACES_REF }}-4
+            build/Thunder
+            build/entservices-apis
+            build/ThunderTools
+            install
+            !install/etc/WPEFramework/plugins
+            !install/usr/bin/RdkServicesTest
+            !install/usr/include/gmock
+            !install/usr/include/gtest
+            !install/usr/lib/libgmockd.a
+            !install/usr/lib/libgmock_maind.a
+            !install/usr/lib/libgtestd.a
+            !install/usr/lib/libgtest_maind.a
+            !install/usr/lib/cmake/GTest
+            !install/usr/lib/pkgconfig/gmock.pc
+            !install/usr/lib/pkgconfig/gmock_main.pc
+            !install/usr/lib/pkgconfig/gtest.pc
+            !install/usr/lib/pkgconfig/gtest_main.pc
+            !install/usr/lib/wpeframework/plugins
+          key: ${{ runner.os }}-${{ env.REPO_NAME }}-${{ env.THUNDER_REF }}-${{ env.INTERFACES_REF }}-4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -105,7 +107,6 @@ jobs:
             sudo ninja -C build install
 
       - name: Checkout Thunder
-        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/Thunder
@@ -125,7 +126,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: 1.0.1
+          ref: 1.0.14
 
       - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
@@ -150,6 +151,7 @@ jobs:
           ref: v1.15.0
 
       - name: Apply patches ThunderTools
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |  
           cd $GITHUB_WORKSPACE/ThunderTools
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/00010-R4.4-Add-support-for-project-dir.patch
@@ -171,6 +173,7 @@ jobs:
           cmake --install build/ThunderTools
 
       - name: Apply patches Thunder
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           cd $GITHUB_WORKSPACE/Thunder
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/Use_Legact_Alt_Based_On_ThunderTools_R4.4.3.patch
@@ -199,14 +202,15 @@ jobs:
           cmake --install build/Thunder
 
       - name: Checkout entservices-apis
-        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v3
         with:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
           ref: ${{env.INTERFACES_REF}}
           #token : ${{ secrets.RDKCM_RDKE }}
-          run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
+
+      - name: Remove DTV.json
+        run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
       - name: Build entservices-apis
         run: >
@@ -450,8 +454,7 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=Debug
           -DDS_FOUND=ON
-          -DHAS_FRONT_PANEL=ON
-          -DPLUGIN_FRONTPANEL=ON
+          -DPLUGIN_DEVICESETTINGS=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
@@ -526,8 +529,7 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=Debug
           -DDS_FOUND=ON
-          -DHAS_FRONT_PANEL=ON
-          -DPLUGIN_FRONTPANEL=ON
+          -DPLUGIN_DEVICESETTINGS=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
@@ -676,7 +678,7 @@ jobs:
         if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-L1-frontpanel
+          name: artifacts-L1-devicesettings
           path: |
             coverage/
             valgrind_log
