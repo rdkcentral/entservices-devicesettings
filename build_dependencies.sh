@@ -153,6 +153,17 @@ touch rdk/ds/dsError.h
 touch rdk/ds/dsMgr.h
 touch rdk/ds/dsTypes.h
 touch rdk/ds/dsUtl.h
+touch rdk/ds/dsAudio.h
+touch rdk/ds/dsCompositeIn.h
+touch rdk/ds/dsFPD.h
+touch rdk/ds/dsFPDTypes.h
+touch rdk/ds/dsHdmiIn.h
+touch rdk/ds/dsHdmiInTypes.h
+touch rdk/ds/dsHost.h
+touch rdk/ds/dsRpc.h
+touch rdk/ds/dsVideoDevice.h
+touch rdk/ds/dsVideoPort.h
+touch rdk/ds/dsVideoPortTypes.h
 touch rdk/ds/exception.hpp
 touch rdk/ds/hdmiIn.hpp
 touch rdk/ds/host.hpp
