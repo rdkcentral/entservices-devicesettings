@@ -147,6 +147,13 @@ jobs:
           path: iarmbus
           ref: develop
 
+      - name: Checkout iarmmgrs
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/iarmmgrs
+          path: iarmmgrs
+          ref: main
+
       - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
@@ -328,6 +335,10 @@ jobs:
           gdialservice.h
           gdialservicecommon.h
           &&
+          cp "$GITHUB_WORKSPACE/iarmmgrs/sysmgr/include/sysMgr.h" rdk/iarmmgrs-hal/sysMgr.h
+          &&
+          cp "$GITHUB_WORKSPACE/iarmmgrs/mfr/include/mfrMgr.h" rdk/iarmmgrs-hal/mfrMgr.h
+          &&
           cp -r /usr/include/gstreamer-1.0/gst /usr/include/glib-2.0/* /usr/lib/x86_64-linux-gnu/glib-2.0/include/* /usr/local/include/trower-base64/base64.h /usr/include/libdrm/drm.h /usr/include/libdrm/drm_mode.h /usr/include/xf86drm.h .
 
       - name: Set clang toolchain
@@ -394,7 +405,6 @@ jobs:
           -I $GITHUB_WORKSPACE/Thunder/Source/core
           -I $GITHUB_WORKSPACE/install/usr/include
           -I ./usr/include/libdrm
-          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
@@ -457,7 +467,6 @@ jobs:
           -I $GITHUB_WORKSPACE/Thunder/Source/core
           -I $GITHUB_WORKSPACE/install/usr/include
           -I $GITHUB_WORKSPACE/install/usr/include/WPEFramework
-          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
@@ -536,7 +545,6 @@ jobs:
           -I $GITHUB_WORKSPACE/install/usr/include
           -I $GITHUB_WORKSPACE/install/usr/include/WPEFramework
           -I ./usr/include/libdrm
-          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/RBus.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Telemetry.h
