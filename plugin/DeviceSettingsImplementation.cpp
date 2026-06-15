@@ -26,6 +26,7 @@
 
 #include "UtilsLogging.h"
 #include "UtilsSearchRDKProfile.h"
+#include <dlfcn.h>
 #include <syscall.h>
 
 using namespace std;
@@ -45,6 +46,41 @@ using namespace std;
 
 namespace WPEFramework {
 namespace Plugin {
+
+    namespace DeviceSettingsHALLoader {
+        void* gLibraryHandle = nullptr;
+        std::mutex gLibraryLock;
+
+        void* ResolveSymbol(const std::string& libName, const std::string& symbolName)
+        {
+            std::lock_guard<std::mutex> guard(gLibraryLock);
+
+            if (gLibraryHandle == nullptr) {
+                gLibraryHandle = dlopen(libName.c_str(), RTLD_LAZY);
+                if (gLibraryHandle == nullptr) {
+                    LOGERR("dlopen failed for %s: %s", libName.c_str(), dlerror());
+                    return nullptr;
+                }
+            }
+
+            void* symbol = dlsym(gLibraryHandle, symbolName.c_str());
+            if (symbol == nullptr) {
+                LOGERR("dlsym failed for %s: %s", symbolName.c_str(), dlerror());
+            }
+
+            return symbol;
+        }
+
+        void ReleaseAllLibraries()
+        {
+            std::lock_guard<std::mutex> guard(gLibraryLock);
+
+            if (gLibraryHandle != nullptr) {
+                dlclose(gLibraryHandle);
+                gLibraryHandle = nullptr;
+            }
+        }
+    }
 
     SERVICE_REGISTRATION(DeviceSettingsImp, 1, 0);
 
@@ -127,6 +163,9 @@ namespace Plugin {
             delete _dsController;
             _dsController = nullptr;
         }
+
+        DeviceSettingsHALLoader::ReleaseAllLibraries();
+        LOGINFO("DeviceSettingsImp Destructor - Released all HAL libraries");
         
     }
 

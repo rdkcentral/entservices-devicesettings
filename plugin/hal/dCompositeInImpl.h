@@ -85,17 +85,7 @@ public:
 
     // Resolve method for dynamic library loading - following dHdmiInImpl.h pattern
     static void* resolve(const std::string& libName, const std::string& symbolName) {
-        void* handle = dlopen(libName.c_str(), RTLD_LAZY);
-        if (!handle) {
-            LOGERR("dlopen failed for %s: %s", libName.c_str(), dlerror());
-            return nullptr;
-        }
-        void* symbol = dlsym(handle, symbolName.c_str());
-        if (!symbol) {
-            LOGERR("dlsym failed for %s: %s", symbolName.c_str(), dlerror());
-        }
-        dlclose(handle);
-        return symbol;
+        return DeviceSettingsHALLoader::ResolveSymbol(libName, symbolName);
     }
 
     // Singleton getInstance method - following VideoPort pattern

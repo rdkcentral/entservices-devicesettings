@@ -27,6 +27,7 @@
 #include <string>
 #include <cstdio>
 #include <cstring>
+#include <mutex>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -39,6 +40,7 @@
 #include <interfaces/IDeviceSettingsHost.h>
 #include <interfaces/IDeviceSettingsVideoDevice.h>
 #include <interfaces/IDeviceSettingsVideoPort.h>
+#include "UtilsLogging.h"
 
 #define USE_LEGACY_INTERFACE
 
@@ -213,6 +215,14 @@ using HostSleepMode = DeviceSettingsHost::SleepMode;
 #define DEBUG_LOG(fmt, ...) do { } while(0)
 #endif
 
+namespace DeviceSettingsHALLoader {
+    extern void* gLibraryHandle;
+    extern std::mutex gLibraryLock;
+
+    void* ResolveSymbol(const std::string& libName, const std::string& symbolName);
+    void ReleaseAllLibraries();
+}
+
 // Exact replica of original HostPersistence implementation to avoid DS_LIBRARIES dependency
 namespace device {
     class HostPersistence {
@@ -237,14 +247,8 @@ namespace device {
 
             filePtr = fopen(fileName.c_str(), "r");
             if (filePtr != NULL) {
-                while (!feof(filePtr)) {
-                    /* RDKSEC-811 Coverity fix - CHECKED_RETURN */
-                    if (fscanf(filePtr, "%1023s\t%1023s\n", key, keyValue) <= 0) {
-                        // fscanf failed
-                    } else {
-                        /* Check the TypeOfInput variable and then call the appropriate insert function */
-                        map.insert({key, keyValue});
-                    }
+                while (fscanf(filePtr, "%1023s\t%1023s", key, keyValue) == 2) {
+                    map.insert({key, keyValue});
                 }
                 fclose(filePtr);
             } else {
@@ -268,7 +272,11 @@ namespace device {
                     for (auto it = _properties.begin(); it != _properties.end(); ++it) {
                         std::string dataToWrite = it->first + "\t" + it->second + "\n";
                         unsigned int size = dataToWrite.length();
-                        fwrite(dataToWrite.c_str(), 1, size, file);
+                        size_t written = fwrite(dataToWrite.c_str(), 1, size, file);
+                        if (written != size) {
+                            LOGERR("HostPersistence write failed for key %s", it->first.c_str());
+                            break;
+                        }
                     }
 
                     fflush(file);           // Flush buffers to FS

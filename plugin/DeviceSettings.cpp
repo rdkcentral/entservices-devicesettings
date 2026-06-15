@@ -232,7 +232,7 @@ namespace Plugin
                 }
 
                 _mDeviceSettingsCompositeIn = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsCompositeIn>();
-                _mDeviceSettingsAudio = _mDeviceSettings->QueryInterface<DeviceSettingsAudio>();
+                _mDeviceSettingsAudio = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsAudio>();
                 _mDeviceSettingsVideoPort = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoPort>();
                 _mDeviceSettingsVideoDevice = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoDevice>();
                 _mDeviceSettingsHost = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHost>();

@@ -121,17 +121,7 @@ public:
     }
 
     static void* resolve(const std::string& libName, const std::string& symbolName) {
-        void* handle = dlopen(libName.c_str(), RTLD_LAZY);
-        if (!handle) {
-            std::cerr << "dlopen failed for " << libName << ": " << dlerror() << std::endl;
-            return nullptr;
-        }
-        void* symbol = dlsym(handle, symbolName.c_str());
-        if (!symbol) {
-            std::cerr << "dlsym failed for " << symbolName << ": " << dlerror() << std::endl;
-        }
-        dlclose(handle);
-        return symbol;
+        return DeviceSettingsHALLoader::ResolveSymbol(libName, symbolName);
     }
 
     // Implementation of all VideoPort Platform interface methods
