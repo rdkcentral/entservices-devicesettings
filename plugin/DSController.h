@@ -127,7 +127,7 @@ namespace Plugin {
         void OnDisplayHDMIHotPlug(const DisplayEvent displayEvent);
         
     private:
-        AddRefReturnType AddRefImpl(std::false_type) const {
+        uint32_t AddRefImpl(std::false_type) const {
             return Core::InterlockedIncrement(m_refCount);
         }
 
@@ -135,7 +135,7 @@ namespace Plugin {
             Core::InterlockedIncrement(m_refCount);
         }
 
-        ReleaseReturnType ReleaseImpl(std::false_type) const {
+        uint32_t ReleaseImpl(std::false_type) const {
             const uint32_t l_Ref = Core::InterlockedDecrement(m_refCount);
             if (l_Ref == 0) {
                 delete this;
