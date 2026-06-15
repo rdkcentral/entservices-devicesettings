@@ -29,7 +29,6 @@
 #include "DeviceSettings.h"
 #include <interfaces/IConfiguration.h>
 
-
 namespace WPEFramework {
 
 namespace Plugin
