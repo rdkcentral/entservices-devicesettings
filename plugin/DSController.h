@@ -26,6 +26,8 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <type_traits>
+#include <utility>
 #include <pthread.h>
 #include <cstdlib>  // for NULL
 
@@ -91,17 +93,17 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification)
         END_INTERFACE_MAP
 
-        // Implement Core::IUnknown methods
-        uint32_t AddRef() const override {
-            return Core::InterlockedIncrement(m_refCount);
+        // Implement Core::IUnknown methods. Some branches expose AddRef as void,
+        // others as uint32_t, so deduce from Core::IUnknown to stay ABI-compatible.
+        using AddRefReturnType = decltype(std::declval<Core::IUnknown>().AddRef());
+        using ReleaseReturnType = decltype(std::declval<Core::IUnknown>().Release());
+
+        AddRefReturnType AddRef() const override {
+            return AddRefImpl(std::is_void<AddRefReturnType>{});
         }
-        
-        uint32_t Release() const override {
-            uint32_t l_Ref = Core::InterlockedDecrement(m_refCount);
-            if (l_Ref == 0) {
-                delete this;
-            }
-            return (l_Ref);
+
+        ReleaseReturnType Release() const override {
+            return ReleaseImpl(std::is_void<ReleaseReturnType>{});
         }
 
     public:
@@ -125,6 +127,29 @@ namespace Plugin {
         void OnDisplayHDMIHotPlug(const DisplayEvent displayEvent);
         
     private:
+        AddRefReturnType AddRefImpl(std::false_type) const {
+            return Core::InterlockedIncrement(m_refCount);
+        }
+
+        void AddRefImpl(std::true_type) const {
+            Core::InterlockedIncrement(m_refCount);
+        }
+
+        ReleaseReturnType ReleaseImpl(std::false_type) const {
+            const uint32_t l_Ref = Core::InterlockedDecrement(m_refCount);
+            if (l_Ref == 0) {
+                delete this;
+            }
+            return l_Ref;
+        }
+
+        void ReleaseImpl(std::true_type) const {
+            const uint32_t l_Ref = Core::InterlockedDecrement(m_refCount);
+            if (l_Ref == 0) {
+                delete this;
+            }
+        }
+
         void InitializeResolutionThread();
         void SetVideoPortResolution();
         void SetResolution(int32_t handle, dsVideoPortType_t portType);
