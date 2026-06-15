@@ -91,9 +91,9 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification)
         END_INTERFACE_MAP
 
-        // Implement Core::IUnknown methods (Thunder R4.4.1 API: return void)
-        void AddRef() const override {
-            Core::InterlockedIncrement(m_refCount);
+        // Implement Core::IUnknown methods
+        uint32_t AddRef() const override {
+            return Core::InterlockedIncrement(m_refCount);
         }
         
         uint32_t Release() const override {

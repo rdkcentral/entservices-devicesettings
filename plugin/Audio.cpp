@@ -690,12 +690,12 @@ uint32_t Audio::GetAudioBassEnhancer(const int32_t handle, int32_t &boost) {
     return result;
 }
 
-uint32_t Audio::EnableAudioSurroudDecoder(const int32_t handle, const bool enable) {
+uint32_t Audio::EnableAudioSurroundDecoder(const int32_t handle, const bool enable) {
     uint32_t result = (_platform != nullptr) ? _platform->EnableAudioSurroudDecoder(handle, enable) : WPEFramework::Core::ERROR_UNAVAILABLE;
     return result;
 }
 
-uint32_t Audio::IsAudioSurroudDecoderEnabled(const int32_t handle, bool &enabled) {
+uint32_t Audio::IsAudioSurroundDecoderEnabled(const int32_t handle, bool &enabled) {
     uint32_t result = (_platform != nullptr) ? _platform->IsAudioSurroudDecoderEnabled(handle, enabled) : WPEFramework::Core::ERROR_UNAVAILABLE;
     return result;
 }
@@ -760,7 +760,7 @@ uint32_t Audio::SetAudioMixerLevels(const int32_t handle, const AudioInput audio
     return result;
 }
 
-uint32_t Audio::SetAudioMS12SettingsOverride(const int32_t handle, const string profileName, const string profileSettingsName, const string profileSettingValue, const string profileState) {
+uint32_t Audio::SetAudioMS12SettingsOverride(const int32_t handle, const string& profileName, const string& profileSettingsName, const string& profileSettingValue, const string profileState) {
     uint32_t result = (_platform != nullptr) ? _platform->SetAudioMS12SettingsOverride(handle, profileName, profileSettingsName, profileSettingValue, profileState) : WPEFramework::Core::ERROR_UNAVAILABLE;
     return result;
 }

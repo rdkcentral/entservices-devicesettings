@@ -114,7 +114,7 @@ void HdmiIn::OnHDMIInVRRStatusEvent(const HDMIInPort port, const HDMIInVRRType v
 
 uint32_t HdmiIn::GetHDMIInNumberOfInputs(int32_t &count) {
 
-    LOGINFO("GetHDMIInNumbefOfInputs");
+    LOGINFO("GetHDMIInNumberOfInputs");
     this->platform().GetHDMIInNumberOfInputs(count);
     LOGINFO("GetHDMIInNumberOfInputs: SUCCESS - count=%d", count);
 

@@ -162,7 +162,7 @@ namespace Plugin {
 
         // Audio Persistence Configuration
         Core::hresult GetAudioEnablePersist(const int32_t handle, bool &enabled, std::string &portName);
-        Core::hresult SetAudioEnablePersist(const int32_t handle, const bool enable, const std::string portName);
+        Core::hresult SetAudioEnablePersist(const int32_t handle, const bool enable, const std::string& portName);
 
         // Audio Decoder Status
         Core::hresult IsAudioMSDecoded(const int32_t handle, bool &hasms11Decode);
@@ -203,16 +203,16 @@ namespace Plugin {
         Core::hresult GetAudioBassEnhancer(const int32_t handle, int32_t &boost);
 
         // Surround Decoder
-        Core::hresult EnableAudioSurroudDecoder(const int32_t handle, const bool enable);
-        Core::hresult IsAudioSurroudDecoderEnabled(const int32_t handle, bool &enabled);
+        Core::hresult EnableAudioSurroundDecoder(const int32_t handle, const bool enable);
+        Core::hresult IsAudioSurroundDecoderEnabled(const int32_t handle, bool &enabled);
 
         // DRC Mode
         Core::hresult SetAudioDRCMode(const int32_t handle, const int32_t drcMode);
         Core::hresult GetAudioDRCMode(const int32_t handle, int32_t &drcMode);
 
         // Surround Virtualizer
-        Core::hresult SetAudioSurroudVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer);
-        Core::hresult GetAudioSurroudVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer);
+        Core::hresult SetAudioSurroundVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer);
+        Core::hresult GetAudioSurroundVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer);
 
         // MI Steering
         Core::hresult SetAudioMISteering(const int32_t handle, const bool enable);

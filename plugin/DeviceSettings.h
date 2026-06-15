@@ -184,7 +184,7 @@ namespace Plugin {
                 LOGINFO("OnHDMIInEventStatus");
             }
 
-            void OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution videoPortResolution) override
+            void OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution& videoPortResolution) override
             {
                 LOGINFO("OnHDMIInVideoModeUpdate");
             }
@@ -210,12 +210,12 @@ namespace Plugin {
             }
 
             // VideoPort notification handlers matching WPE interface
-            void OnResolutionPostChange(const ResolutionChange resolution) override
+            void OnResolutionPostChange(const ResolutionChange& resolution) override
             {
                 LOGINFO("OnResolutionPostChange");
             }
 
-            void OnResolutionPreChange(const ResolutionChange resolution) override
+            void OnResolutionPreChange(const ResolutionChange& resolution) override
             {
                 LOGINFO("OnResolutionPreChange");
             }
@@ -246,7 +246,7 @@ namespace Plugin {
                 LOGINFO("OnCompositeInStatus: activePort=%d, isPresented=%s", (int)activePort, isPresented ? "true" : "false");
             }
 
-            void OnCompositeInVideoModeUpdate(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution videoResolution) override
+            void OnCompositeInVideoModeUpdate(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution& videoResolution) override
             {
                 LOGINFO("OnCompositeInVideoModeUpdate: activePort=%d, resolution=%s", (int)activePort, videoResolution.name.c_str());
             }
@@ -257,12 +257,12 @@ namespace Plugin {
                 LOGINFO("OnZoomSettingsChanged: zoomSetting=%d", static_cast<int>(zoomSetting));
             }
 
-            void OnDisplayFrameratePreChange(const string frameRate) override
+            void OnDisplayFrameratePreChange(const string& frameRate) override
             {
                 LOGINFO("OnDisplayFrameratePreChange: frameRate=%s", frameRate.c_str());
             }
 
-            void OnDisplayFrameratePostChange(const string frameRate) override
+            void OnDisplayFrameratePostChange(const string& frameRate) override
             {
                 LOGINFO("OnDisplayFrameratePostChange: frameRate=%s", frameRate.c_str());
             }

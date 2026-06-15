@@ -182,8 +182,8 @@ public:
     uint32_t GetAudioBassEnhancer(const int32_t handle, int32_t &boost);
 
     // Surround Decoder
-    uint32_t EnableAudioSurroudDecoder(const int32_t handle, const bool enable);
-    uint32_t IsAudioSurroudDecoderEnabled(const int32_t handle, bool &enabled);
+    uint32_t EnableAudioSurroundDecoder(const int32_t handle, const bool enable);
+    uint32_t IsAudioSurroundDecoderEnabled(const int32_t handle, bool &enabled);
 
     // DRC Mode
     uint32_t SetAudioDRCMode(const int32_t handle, const int32_t drcMode);
@@ -210,7 +210,7 @@ public:
     uint32_t SetAudioMixerLevels(const int32_t handle, const AudioInput audioInput, const int32_t volume);
 
     // MS12 Settings Override
-    uint32_t SetAudioMS12SettingsOverride(const int32_t handle, const std::string profileName, const std::string profileSettingsName, const std::string profileSettingValue, const std::string profileState);
+    uint32_t SetAudioMS12SettingsOverride(const int32_t handle, const std::string& profileName, const std::string& profileSettingsName, const std::string& profileSettingValue, const std::string profileState);
 
     // Reset Functions
     uint32_t ResetAudioDialogEnhancement(const int32_t handle);

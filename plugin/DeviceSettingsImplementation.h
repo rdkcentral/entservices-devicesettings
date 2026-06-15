@@ -123,7 +123,7 @@ namespace Plugin {
         // IDeviceSettingsHDMIIn interface implementation - delegate to _hdmiInSettings interface
         Core::hresult Register(Exchange::IDeviceSettingsHDMIIn::INotification* notification) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsHDMIIn::INotification* notification) override;
-        Core::hresult GetHDMIInNumbefOfInputs(int32_t &count) override;
+            Core::hresult GetHDMIInNumberOfInputs(int32_t &count) override;
         Core::hresult GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) override;
         Core::hresult SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) override;
         Core::hresult ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition) override;
@@ -192,7 +192,7 @@ namespace Plugin {
 
         // Audio Persistence Configuration
         Core::hresult GetAudioEnablePersist(const int32_t handle, bool &enabled, string &portName) override;
-        Core::hresult SetAudioEnablePersist(const int32_t handle, const bool enable, const string portName) override;
+            Core::hresult SetAudioEnablePersist(const int32_t handle, const bool enable, const string& portName) override;
 
         // Audio Decoder Status
         Core::hresult IsAudioMSDecoded(const int32_t handle, bool &hasms11Decode) override;
@@ -233,16 +233,16 @@ namespace Plugin {
         Core::hresult GetAudioBassEnhancer(const int32_t handle, int32_t &boost) override;
 
         // Surround Decoder
-        Core::hresult EnableAudioSurroudDecoder(const int32_t handle, const bool enable) override;
-        Core::hresult IsAudioSurroudDecoderEnabled(const int32_t handle, bool &enabled) override;
+            Core::hresult EnableAudioSurroundDecoder(const int32_t handle, const bool enable) override;
+            Core::hresult IsAudioSurroundDecoderEnabled(const int32_t handle, bool &enabled) override;
 
         // DRC Mode
         Core::hresult SetAudioDRCMode(const int32_t handle, const int32_t drcMode) override;
         Core::hresult GetAudioDRCMode(const int32_t handle, int32_t &drcMode) override;
 
         // Surround Virtualizer
-        Core::hresult SetAudioSurroudVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer) override;
-        Core::hresult GetAudioSurroudVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer) override;
+        Core::hresult SetAudioSurroundVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer) override;
+        Core::hresult GetAudioSurroundVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer) override;
 
         // MI Steering
         Core::hresult SetAudioMISteering(const int32_t handle, const bool enable) override;
@@ -261,7 +261,7 @@ namespace Plugin {
         Core::hresult SetAudioMixerLevels(const int32_t handle, const AudioInput audioInput, const int32_t volume) override;
 
         // MS12 Settings Override
-        Core::hresult SetAudioMS12SettingsOverride(const int32_t handle, const string profileName, const string profileSettingsName, const string profileSettingValue, const string profileState) override;
+            Core::hresult SetAudioMS12SettingsOverride(const int32_t handle, const string& profileName, const string& profileSettingsName, const string& profileSettingValue, const AudioMS12ProfileState profileState) override;
 
         // Reset Functions
         Core::hresult ResetAudioDialogEnhancement(const int32_t handle) override;
@@ -295,7 +295,7 @@ namespace Plugin {
         // Additional required VideoPort methods from WPE interface
         Core::hresult IsVideoPortDisplaySurround(const int32_t handle, bool &surround) override;
         Core::hresult GetVideoPortDisplaySurroundMode(const int32_t handle, Exchange::IDeviceSettingsVideoPort::VideoPortSurroundMode &surroundMode) override;
-        Core::hresult SetVideoPortResolution(const int32_t handle, const VideoPortResolution videoPortResolution, const bool persist, const bool forceCompatibility) override;
+            Core::hresult SetVideoPortResolution(const int32_t handle, const VideoPortResolution& videoPortResolution, const bool persist, const bool forceCompatibility) override;
         Core::hresult EnableHDCPOnVideoPort(const int32_t handle, const bool hdcpEnable, const uint8_t hdcpKey[], const uint16_t hdcpKeySize) override;
         Core::hresult IsHDCPEnabledOnVideoPort(const int32_t handle, bool &hdcpEnabled) override;
         Core::hresult GetTVHDRCapabilities(const int32_t handle, int32_t &capabilities) override;
@@ -332,7 +332,7 @@ namespace Plugin {
         Core::hresult SetFRFMode(const int32_t handle , const int32_t frfmode ) override;
         Core::hresult GetFRFMode(const int32_t handle , int32_t &frfmode /* @out */) override;
         Core::hresult GetCurrentDisplayFrameRate(const int32_t handle , string &framerate /* @out */) override;
-        Core::hresult SetDisplayFrameRate(const int32_t handle , const string framerate ) override;
+        Core::hresult SetDisplayFrameRate(const int32_t handle , const string& framerate ) override;
         Core::hresult GetVideoDeviceConfig(Exchange::IDeviceSettingsVideoDevice::IVideoDeviceConfigIterator*& videoConfigs /* @out */) override;
         
         //=========================================================================
@@ -345,7 +345,7 @@ namespace Plugin {
         Core::hresult SetPreferredSleepMode(const Exchange::IDeviceSettingsHost::SleepMode mode ) override;
         Core::hresult GetCPUTemperature(float &temperature /* @out */) override;
         Core::hresult GetHALVersion(uint32_t &versionNo /* @out */) override;
-        Core::hresult GetSoCID(string &socID /* @out */) override;
+        Core::hresult GetSOCID(string &socID /* @out */) override;
         Core::hresult GetEDID(uint8_t edId[] /* @out @length:edIdLength @maxlength:edIdLength */, const uint16_t edIdLength ) override;
         Core::hresult GetMS12ConfigType(string &ms12Config /* @out */) override;
         

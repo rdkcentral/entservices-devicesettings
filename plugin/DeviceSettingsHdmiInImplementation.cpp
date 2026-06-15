@@ -3,7 +3,6 @@
  * following copyright and licenses apply:
  *
  * Copyright 2024 RDK Management
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -165,7 +164,7 @@ namespace Plugin {
         dispatchHDMIInEvent(&DeviceSettingsHDMIIn::INotification::OnHDMIInVRRStatus, port, vrrType);
     }
 
-    Core::hresult DeviceSettingsHdmiInImp::GetHDMIInNumbefOfInputs(int32_t &count) {
+    Core::hresult DeviceSettingsHdmiInImp::GetHDMIInNumberOfInputs(int32_t &count) {
 
         LOGINFO("GetHDMIInNumberOfInputs");
         Core::hresult errorCode = Core::ERROR_GENERAL;

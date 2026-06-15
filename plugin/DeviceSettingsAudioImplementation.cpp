@@ -3,7 +3,7 @@
  * following copyright and licenses apply:
  *
  * Copyright 2024 RDK Management
- *
+    Core::hresult DeviceSettingsAudioImpl::EnableAudioSurroundDecoder(const int32_t handle, const bool enable) {
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -452,7 +452,7 @@ namespace Plugin {
         return result;
     }
     
-    Core::hresult DeviceSettingsAudioImpl::SetAudioEnablePersist(const int32_t handle, const bool enable, const string portName) {
+    Core::hresult DeviceSettingsAudioImpl::SetAudioEnablePersist(const int32_t handle, const bool enable, const string& portName) {
         uint32_t result = _audio.SetAudioEnablePersist(handle, enable, portName);
         return result;
     }
@@ -557,13 +557,13 @@ namespace Plugin {
         return result;
     }
     
-    Core::hresult DeviceSettingsAudioImpl::EnableAudioSurroudDecoder(const int32_t handle, const bool enable) {
-        uint32_t result = _audio.EnableAudioSurroudDecoder(handle, enable);
+    Core::hresult DeviceSettingsAudioImpl::EnableAudioSurroundDecoder(const int32_t handle, const bool enable) {
+        uint32_t result = _audio.EnableAudioSurroundDecoder(handle, enable);
         return result;
     }
     
-    Core::hresult DeviceSettingsAudioImpl::IsAudioSurroudDecoderEnabled(const int32_t handle, bool &enabled) {
-        uint32_t result = _audio.IsAudioSurroudDecoderEnabled(handle, enabled);
+    Core::hresult DeviceSettingsAudioImpl::IsAudioSurroundDecoderEnabled(const int32_t handle, bool &enabled) {
+        uint32_t result = _audio.IsAudioSurroundDecoderEnabled(handle, enabled);
         return result;
     }
     
@@ -577,12 +577,12 @@ namespace Plugin {
         return result;
     }
     
-    Core::hresult DeviceSettingsAudioImpl::SetAudioSurroudVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer) {
+    Core::hresult DeviceSettingsAudioImpl::SetAudioSurroundVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer) {
         uint32_t result = _audio.SetAudioSurroudVirtualizer(handle, surroundVirtualizer);
         return result;
     }
     
-    Core::hresult DeviceSettingsAudioImpl::GetAudioSurroudVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer) {
+    Core::hresult DeviceSettingsAudioImpl::GetAudioSurroundVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer) {
         uint32_t result = _audio.GetAudioSurroudVirtualizer(handle, surroundVirtualizer);
         return result;
     }

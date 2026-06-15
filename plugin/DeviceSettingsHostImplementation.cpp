@@ -3,7 +3,6 @@
  * following copyright and licenses apply:
  *
  * Copyright 2025 RDK Management
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -177,7 +176,7 @@ namespace Plugin {
     Core::hresult DeviceSettingsHostImpl::GetSoCID(string &socID)
     {
         uint32_t result = Core::ERROR_GENERAL;
-        result = _host.GetSoCID(socID);
+          result = _host.GetSoCID(socID);
         if (result == Core::ERROR_NONE) {
             LOGINFO("GetSoCID succeeded: socID='%s'", socID.c_str());
         } else {

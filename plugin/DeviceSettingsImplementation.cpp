@@ -255,8 +255,8 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_hdmiInSettings, Unregister, notification)
     }
     
-    Core::hresult DeviceSettingsImp::GetHDMIInNumbefOfInputs(int32_t &count) {
-        DELEGATE_TO_COMPONENT(_hdmiInSettings, GetHDMIInNumbefOfInputs, count)
+    Core::hresult DeviceSettingsImp::GetHDMIInNumberOfInputs(int32_t &count) {
+        DELEGATE_TO_COMPONENT(_hdmiInSettings, GetHDMIInNumberOfInputs, count)
     }
     
     Core::hresult DeviceSettingsImp::GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) {
@@ -503,7 +503,7 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioEnablePersist, handle, enabled, portName)
     }
     
-    Core::hresult DeviceSettingsImp::SetAudioEnablePersist(const int32_t handle, const bool enable, const string portName) {
+    Core::hresult DeviceSettingsImp::SetAudioEnablePersist(const int32_t handle, const bool enable, const string& portName) {
         DELEGATE_TO_COMPONENT(_audioSettings, SetAudioEnablePersist, handle, enable, portName)
     }
     
@@ -587,12 +587,12 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioBassEnhancer, handle, boost)
     }
     
-    Core::hresult DeviceSettingsImp::EnableAudioSurroudDecoder(const int32_t handle, const bool enable) {
-        DELEGATE_TO_COMPONENT(_audioSettings, EnableAudioSurroudDecoder, handle, enable)
+    Core::hresult DeviceSettingsImp::EnableAudioSurroundDecoder(const int32_t handle, const bool enable) {
+        DELEGATE_TO_COMPONENT(_audioSettings, EnableAudioSurroundDecoder, handle, enable)
     }
     
-    Core::hresult DeviceSettingsImp::IsAudioSurroudDecoderEnabled(const int32_t handle, bool &enabled) {
-        DELEGATE_TO_COMPONENT(_audioSettings, IsAudioSurroudDecoderEnabled, handle, enabled)
+    Core::hresult DeviceSettingsImp::IsAudioSurroundDecoderEnabled(const int32_t handle, bool &enabled) {
+        DELEGATE_TO_COMPONENT(_audioSettings, IsAudioSurroundDecoderEnabled, handle, enabled)
     }
     
     Core::hresult DeviceSettingsImp::SetAudioDRCMode(const int32_t handle, const int32_t drcMode) {
@@ -603,12 +603,12 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioDRCMode, handle, drcMode)
     }
     
-    Core::hresult DeviceSettingsImp::SetAudioSurroudVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer) {
-        DELEGATE_TO_COMPONENT(_audioSettings, SetAudioSurroudVirtualizer, handle, surroundVirtualizer)
+    Core::hresult DeviceSettingsImp::SetAudioSurroundVirtualizer(const int32_t handle, const SurroundVirtualizer surroundVirtualizer) {
+        DELEGATE_TO_COMPONENT(_audioSettings, SetAudioSurroundVirtualizer, handle, surroundVirtualizer)
     }
     
-    Core::hresult DeviceSettingsImp::GetAudioSurroudVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer) {
-        DELEGATE_TO_COMPONENT(_audioSettings, GetAudioSurroudVirtualizer, handle, surroundVirtualizer)
+    Core::hresult DeviceSettingsImp::GetAudioSurroundVirtualizer(const int32_t handle, SurroundVirtualizer &surroundVirtualizer) {
+        DELEGATE_TO_COMPONENT(_audioSettings, GetAudioSurroundVirtualizer, handle, surroundVirtualizer)
     }
     
     Core::hresult DeviceSettingsImp::SetAudioMISteering(const int32_t handle, const bool enable) {
@@ -643,8 +643,9 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, SetAudioMixerLevels, handle, audioInput, volume)
     }
     
-    Core::hresult DeviceSettingsImp::SetAudioMS12SettingsOverride(const int32_t handle, const string profileName, const string profileSettingsName, const string profileSettingValue, const string profileState) {
-        DELEGATE_TO_COMPONENT(_audioSettings, SetAudioMS12SettingsOverride, handle, profileName, profileSettingsName, profileSettingValue, profileState)
+    Core::hresult DeviceSettingsImp::SetAudioMS12SettingsOverride(const int32_t handle, const string& profileName, const string& profileSettingsName, const string& profileSettingValue, const AudioMS12ProfileState profileState) {
+        const string profileStateStr = (profileState == AudioMS12ProfileState::AUDIO_MS12_PROFILE_STATE_ADD) ? "ADD" : "REMOVE";
+        DELEGATE_TO_COMPONENT(_audioSettings, SetAudioMS12SettingsOverride, handle, profileName, profileSettingsName, profileSettingValue, profileStateStr)
     }
     
     Core::hresult DeviceSettingsImp::ResetAudioDialogEnhancement(const int32_t handle) {
@@ -780,7 +781,7 @@ namespace Plugin {
         return result;
     }
     
-    Core::hresult DeviceSettingsImp::SetVideoPortResolution(const int32_t handle, const VideoPortResolution videoPortResolution, const bool persist, const bool forceCompatibility) {
+    Core::hresult DeviceSettingsImp::SetVideoPortResolution(const int32_t handle, const VideoPortResolution& videoPortResolution, const bool persist, const bool forceCompatibility) {
         DELEGATE_TO_COMPONENT(_videoPortSettings, SetVideoPortResolution, handle, videoPortResolution, persist, forceCompatibility)
     }
     
@@ -911,8 +912,8 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetSupportedVideoCodingFormats, handle, supportedFormats)
     }
 
-    Core::hresult DeviceSettingsImp::SetDisplayFrameRate(const int32_t handle, const string frameRate) {
-        DELEGATE_TO_COMPONENT(_videoDeviceSettings, SetDisplayFrameRate, handle, frameRate)
+    Core::hresult DeviceSettingsImp::SetDisplayFrameRate(const int32_t handle, const string& framerate) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, SetDisplayFrameRate, handle, framerate)
     }
 
     Core::hresult DeviceSettingsImp::GetVideoDeviceConfig(Exchange::IDeviceSettingsVideoDevice::IVideoDeviceConfigIterator*& videoDeviceConfigs) {
@@ -972,7 +973,7 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_hostSettings, GetHALVersion, versionNo)
     }
 
-    Core::hresult DeviceSettingsImp::GetSoCID(string &socID) {
+    Core::hresult DeviceSettingsImp::GetSOCID(string &socID) {
         DELEGATE_TO_COMPONENT(_hostSettings, GetSoCID, socID)
     }
 

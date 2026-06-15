@@ -101,7 +101,7 @@ namespace Plugin {
         // These are called by DeviceSettingsImp which implements the Exchange interface
         Core::hresult Register(Exchange::IDeviceSettingsHDMIIn::INotification* notification);
         Core::hresult Unregister(Exchange::IDeviceSettingsHDMIIn::INotification* notification);
-        Core::hresult GetHDMIInNumbefOfInputs(int32_t &count);
+        Core::hresult GetHDMIInNumberOfInputs(int32_t &count);
         Core::hresult GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus);
         Core::hresult SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType);
         Core::hresult ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition);

@@ -609,7 +609,7 @@ void PopulateVideoPortConfig(
         typeCfg.name                 = (cfg.name ? cfg.name : "");
         typeCfg.dtcpSupported        = cfg.dtcpSupported;
         typeCfg.hdcpSupported        = cfg.hdcpSupported;
-        typeCfg.restrictedResollution = cfg.restrictedResollution;
+        typeCfg.restrictedResolution = cfg.restrictedResollution;
         if ((cfg.supportedResolutions != NULL) && (cfg.numSupportedResolutions > 0)) {
             std::ostringstream supportedResolutions;
             for (size_t j = 0; j < cfg.numSupportedResolutions; ++j) {
@@ -676,7 +676,7 @@ void DumpVideoPortConfig(
                 cfg.name.c_str(),
                 cfg.dtcpSupported ? "true" : "false",
                 cfg.hdcpSupported ? "true" : "false",
-                cfg.restrictedResollution,
+                cfg.restrictedResolution,
                 cfg.supportedResolutionNames.c_str());
     }
 
