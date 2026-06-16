@@ -159,9 +159,9 @@ namespace Plugin {
                 LOGINFO("OnAudioPortStateChanged: state %d", audioPortState);
             }
 
-            void OnAudioLevelChangedEvent(int32_t audioLevel) override
+            void OnAudioLevelChanged(int32_t audioLevel) override
             {
-                LOGINFO("OnAudioLevelChangedEvent: level %d", audioLevel);
+                LOGINFO("OnAudioLevelChanged: level %d", audioLevel);
             }
 
             void OnAudioModeEvent(AudioPortType audioPortType, AudioStereoMode audioMode) override

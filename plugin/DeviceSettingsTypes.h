@@ -215,12 +215,16 @@ using HostSleepMode = DeviceSettingsHost::SleepMode;
 #define DEBUG_LOG(fmt, ...) do { } while(0)
 #endif
 
-namespace DeviceSettingsHALLoader {
-    extern void* gLibraryHandle;
-    extern std::mutex gLibraryLock;
+namespace WPEFramework {
+namespace Plugin {
+    namespace DeviceSettingsHALLoader {
+        extern void* gLibraryHandle;
+        extern std::mutex gLibraryLock;
 
-    void* ResolveSymbol(const std::string& libName, const std::string& symbolName);
-    void ReleaseAllLibraries();
+        void* ResolveSymbol(const std::string& libName, const std::string& symbolName);
+        void ReleaseAllLibraries();
+    }
+}
 }
 
 // Exact replica of original HostPersistence implementation to avoid DS_LIBRARIES dependency

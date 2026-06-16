@@ -48,7 +48,6 @@
 #include <interfaces/IDeviceSettingsVideoDevice.h>
 #include <interfaces/IDeviceSettingsVideoPort.h>
 
-
 #include "fpd.h"
 #include "HdmiIn.h"
 

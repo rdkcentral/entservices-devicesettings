@@ -481,7 +481,7 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioFaderControl, handle, mixerBalance)
     }
     
-    Core::hresult DeviceSettingsImp::SetAudioPrimaryLanguage(const int32_t handle, const string primaryAudioLanguage) {
+    Core::hresult DeviceSettingsImp::SetAudioPrimaryLanguage(const int32_t handle, const string& primaryAudioLanguage) {
         DELEGATE_TO_COMPONENT(_audioSettings, SetAudioPrimaryLanguage, handle, primaryAudioLanguage)
     }
     
@@ -489,7 +489,7 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioPrimaryLanguage, handle, primaryAudioLanguage)
     }
     
-    Core::hresult DeviceSettingsImp::SetAudioSecondaryLanguage(const int32_t handle, const string secondaryAudioLanguage) {
+    Core::hresult DeviceSettingsImp::SetAudioSecondaryLanguage(const int32_t handle, const string& secondaryAudioLanguage) {
         DELEGATE_TO_COMPONENT(_audioSettings, SetAudioSecondaryLanguage, handle, secondaryAudioLanguage)
     }
     
@@ -674,7 +674,7 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioMS12Profile, handle, profile)
     }
     
-    Core::hresult DeviceSettingsImp::SetAudioMS12Profile(const int32_t handle, const string profile) {
+    Core::hresult DeviceSettingsImp::SetAudioMS12Profile(const int32_t handle, const string& profile) {
         DELEGATE_TO_COMPONENT(_audioSettings, SetAudioMS12Profile, handle, profile)
     }
     

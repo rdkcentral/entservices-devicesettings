@@ -175,9 +175,9 @@ namespace Plugin {
         Core::hresult GetAssociatedAudioMixing(const int32_t handle, bool &mixing);
         Core::hresult SetAudioFaderControl(const int32_t handle, const int32_t mixerBalance);
         Core::hresult GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance);
-        Core::hresult SetAudioPrimaryLanguage(const int32_t handle, const string primaryAudioLanguage);
+        Core::hresult SetAudioPrimaryLanguage(const int32_t handle, const string& primaryAudioLanguage);
         Core::hresult GetAudioPrimaryLanguage(const int32_t handle, string &primaryAudioLanguage);
-        Core::hresult SetAudioSecondaryLanguage(const int32_t handle, const string secondaryAudioLanguage);
+        Core::hresult SetAudioSecondaryLanguage(const int32_t handle, const string& secondaryAudioLanguage);
         Core::hresult GetAudioSecondaryLanguage(const int32_t handle, string &secondaryAudioLanguage);
         Core::hresult IsAudioOutputConnected(const int32_t handle, bool &isConnected);
         Core::hresult GetAudioSinkDeviceAtmosCapability(const int32_t handle, DolbyAtmosCapability &atmosCapability);
@@ -255,7 +255,7 @@ namespace Plugin {
         // MS12 Profile Management
         Core::hresult GetAudioMS12ProfileList(const int32_t handle, IDeviceSettingsAudioMS12AudioProfileIterator*& ms12ProfileList) const override;
         Core::hresult GetAudioMS12Profile(const int32_t handle, string &profile) override;
-        Core::hresult SetAudioMS12Profile(const int32_t handle, const string profile) override;
+        Core::hresult SetAudioMS12Profile(const int32_t handle, const string& profile) override;
 
         // Audio Mixer Levels
         Core::hresult SetAudioMixerLevels(const int32_t handle, const AudioInput audioInput, const int32_t volume) override;

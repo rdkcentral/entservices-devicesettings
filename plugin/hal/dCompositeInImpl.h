@@ -85,7 +85,7 @@ public:
 
     // Resolve method for dynamic library loading - following dHdmiInImpl.h pattern
     static void* resolve(const std::string& libName, const std::string& symbolName) {
-        return DeviceSettingsHALLoader::ResolveSymbol(libName, symbolName);
+        return WPEFramework::Plugin::DeviceSettingsHALLoader::ResolveSymbol(libName, symbolName);
     }
 
     // Singleton getInstance method - following VideoPort pattern

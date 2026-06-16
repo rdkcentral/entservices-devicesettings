@@ -143,7 +143,7 @@ void Audio::OnAudioLevelChanged(float audioLevel)
 {
     LOGINFO("OnAudioLevelChanged: audioLevel=%.2f", audioLevel);
     // Trigger notification to parent for callback dispatch
-    _parent.OnAudioLevelChangedEvent(static_cast<int32_t>(audioLevel));
+    _parent.OnAudioLevelChanged(static_cast<int32_t>(audioLevel));
 }
 
 uint32_t Audio::GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) {
@@ -420,7 +420,7 @@ uint32_t Audio::GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance
     return result;
 }
 
-uint32_t Audio::SetAudioPrimaryLanguage(const int32_t handle, const std::string primaryAudioLanguage) {
+uint32_t Audio::SetAudioPrimaryLanguage(const int32_t handle, const std::string& primaryAudioLanguage) {
     LOGINFO("SetAudioPrimaryLanguage: handle=%d, primaryAudioLanguage=%s", handle, primaryAudioLanguage.c_str());
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -448,7 +448,7 @@ uint32_t Audio::GetAudioPrimaryLanguage(const int32_t handle, std::string &prima
     return result;
 }
 
-uint32_t Audio::SetAudioSecondaryLanguage(const int32_t handle, const std::string secondaryAudioLanguage) {
+uint32_t Audio::SetAudioSecondaryLanguage(const int32_t handle, const std::string& secondaryAudioLanguage) {
     LOGINFO("SetAudioSecondaryLanguage: handle=%d, secondaryAudioLanguage=%s", handle, secondaryAudioLanguage.c_str());
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
@@ -750,7 +750,7 @@ uint32_t Audio::GetAudioMS12Profile(const int32_t handle, string &profile) {
     return result;
 }
 
-uint32_t Audio::SetAudioMS12Profile(const int32_t handle, const string profile) {
+uint32_t Audio::SetAudioMS12Profile(const int32_t handle, const string& profile) {
     uint32_t result = (_platform != nullptr) ? _platform->SetAudioMS12Profile(handle, profile) : WPEFramework::Core::ERROR_UNAVAILABLE;
     return result;
 }

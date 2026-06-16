@@ -111,12 +111,16 @@ void DSPwrEventListener::Init(PluginHost::IShell* service)
         LOGINFO("DSMgr product traits not supported");
     }
 
-    try {
-        device::Manager::load();
-        LOGINFO("device::Manager::load success");
-    } catch (...) {
-        LOGERR("Exception Caught during device::Manager::load");
-    }
+    // Note: device::Manager::load() is intentionally disabled to avoid linker dependency
+    // on DS library which may not be available in all configurations.
+    // The WPEFramework plugin architecture handles initialization independently.
+    // Original code kept commented for reference:
+    // try {
+    //     device::Manager::load();
+    //     LOGINFO("device::Manager::load success");
+    // } catch (...) {
+    //     LOGERR("Exception Caught during device::Manager::load");
+    // }
 
     IARM_Result_t rc;
     rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_SetStandbyVideoState, SetStandbyVideoState);
@@ -356,7 +360,7 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                 LOGINFO("Number of Video Ports: %zu", videoPorts.size());
                 
                 for (size_t i = 0; i < videoPorts.size(); i++) {
-                    try {
+                    /*try {
                         device::VideoOutputPort vPort = videoPorts.at(i);
                         bool doEnable = GetVideoPortStandbySetting(vPort.getName().c_str());
                         LOGINFO("Video port %s will be %s for PowerState %d", 
@@ -391,14 +395,14 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                         }
                     } catch (...) {
                         LOGERR("Exception caught in video port processing for port %zu", i);
-                    }
+                    }*/
                 }
             } catch (...) {
                 LOGERR("Exception caught during video port enumeration");
             }
             
             // Configure Audio Ports  
-            try {
+            /*try {
                 device::List<device::AudioOutputPort> audioPorts = device::Host::getInstance().getAudioOutputPorts();
                 LOGINFO("Number of Audio Ports: %zu", audioPorts.size());
                 
@@ -433,10 +437,10 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                 }
             } catch (...) {
                 LOGERR("Exception caught during audio port enumeration");
-            }
+            }*/
         } else {
             // POWER_STATE_ON - Enable all ports
-            try {
+            /*try {
                 device::List<device::VideoOutputPort> videoPorts = device::Host::getInstance().getVideoOutputPorts();
                 
                 for (size_t i = 0; i < videoPorts.size(); i++) {
@@ -507,7 +511,7 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                 
             } catch (...) {
                 LOGERR("Exception caught during video port enumeration");
-            }
+            }*/
         }
     } catch (...) {
         LOGERR("Exception Caught during SetAVPortsPowerState");
