@@ -61,7 +61,7 @@ public:
             virtual void OnAudioFormatUpdate(AudioFormat audioFormat) = 0;
             virtual void OnDolbyAtmosCapabilitiesChanged(DolbyAtmosCapability atmosCapability, bool status) = 0;
             virtual void OnAudioPortStateChanged(AudioPortState audioPortState) = 0;
-            virtual void OnAudioLevelChangedEvent(int32_t audioLevel) = 0;
+            virtual void OnAudioLevelChanged(int32_t audioLevel) = 0;
             virtual void OnAudioModeEvent(AudioPortType audioPortType, AudioStereoMode audioMode) = 0;
     };
 
@@ -119,9 +119,9 @@ public:
     uint32_t GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance);
 
     // Audio Language Settings
-    uint32_t SetAudioPrimaryLanguage(const int32_t handle, const std::string primaryAudioLanguage);
+    uint32_t SetAudioPrimaryLanguage(const int32_t handle, const std::string& primaryAudioLanguage);
     uint32_t GetAudioPrimaryLanguage(const int32_t handle, std::string &primaryAudioLanguage);
-    uint32_t SetAudioSecondaryLanguage(const int32_t handle, const std::string secondaryAudioLanguage);
+    uint32_t SetAudioSecondaryLanguage(const int32_t handle, const std::string& secondaryAudioLanguage);
     uint32_t GetAudioSecondaryLanguage(const int32_t handle, std::string &secondaryAudioLanguage);
 
     // Output Connection Status
@@ -204,7 +204,7 @@ public:
     // MS12 Profile Management
     uint32_t GetAudioMS12ProfileList(const int32_t handle, IDeviceSettingsAudioMS12AudioProfileIterator*& ms12ProfileList) const;
     uint32_t GetAudioMS12Profile(const int32_t handle, std::string &profile);
-    uint32_t SetAudioMS12Profile(const int32_t handle, const std::string profile);
+    uint32_t SetAudioMS12Profile(const int32_t handle, const std::string& profile);
 
     // Audio Mixer Levels
     uint32_t SetAudioMixerLevels(const int32_t handle, const AudioInput audioInput, const int32_t volume);

@@ -97,9 +97,9 @@ namespace dAudio {
         virtual uint32_t GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance) = 0;
 
         // Audio language settings
-        virtual uint32_t SetAudioPrimaryLanguage(const int32_t handle, const std::string primaryAudioLanguage) = 0;
+        virtual uint32_t SetAudioPrimaryLanguage(const int32_t handle, const std::string& primaryAudioLanguage) = 0;
         virtual uint32_t GetAudioPrimaryLanguage(const int32_t handle, std::string &primaryAudioLanguage) = 0;
-        virtual uint32_t SetAudioSecondaryLanguage(const int32_t handle, const std::string secondaryAudioLanguage) = 0;
+        virtual uint32_t SetAudioSecondaryLanguage(const int32_t handle, const std::string& secondaryAudioLanguage) = 0;
         virtual uint32_t GetAudioSecondaryLanguage(const int32_t handle, std::string &secondaryAudioLanguage) = 0;
 
         // Output connection status
@@ -181,7 +181,7 @@ namespace dAudio {
         // MS12 profile
         virtual uint32_t GetAudioMS12ProfileList(const int32_t handle, WPEFramework::Exchange::IDeviceSettingsAudio::IDeviceSettingsAudioMS12AudioProfileIterator*& ms12ProfileList) const = 0;
         virtual uint32_t GetAudioMS12Profile(const int32_t handle, std::string &profile) = 0;
-        virtual uint32_t SetAudioMS12Profile(const int32_t handle, const std::string profile) = 0;
+        virtual uint32_t SetAudioMS12Profile(const int32_t handle, const std::string& profile) = 0;
 
         // Mixer levels
         virtual uint32_t SetAudioMixerLevels(const int32_t handle, const WPEFramework::Exchange::IDeviceSettingsAudio::AudioInput audioInput, const int32_t volume) = 0;

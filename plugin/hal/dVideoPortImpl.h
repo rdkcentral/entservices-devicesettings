@@ -121,7 +121,7 @@ public:
     }
 
     static void* resolve(const std::string& libName, const std::string& symbolName) {
-        return DeviceSettingsHALLoader::ResolveSymbol(libName, symbolName);
+        return WPEFramework::Plugin::DeviceSettingsHALLoader::ResolveSymbol(libName, symbolName);
     }
 
     // Implementation of all VideoPort Platform interface methods

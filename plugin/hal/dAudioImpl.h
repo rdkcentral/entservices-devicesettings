@@ -1402,7 +1402,7 @@ public:
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    uint32_t SetAudioPrimaryLanguage(const int32_t handle, const std::string primaryAudioLanguage) override {
+    uint32_t SetAudioPrimaryLanguage(const int32_t handle, const std::string& primaryAudioLanguage) override {
         ENTRY_LOG;
         if (!_isInitialized) {
             LOGERR("Audio platform not initialized");
@@ -1487,7 +1487,7 @@ public:
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    uint32_t SetAudioSecondaryLanguage(const int32_t handle, const std::string secondaryAudioLanguage) override {
+    uint32_t SetAudioSecondaryLanguage(const int32_t handle, const std::string& secondaryAudioLanguage) override {
         ENTRY_LOG;
         if (!_isInitialized) {
             LOGERR("Audio platform not initialized");
@@ -3086,7 +3086,7 @@ public:
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    uint32_t SetAudioMS12Profile(const int32_t handle, const string profile) override {
+    uint32_t SetAudioMS12Profile(const int32_t handle, const string& profile) override {
         ENTRY_LOG;
         if (!_isInitialized) {
             LOGERR("Audio platform not initialized");

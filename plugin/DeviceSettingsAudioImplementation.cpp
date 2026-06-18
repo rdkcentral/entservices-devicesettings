@@ -178,10 +178,10 @@ namespace Plugin {
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioPortStateChanged, audioPortState);
     }
 
-    void DeviceSettingsAudioImpl::OnAudioLevelChangedEvent(int32_t audioLevel)
+    void DeviceSettingsAudioImpl::OnAudioLevelChanged(int32_t audioLevel)
     {
-        LOGINFO("OnAudioLevelChangedEvent event Received: audioLevel=%d", audioLevel);
-        dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioLevelChangedEvent, audioLevel);
+        LOGINFO("OnAudioLevelChanged event Received: audioLevel=%d", audioLevel);
+        dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioLevelChanged, audioLevel);
     }
 
     void DeviceSettingsAudioImpl::OnAudioModeEvent(AudioPortType audioPortType, AudioStereoMode audioMode)
@@ -338,7 +338,7 @@ namespace Plugin {
     }
 
     // Audio language settings
-    Core::hresult DeviceSettingsAudioImpl::SetAudioPrimaryLanguage(const int32_t handle, const std::string primaryAudioLanguage) {
+    Core::hresult DeviceSettingsAudioImpl::SetAudioPrimaryLanguage(const int32_t handle, const std::string& primaryAudioLanguage) {
         LOGINFO("SetAudioPrimaryLanguage: handle=%d, primaryAudioLanguage=%s", handle, primaryAudioLanguage.c_str());
         uint32_t result = _audio.SetAudioPrimaryLanguage(handle, primaryAudioLanguage);
         return result;
@@ -350,7 +350,7 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult DeviceSettingsAudioImpl::SetAudioSecondaryLanguage(const int32_t handle, const std::string secondaryAudioLanguage) {
+    Core::hresult DeviceSettingsAudioImpl::SetAudioSecondaryLanguage(const int32_t handle, const std::string& secondaryAudioLanguage) {
         LOGINFO("SetAudioSecondaryLanguage: handle=%d, secondaryAudioLanguage=%s", handle, secondaryAudioLanguage.c_str());
         uint32_t result = _audio.SetAudioSecondaryLanguage(handle, secondaryAudioLanguage);
         return result;
@@ -617,7 +617,7 @@ namespace Plugin {
         return result;
     }
     
-    Core::hresult DeviceSettingsAudioImpl::SetAudioMS12Profile(const int32_t handle, const string profile) {
+    Core::hresult DeviceSettingsAudioImpl::SetAudioMS12Profile(const int32_t handle, const string& profile) {
         uint32_t result = _audio.SetAudioMS12Profile(handle, profile);
         return result;
     }

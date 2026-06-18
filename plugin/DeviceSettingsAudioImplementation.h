@@ -140,9 +140,9 @@ namespace Plugin {
         Core::hresult GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance);
 
         // Audio Language Settings
-        Core::hresult SetAudioPrimaryLanguage(const int32_t handle, const std::string primaryAudioLanguage);
+        Core::hresult SetAudioPrimaryLanguage(const int32_t handle, const std::string& primaryAudioLanguage);
         Core::hresult GetAudioPrimaryLanguage(const int32_t handle, std::string &primaryAudioLanguage);
-        Core::hresult SetAudioSecondaryLanguage(const int32_t handle, const std::string secondaryAudioLanguage);
+        Core::hresult SetAudioSecondaryLanguage(const int32_t handle, const std::string& secondaryAudioLanguage);
         Core::hresult GetAudioSecondaryLanguage(const int32_t handle, std::string &secondaryAudioLanguage);
 
         // Output Connection Status
@@ -225,7 +225,7 @@ namespace Plugin {
         // MS12 Profile Management
         Core::hresult GetAudioMS12ProfileList(const int32_t handle, IDeviceSettingsAudioMS12AudioProfileIterator*& ms12ProfileList) const;
         Core::hresult GetAudioMS12Profile(const int32_t handle, std::string &profile);
-        Core::hresult SetAudioMS12Profile(const int32_t handle, const std::string profile);
+        Core::hresult SetAudioMS12Profile(const int32_t handle, const std::string& profile);
 
         // Audio Mixer Levels
         Core::hresult SetAudioMixerLevels(const int32_t handle, const AudioInput audioInput, const int32_t volume);
@@ -255,7 +255,7 @@ namespace Plugin {
         void OnAudioFormatUpdate(AudioFormat audioFormat) override;
         void OnDolbyAtmosCapabilitiesChanged(DolbyAtmosCapability atmosCapability, bool status) override;
         void OnAudioPortStateChanged(AudioPortState audioPortState) override;
-        void OnAudioLevelChangedEvent(int32_t audioLevel) override;
+        void OnAudioLevelChanged(int32_t audioLevel) override;
         void OnAudioModeEvent(AudioPortType audioPortType, AudioStereoMode audioMode) override;
 
     private:
