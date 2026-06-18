@@ -107,8 +107,8 @@ public:
     void registerPowerEventHandler();
 
 private:
-    using VideoPortEntry = DeviceSettingsConfig::VideoPortEntry;
-    using AudioPortEntry = DeviceSettingsConfig::AudioPortEntry;
+    using VideoPortEntry = WPEFramework::Plugin::VideoPortEntry;
+    using AudioPortEntry = WPEFramework::Plugin::AudioPortEntry;
 
     static void* PwrEventHandlingThreadFunc(void* arg);
     static void* PwrRetryEstablishConnThread(void* arg);
@@ -163,7 +163,8 @@ private:
     Core::Sink<PowerManagerNotification> _pwrMgrNotification;
     PluginHost::IShell* _service;
     DeviceSettingsImp* _deviceSettings;
-    DeviceSettingsConfig _deviceSettingsConfig;
+    VideoPortConfigStore _videoPortConfig;
+    AudioConfigStore     _audioConfig;
 };
 
 } // namespace Plugin

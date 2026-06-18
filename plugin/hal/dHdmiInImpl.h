@@ -122,7 +122,6 @@ public:
                 m_hdmiInPlatInitialized = 0;
             }
         }
-
     }
 
     static void* resolve(const std::string& libName, const std::string& symbolName) {

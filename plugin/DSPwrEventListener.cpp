@@ -84,8 +84,8 @@ bool DSPwrEventListener::IsDeviceSettingsReady(bool refreshCacheIfEmpty)
         return true;
     }
 
-    if (refreshCacheIfEmpty && _deviceSettingsConfig.IsCacheEmpty()) {
-            RefreshPortConfigurationCache();
+    if (refreshCacheIfEmpty && _videoPortConfig.IsEmpty() && _audioConfig.IsEmpty()) {
+        RefreshPortConfigurationCache();
     }
 
     return true;
@@ -93,7 +93,8 @@ bool DSPwrEventListener::IsDeviceSettingsReady(bool refreshCacheIfEmpty)
 
 void DSPwrEventListener::RefreshPortConfigurationCache()
 {
-    _deviceSettingsConfig.Refresh(_deviceSettings);
+    LoadVideoPortConfig(static_cast<Exchange::IDeviceSettingsVideoPort*>(_deviceSettings), _videoPortConfig);
+    LoadAudioConfig(static_cast<Exchange::IDeviceSettingsAudio*>(_deviceSettings), _audioConfig);
 }
 
 bool DSPwrEventListener::BuildVideoPortEntries(std::vector<DSPwrEventListener::VideoPortEntry>& entries)
@@ -101,7 +102,7 @@ bool DSPwrEventListener::BuildVideoPortEntries(std::vector<DSPwrEventListener::V
     if (IsDeviceSettingsReady(true) == false) {
         return false;
     }
-    return _deviceSettingsConfig.BuildVideoPortEntries(entries);
+    return _videoPortConfig.BuildVideoPortEntries(entries);
 }
 
 bool DSPwrEventListener::BuildAudioPortEntries(std::vector<DSPwrEventListener::AudioPortEntry>& entries)
@@ -109,7 +110,7 @@ bool DSPwrEventListener::BuildAudioPortEntries(std::vector<DSPwrEventListener::A
     if (IsDeviceSettingsReady(true) == false) {
         return false;
     }
-    return _deviceSettingsConfig.BuildAudioPortEntries(entries);
+    return _audioConfig.BuildAudioPortEntries(entries);
 }
 
 bool DSPwrEventListener::ResolveVideoPortEntryByName(const std::string& requestedPort, DSPwrEventListener::VideoPortEntry& resolvedEntry)
@@ -117,7 +118,7 @@ bool DSPwrEventListener::ResolveVideoPortEntryByName(const std::string& requeste
     if (IsDeviceSettingsReady(true) == false) {
         return false;
     }
-    return _deviceSettingsConfig.ResolveVideoPortEntryByName(requestedPort, resolvedEntry);
+    return _videoPortConfig.ResolveByName(requestedPort, resolvedEntry);
 }
 
 DSPwrEventListener::~DSPwrEventListener()
