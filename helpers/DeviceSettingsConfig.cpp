@@ -22,367 +22,139 @@
 #include <algorithm>
 #include <cctype>
 
-#include "DeviceSettingsImplementation.h"
 #include "UtilsLogging.h"
 
 namespace WPEFramework {
 namespace Plugin {
 
 // ============================================================================
-// Public: Refresh (calls all four individual refresh methods)
+// Internal helpers (file-scope)
 // ============================================================================
 
-bool DeviceSettingsConfig::Refresh(DeviceSettingsImp* deviceSettings)
+static bool EqualsIgnoreCase(const std::string& lhs, const std::string& rhs)
 {
-    if (deviceSettings == nullptr) {
-        LOGERR("DeviceSettingsConfig::Refresh: DeviceSettings implementation not available");
-        return false;
-    }
-
-    bool ok = true;
-    ok &= RefreshVideoPortConfig(deviceSettings);
-    ok &= RefreshAudioConfig(deviceSettings);
-    ok &= RefreshVideoDeviceConfig(deviceSettings);
-    ok &= RefreshFrontPanelConfig(deviceSettings);
-    return ok;
+    return (lhs.size() == rhs.size()) &&
+           std::equal(lhs.begin(), lhs.end(), rhs.begin(),
+                      [](char a, char b) {
+                          return std::tolower(static_cast<unsigned char>(a)) ==
+                                 std::tolower(static_cast<unsigned char>(b));
+                      });
 }
 
-bool DeviceSettingsConfig::IsCacheEmpty() const
+static std::string BuildVideoPortName(const std::string& typeName, int32_t index)
 {
-    _lock.Lock();
-    const bool empty = _cachedVideoPortConfigs.empty()
-                    && _cachedAudioPortConfigs.empty()
-                    && _cachedVideoDeviceConfigs.empty()
-                    && _cachedFPDIndicators.empty();
-    _lock.Unlock();
-    return empty;
+    if (typeName.empty()) {
+        return std::string("VIDEO") + std::to_string(index);
+    }
+    return typeName + std::to_string(index);
 }
 
-// ============================================================================
-// Private: four individual refresh methods
-// ============================================================================
-
-bool DeviceSettingsConfig::RefreshVideoPortConfig(DeviceSettingsImp* deviceSettings)
+static std::string BuildAudioPortName(AudioPortType portType, int32_t index)
 {
-    std::vector<VideoPortTypeConfig>  videoPortTypes;
-    std::vector<VideoPortPortConfig>  videoPorts;
-    std::vector<VideoPortResolution>  videoResolutions;
-
-    IVideoPortTypeConfigIterator* typeIt = nullptr;
-    IVideoPortPortConfigIterator* portIt = nullptr;
-    IVideoPortResolutionIterator* resIt  = nullptr;
-
-    const uint32_t result = deviceSettings->GetVideoPortConfig(typeIt, portIt, resIt);
-    if (result != Core::ERROR_NONE) {
-        LOGERR("DeviceSettingsConfig::RefreshVideoPortConfig: GetVideoPortConfig failed: %u", result);
-        return false;
+    switch (portType) {
+    case AudioPortType::AUDIO_PORT_TYPE_HDMI:      return std::string("HDMI")      + std::to_string(index);
+    case AudioPortType::AUDIO_PORT_TYPE_SPDIF:     return std::string("SPDIF")     + std::to_string(index);
+    case AudioPortType::AUDIO_PORT_TYPE_LR:        return std::string("LR")        + std::to_string(index);
+    case AudioPortType::AUDIO_PORT_TYPE_SPEAKER:   return std::string("SPEAKER")   + std::to_string(index);
+    case AudioPortType::AUDIO_PORT_TYPE_HDMIARC:   return std::string("HDMIARC")   + std::to_string(index);
+    case AudioPortType::AUDIO_PORT_TYPE_HEADPHONE: return std::string("HEADPHONE") + std::to_string(index);
+    default:                                        return std::string("AUDIO")     + std::to_string(index);
     }
-
-    if (typeIt != nullptr) {
-        VideoPortTypeConfig cfg;
-        while (typeIt->Next(cfg)) {
-            videoPortTypes.push_back(cfg);
-        }
-        typeIt->Release();
-    }
-
-    if (portIt != nullptr) {
-        VideoPortPortConfig cfg;
-        while (portIt->Next(cfg)) {
-            videoPorts.push_back(cfg);
-        }
-        portIt->Release();
-    }
-
-    if (resIt != nullptr) {
-        VideoPortResolution res;
-        while (resIt->Next(res)) {
-            videoResolutions.push_back(res);
-        }
-        resIt->Release();
-    }
-
-    _lock.Lock();
-    _cachedVideoPortTypes.swap(videoPortTypes);
-    _cachedVideoPortConfigs.swap(videoPorts);
-    _cachedVideoPortResolutions.swap(videoResolutions);
-    _lock.Unlock();
-
-    LOGINFO("DeviceSettingsConfig::RefreshVideoPortConfig: types=%zu ports=%zu resolutions=%zu",
-            _cachedVideoPortTypes.size(), _cachedVideoPortConfigs.size(),
-            _cachedVideoPortResolutions.size());
-    return true;
-}
-
-bool DeviceSettingsConfig::RefreshAudioConfig(DeviceSettingsImp* deviceSettings)
-{
-    std::vector<AudioTypeConfigInfo> audioTypes;
-    std::vector<AudioPortConfigInfo> audioPorts;
-
-    IAudioTypeConfigIterator* typeIt = nullptr;
-    IAudioPortConfigIterator* portIt = nullptr;
-
-    const uint32_t result = deviceSettings->GetAudioConfig(typeIt, portIt);
-    if (result != Core::ERROR_NONE) {
-        LOGERR("DeviceSettingsConfig::RefreshAudioConfig: GetAudioConfig failed: %u", result);
-        return false;
-    }
-
-    if (typeIt != nullptr) {
-        AudioTypeConfigInfo cfg;
-        while (typeIt->Next(cfg)) {
-            audioTypes.push_back(cfg);
-        }
-        typeIt->Release();
-    }
-
-    if (portIt != nullptr) {
-        AudioPortConfigInfo cfg;
-        while (portIt->Next(cfg)) {
-            audioPorts.push_back(cfg);
-        }
-        portIt->Release();
-    }
-
-    _lock.Lock();
-    _cachedAudioTypeConfigs.swap(audioTypes);
-    _cachedAudioPortConfigs.swap(audioPorts);
-    _lock.Unlock();
-
-    LOGINFO("DeviceSettingsConfig::RefreshAudioConfig: audioTypes=%zu audioPorts=%zu",
-            _cachedAudioTypeConfigs.size(), _cachedAudioPortConfigs.size());
-    return true;
-}
-
-bool DeviceSettingsConfig::RefreshVideoDeviceConfig(DeviceSettingsImp* deviceSettings)
-{
-    std::vector<VideoDeviceConfigInfo> videoDevices;
-
-    IVideoDeviceConfigIterator* it = nullptr;
-
-    const uint32_t result = deviceSettings->GetVideoDeviceConfig(it);
-    if (result != Core::ERROR_NONE) {
-        LOGERR("DeviceSettingsConfig::RefreshVideoDeviceConfig: GetVideoDeviceConfig failed: %u", result);
-        return false;
-    }
-
-    if (it != nullptr) {
-        VideoDeviceConfigInfo cfg;
-        while (it->Next(cfg)) {
-            videoDevices.push_back(cfg);
-        }
-        it->Release();
-    }
-
-    _lock.Lock();
-    _cachedVideoDeviceConfigs.swap(videoDevices);
-    _lock.Unlock();
-
-    LOGINFO("DeviceSettingsConfig::RefreshVideoDeviceConfig: devices=%zu",
-            _cachedVideoDeviceConfigs.size());
-    return true;
-}
-
-bool DeviceSettingsConfig::RefreshFrontPanelConfig(DeviceSettingsImp* deviceSettings)
-{
-    std::vector<FPDTextDisplayConfig> textDisplays;
-    std::vector<FPDIndicatorConfig>   indicators;
-    std::vector<FPDColorConfig>       colors;
-    std::vector<FPDColorBinding>      colorBindings;
-
-    IFPDTextDisplayConfigIterator* textIt    = nullptr;
-    IFPDIndicatorConfigIterator*   indicIt   = nullptr;
-    IFPDColorConfigIterator*       colorIt   = nullptr;
-    IFPDColorBindingIterator*      bindingIt = nullptr;
-
-    const uint32_t result = deviceSettings->GetFrontPanelConfig(textIt, indicIt, colorIt, bindingIt);
-    if (result != Core::ERROR_NONE) {
-        LOGERR("DeviceSettingsConfig::RefreshFrontPanelConfig: GetFrontPanelConfig failed: %u", result);
-        return false;
-    }
-
-    if (textIt != nullptr) {
-        FPDTextDisplayConfig cfg;
-        while (textIt->Next(cfg)) {
-            textDisplays.push_back(cfg);
-        }
-        textIt->Release();
-    }
-
-    if (indicIt != nullptr) {
-        FPDIndicatorConfig cfg;
-        while (indicIt->Next(cfg)) {
-            indicators.push_back(cfg);
-        }
-        indicIt->Release();
-    }
-
-    if (colorIt != nullptr) {
-        FPDColorConfig cfg;
-        while (colorIt->Next(cfg)) {
-            colors.push_back(cfg);
-        }
-        colorIt->Release();
-    }
-
-    if (bindingIt != nullptr) {
-        FPDColorBinding cfg;
-        while (bindingIt->Next(cfg)) {
-            colorBindings.push_back(cfg);
-        }
-        bindingIt->Release();
-    }
-
-    _lock.Lock();
-    _cachedFPDTextDisplays.swap(textDisplays);
-    _cachedFPDIndicators.swap(indicators);
-    _cachedFPDColors.swap(colors);
-    _cachedFPDColorBindings.swap(colorBindings);
-    _lock.Unlock();
-
-    LOGINFO("DeviceSettingsConfig::RefreshFrontPanelConfig: textDisplays=%zu indicators=%zu colors=%zu bindings=%zu",
-            _cachedFPDTextDisplays.size(), _cachedFPDIndicators.size(),
-            _cachedFPDColors.size(), _cachedFPDColorBindings.size());
-    return true;
 }
 
 // ============================================================================
-// VideoPort queries
+// VideoPortConfigStore
 // ============================================================================
 
-bool DeviceSettingsConfig::BuildVideoPortEntries(std::vector<VideoPortEntry>& entries) const
+void VideoPortConfigStore::Clear()
+{
+    typeConfigs.clear();
+    portConfigs.clear();
+    resolutions.clear();
+}
+
+bool VideoPortConfigStore::IsEmpty() const
+{
+    return portConfigs.empty() && typeConfigs.empty();
+}
+
+bool VideoPortConfigStore::BuildVideoPortEntries(std::vector<VideoPortEntry>& entries) const
 {
     entries.clear();
-
-    std::vector<VideoPortTypeConfig>  videoPortTypes;
-    std::vector<VideoPortPortConfig>  videoPortConfigs;
-
-    _lock.Lock();
-    videoPortTypes   = _cachedVideoPortTypes;
-    videoPortConfigs = _cachedVideoPortConfigs;
-    _lock.Unlock();
-
-    for (size_t i = 0; i < videoPortConfigs.size(); ++i) {
-        const VideoPortPortConfig& portConfig = videoPortConfigs[i];
-
-        // Find matching type config to get the type name
+    for (size_t i = 0; i < portConfigs.size(); ++i) {
+        const VideoPortPortConfig& pc = portConfigs[i];
         std::string typeName;
-        for (size_t j = 0; j < videoPortTypes.size(); ++j) {
-            if (videoPortTypes[j].typeId == portConfig.videoPortType) {
-                typeName = videoPortTypes[j].name;
+        for (size_t j = 0; j < typeConfigs.size(); ++j) {
+            if (typeConfigs[j].typeId == pc.videoPortType) {
+                typeName = typeConfigs[j].name;
                 break;
             }
         }
-
-        VideoPortEntry entry;
-        entry.type     = portConfig.videoPortType;
-        entry.index    = portConfig.videoPortIndex;
-        entry.typeName = typeName;
-        entry.name     = BuildVideoPortName(typeName, portConfig.videoPortIndex);
-        entries.push_back(entry);
+        VideoPortEntry e;
+        e.type     = pc.videoPortType;
+        e.index    = pc.videoPortIndex;
+        e.typeName = typeName;
+        e.name     = BuildVideoPortName(typeName, pc.videoPortIndex);
+        entries.push_back(e);
     }
-
     return !entries.empty();
 }
 
-std::string DeviceSettingsConfig::GetDefaultVideoPortName() const
+std::string VideoPortConfigStore::GetDefaultVideoPortName() const
 {
-    // Mirrors device::Host::getDefaultVideoPortName():
-    //   Preference order: HDMI (index 0) > INTERNAL (index 0) > first port.
     std::vector<VideoPortEntry> entries;
     if (!BuildVideoPortEntries(entries)) {
         return std::string("HDMI0");
     }
-
-    std::string defaultName = entries[0].name; // fallback: first port
+    std::string defaultName = entries[0].name;
     bool found = false;
-
     for (size_t i = 0; i < entries.size() && !found; ++i) {
         if (entries[i].type == VideoPortType::DS_VIDEO_PORT_TYPE_HDMI && entries[i].index == 0) {
             defaultName = entries[i].name;
             found = true;
         }
     }
-
     for (size_t i = 0; i < entries.size() && !found; ++i) {
         if (entries[i].type == VideoPortType::DS_VIDEO_PORT_TYPE_INTERNAL && entries[i].index == 0) {
             defaultName = entries[i].name;
             found = true;
         }
     }
-
     return defaultName;
 }
 
-bool DeviceSettingsConfig::IsHDMIOutPortPresent() const
+std::string VideoPortConfigStore::GetDefaultResolution(const std::string& portName) const
 {
-    // Mirrors device::Host::isHDMIOutPortPresent():
-    // True if any audio port with name containing "HDMI0" exists.
-    std::vector<AudioPortEntry> audioEntries;
-    if (!BuildAudioPortEntries(audioEntries)) {
-        return false;
-    }
-    for (size_t i = 0; i < audioEntries.size(); ++i) {
-        if (audioEntries[i].name.find("HDMI0") != std::string::npos) {
-            return true;
-        }
-    }
-    return false;
-}
-
-std::string DeviceSettingsConfig::GetVideoPortDefaultResolution(const std::string& portName) const
-{
-    std::vector<VideoPortTypeConfig>  videoPortTypes;
-    std::vector<VideoPortPortConfig>  videoPortConfigs;
-
-    _lock.Lock();
-    videoPortTypes   = _cachedVideoPortTypes;
-    videoPortConfigs = _cachedVideoPortConfigs;
-    _lock.Unlock();
-
-    for (size_t i = 0; i < videoPortConfigs.size(); ++i) {
-        const VideoPortPortConfig& pc = videoPortConfigs[i];
-
-        // Construct name to compare
+    for (size_t i = 0; i < portConfigs.size(); ++i) {
+        const VideoPortPortConfig& pc = portConfigs[i];
         std::string typeName;
-        for (size_t j = 0; j < videoPortTypes.size(); ++j) {
-            if (videoPortTypes[j].typeId == pc.videoPortType) {
-                typeName = videoPortTypes[j].name;
+        for (size_t j = 0; j < typeConfigs.size(); ++j) {
+            if (typeConfigs[j].typeId == pc.videoPortType) {
+                typeName = typeConfigs[j].name;
                 break;
             }
         }
-        const std::string name = BuildVideoPortName(typeName, pc.videoPortIndex);
-        if (EqualsIgnoreCase(name, portName)) {
+        if (EqualsIgnoreCase(BuildVideoPortName(typeName, pc.videoPortIndex), portName)) {
             return pc.defaultResolution;
         }
     }
     return std::string();
 }
 
-bool DeviceSettingsConfig::GetVideoPortConnectedAudioPort(const std::string& portName,
-                                                      int32_t& connectedAudioType,
-                                                      int32_t& connectedAudioIndex) const
+bool VideoPortConfigStore::GetConnectedAudioPort(const std::string& portName,
+                                                  int32_t& connectedAudioType,
+                                                  int32_t& connectedAudioIndex) const
 {
-    std::vector<VideoPortTypeConfig>  videoPortTypes;
-    std::vector<VideoPortPortConfig>  videoPortConfigs;
-
-    _lock.Lock();
-    videoPortTypes   = _cachedVideoPortTypes;
-    videoPortConfigs = _cachedVideoPortConfigs;
-    _lock.Unlock();
-
-    for (size_t i = 0; i < videoPortConfigs.size(); ++i) {
-        const VideoPortPortConfig& pc = videoPortConfigs[i];
-
+    for (size_t i = 0; i < portConfigs.size(); ++i) {
+        const VideoPortPortConfig& pc = portConfigs[i];
         std::string typeName;
-        for (size_t j = 0; j < videoPortTypes.size(); ++j) {
-            if (videoPortTypes[j].typeId == pc.videoPortType) {
-                typeName = videoPortTypes[j].name;
+        for (size_t j = 0; j < typeConfigs.size(); ++j) {
+            if (typeConfigs[j].typeId == pc.videoPortType) {
+                typeName = typeConfigs[j].name;
                 break;
             }
         }
-        const std::string name = BuildVideoPortName(typeName, pc.videoPortIndex);
-        if (EqualsIgnoreCase(name, portName)) {
+        if (EqualsIgnoreCase(BuildVideoPortName(typeName, pc.videoPortIndex), portName)) {
             connectedAudioType  = pc.connectedAudioPortType;
             connectedAudioIndex = pc.connectedAudioPortIndex;
             return true;
@@ -391,30 +163,24 @@ bool DeviceSettingsConfig::GetVideoPortConnectedAudioPort(const std::string& por
     return false;
 }
 
-bool DeviceSettingsConfig::GetVideoPortTypeConfig(VideoPortType typeId, VideoPortTypeConfig& cfg) const
+bool VideoPortConfigStore::GetTypeConfig(VideoPortType typeId, VideoPortTypeConfig& cfg) const
 {
-    std::vector<VideoPortTypeConfig> videoPortTypes;
-    _lock.Lock();
-    videoPortTypes = _cachedVideoPortTypes;
-    _lock.Unlock();
-
-    for (size_t i = 0; i < videoPortTypes.size(); ++i) {
-        if (videoPortTypes[i].typeId == typeId) {
-            cfg = videoPortTypes[i];
+    for (size_t i = 0; i < typeConfigs.size(); ++i) {
+        if (typeConfigs[i].typeId == typeId) {
+            cfg = typeConfigs[i];
             return true;
         }
     }
     return false;
 }
 
-bool DeviceSettingsConfig::ResolveVideoPortEntryByName(const std::string& requestedPort,
-                                                   VideoPortEntry& resolvedEntry) const
+bool VideoPortConfigStore::ResolveByName(const std::string& requestedPort,
+                                          VideoPortEntry& resolvedEntry) const
 {
     std::vector<VideoPortEntry> entries;
     if (!BuildVideoPortEntries(entries)) {
         return false;
     }
-
     for (size_t i = 0; i < entries.size(); ++i) {
         const VideoPortEntry& e = entries[i];
         if (EqualsIgnoreCase(e.name, requestedPort) ||
@@ -426,50 +192,48 @@ bool DeviceSettingsConfig::ResolveVideoPortEntryByName(const std::string& reques
     return false;
 }
 
-std::vector<VideoPortResolution> DeviceSettingsConfig::GetCachedResolutions() const
+std::vector<VideoPortResolution> VideoPortConfigStore::GetResolutions() const
 {
-    _lock.Lock();
-    std::vector<VideoPortResolution> res = _cachedVideoPortResolutions;
-    _lock.Unlock();
-    return res;
+    return resolutions;
 }
 
 // ============================================================================
-// Audio queries
+// AudioConfigStore
 // ============================================================================
 
-bool DeviceSettingsConfig::BuildAudioPortEntries(std::vector<AudioPortEntry>& entries) const
+void AudioConfigStore::Clear()
+{
+    typeConfigs.clear();
+    portConfigs.clear();
+}
+
+bool AudioConfigStore::IsEmpty() const
+{
+    return portConfigs.empty() && typeConfigs.empty();
+}
+
+bool AudioConfigStore::BuildAudioPortEntries(std::vector<AudioPortEntry>& entries) const
 {
     entries.clear();
-
-    std::vector<AudioPortConfigInfo> audioPortConfigs;
-    _lock.Lock();
-    audioPortConfigs = _cachedAudioPortConfigs;
-    _lock.Unlock();
-
-    for (size_t i = 0; i < audioPortConfigs.size(); ++i) {
-        const AudioPortConfigInfo& pc = audioPortConfigs[i];
-        AudioPortEntry entry;
-        entry.type  = pc.audioPortType;
-        entry.index = pc.audioPortIndex;
-        entry.name  = BuildAudioPortName(pc.audioPortType, pc.audioPortIndex);
-        entries.push_back(entry);
+    for (size_t i = 0; i < portConfigs.size(); ++i) {
+        const AudioPortConfigInfo& pc = portConfigs[i];
+        AudioPortEntry e;
+        e.type  = pc.audioPortType;
+        e.index = pc.audioPortIndex;
+        e.name  = BuildAudioPortName(pc.audioPortType, pc.audioPortIndex);
+        entries.push_back(e);
     }
     return !entries.empty();
 }
 
-std::string DeviceSettingsConfig::GetDefaultAudioPortName() const
+std::string AudioConfigStore::GetDefaultAudioPortName() const
 {
-    // Mirrors device::Host::getDefaultAudioPortName():
-    //   Preference order: HDMI0 or SPEAKER0 > first port.
     std::vector<AudioPortEntry> entries;
     if (!BuildAudioPortEntries(entries)) {
         return std::string("HDMI0");
     }
-
     std::string defaultName = entries[0].name;
     bool found = false;
-
     for (size_t i = 0; i < entries.size() && !found; ++i) {
         const std::string& n = entries[i].name;
         if (n.find("HDMI0") != std::string::npos || n.find("SPEAKER0") != std::string::npos) {
@@ -480,16 +244,25 @@ std::string DeviceSettingsConfig::GetDefaultAudioPortName() const
     return defaultName;
 }
 
-bool DeviceSettingsConfig::GetAudioTypeConfig(int32_t typeId, AudioTypeConfigInfo& cfg) const
+bool AudioConfigStore::GetTypeConfig(int32_t typeId, AudioTypeConfigInfo& cfg) const
 {
-    std::vector<AudioTypeConfigInfo> audioTypes;
-    _lock.Lock();
-    audioTypes = _cachedAudioTypeConfigs;
-    _lock.Unlock();
+    for (size_t i = 0; i < typeConfigs.size(); ++i) {
+        if (typeConfigs[i].typeId == typeId) {
+            cfg = typeConfigs[i];
+            return true;
+        }
+    }
+    return false;
+}
 
-    for (size_t i = 0; i < audioTypes.size(); ++i) {
-        if (audioTypes[i].typeId == typeId) {
-            cfg = audioTypes[i];
+bool AudioConfigStore::IsHDMIOutPortPresent() const
+{
+    std::vector<AudioPortEntry> entries;
+    if (!BuildAudioPortEntries(entries)) {
+        return false;
+    }
+    for (size_t i = 0; i < entries.size(); ++i) {
+        if (entries[i].name.find("HDMI0") != std::string::npos) {
             return true;
         }
     }
@@ -497,79 +270,77 @@ bool DeviceSettingsConfig::GetAudioTypeConfig(int32_t typeId, AudioTypeConfigInf
 }
 
 // ============================================================================
-// VideoDevice queries
+// VideoDeviceConfigStore
 // ============================================================================
 
-std::vector<VideoDeviceConfigInfo> DeviceSettingsConfig::GetVideoDeviceConfigs() const
+void VideoDeviceConfigStore::Clear()
 {
-    _lock.Lock();
-    std::vector<VideoDeviceConfigInfo> devices = _cachedVideoDeviceConfigs;
-    _lock.Unlock();
-    return devices;
+    deviceConfigs.clear();
 }
 
-bool DeviceSettingsConfig::GetVideoDeviceConfig(int32_t index, VideoDeviceConfigInfo& cfg) const
+bool VideoDeviceConfigStore::IsEmpty() const
 {
-    _lock.Lock();
-    const bool valid = (index >= 0) && (static_cast<size_t>(index) < _cachedVideoDeviceConfigs.size());
-    if (valid) {
-        cfg = _cachedVideoDeviceConfigs[static_cast<size_t>(index)];
+    return deviceConfigs.empty();
+}
+
+std::vector<VideoDeviceConfigInfo> VideoDeviceConfigStore::GetAllConfigs() const
+{
+    return deviceConfigs;
+}
+
+bool VideoDeviceConfigStore::GetConfig(int32_t index, VideoDeviceConfigInfo& cfg) const
+{
+    if (index < 0 || static_cast<size_t>(index) >= deviceConfigs.size()) {
+        return false;
     }
-    _lock.Unlock();
-    return valid;
+    cfg = deviceConfigs[static_cast<size_t>(index)];
+    return true;
 }
 
-size_t DeviceSettingsConfig::GetVideoDeviceCount() const
+size_t VideoDeviceConfigStore::GetCount() const
 {
-    _lock.Lock();
-    const size_t count = _cachedVideoDeviceConfigs.size();
-    _lock.Unlock();
-    return count;
+    return deviceConfigs.size();
 }
 
 // ============================================================================
-// FPD queries
+// FrontPanelConfigStore
 // ============================================================================
 
-std::vector<FPDIndicatorConfig> DeviceSettingsConfig::GetFPDIndicators() const
+void FrontPanelConfigStore::Clear()
 {
-    _lock.Lock();
-    std::vector<FPDIndicatorConfig> v = _cachedFPDIndicators;
-    _lock.Unlock();
-    return v;
+    colors.clear();
+    indicators.clear();
+    textDisplays.clear();
+    colorBindings.clear();
 }
 
-std::vector<FPDColorConfig> DeviceSettingsConfig::GetFPDColors() const
+bool FrontPanelConfigStore::IsEmpty() const
 {
-    _lock.Lock();
-    std::vector<FPDColorConfig> v = _cachedFPDColors;
-    _lock.Unlock();
-    return v;
+    return indicators.empty() && textDisplays.empty();
 }
 
-std::vector<FPDTextDisplayConfig> DeviceSettingsConfig::GetFPDTextDisplays() const
+std::vector<FPDIndicatorConfig> FrontPanelConfigStore::GetIndicators() const
 {
-    _lock.Lock();
-    std::vector<FPDTextDisplayConfig> v = _cachedFPDTextDisplays;
-    _lock.Unlock();
-    return v;
+    return indicators;
 }
 
-std::vector<FPDColorBinding> DeviceSettingsConfig::GetFPDColorBindings() const
+std::vector<FPDColorConfig> FrontPanelConfigStore::GetColors() const
 {
-    _lock.Lock();
-    std::vector<FPDColorBinding> v = _cachedFPDColorBindings;
-    _lock.Unlock();
-    return v;
+    return colors;
 }
 
-bool DeviceSettingsConfig::GetFPDIndicatorById(int32_t id, FPDIndicatorConfig& cfg) const
+std::vector<FPDTextDisplayConfig> FrontPanelConfigStore::GetTextDisplays() const
 {
-    std::vector<FPDIndicatorConfig> indicators;
-    _lock.Lock();
-    indicators = _cachedFPDIndicators;
-    _lock.Unlock();
+    return textDisplays;
+}
 
+std::vector<FPDColorBinding> FrontPanelConfigStore::GetColorBindings() const
+{
+    return colorBindings;
+}
+
+bool FrontPanelConfigStore::GetIndicatorById(int32_t id, FPDIndicatorConfig& cfg) const
+{
     for (size_t i = 0; i < indicators.size(); ++i) {
         if (indicators[i].id == id) {
             cfg = indicators[i];
@@ -579,13 +350,8 @@ bool DeviceSettingsConfig::GetFPDIndicatorById(int32_t id, FPDIndicatorConfig& c
     return false;
 }
 
-bool DeviceSettingsConfig::GetFPDTextDisplayByName(const std::string& name, FPDTextDisplayConfig& cfg) const
+bool FrontPanelConfigStore::GetTextDisplayByName(const std::string& name, FPDTextDisplayConfig& cfg) const
 {
-    std::vector<FPDTextDisplayConfig> textDisplays;
-    _lock.Lock();
-    textDisplays = _cachedFPDTextDisplays;
-    _lock.Unlock();
-
     for (size_t i = 0; i < textDisplays.size(); ++i) {
         if (EqualsIgnoreCase(textDisplays[i].name, name)) {
             cfg = textDisplays[i];
@@ -596,45 +362,203 @@ bool DeviceSettingsConfig::GetFPDTextDisplayByName(const std::string& name, FPDT
 }
 
 // ============================================================================
-// Internal utilities
+// LoadVideoPortConfig
 // ============================================================================
 
-bool DeviceSettingsConfig::EqualsIgnoreCase(const std::string& lhs, const std::string& rhs)
+bool LoadVideoPortConfig(Exchange::IDeviceSettingsVideoPort* iface, VideoPortConfigStore& store)
 {
-    return (lhs.size() == rhs.size()) &&
-           std::equal(lhs.begin(), lhs.end(), rhs.begin(),
-                      [](char a, char b) {
-                          return std::tolower(static_cast<unsigned char>(a)) ==
-                                 std::tolower(static_cast<unsigned char>(b));
-                      });
+    store.Clear();
+
+    if (iface == nullptr) {
+        LOGERR("LoadVideoPortConfig: iface is null");
+        return false;
+    }
+
+    IVideoPortTypeConfigIterator* typeIt = nullptr;
+    IVideoPortPortConfigIterator* portIt = nullptr;
+    IVideoPortResolutionIterator* resIt  = nullptr;
+
+    const uint32_t result = iface->GetVideoPortConfig(typeIt, portIt, resIt);
+    if (result != Core::ERROR_NONE) {
+        LOGERR("LoadVideoPortConfig: GetVideoPortConfig failed: %u", result);
+        if (typeIt) typeIt->Release();
+        if (portIt) portIt->Release();
+        if (resIt)  resIt->Release();
+        return false;
+    }
+
+    if (typeIt != nullptr) {
+        VideoPortTypeConfig cfg;
+        while (typeIt->Next(cfg)) {
+            store.typeConfigs.push_back(cfg);
+        }
+        typeIt->Release();
+    }
+
+    if (portIt != nullptr) {
+        VideoPortPortConfig cfg;
+        while (portIt->Next(cfg)) {
+            store.portConfigs.push_back(cfg);
+        }
+        portIt->Release();
+    }
+
+    if (resIt != nullptr) {
+        VideoPortResolution res;
+        while (resIt->Next(res)) {
+            store.resolutions.push_back(res);
+        }
+        resIt->Release();
+    }
+
+    LOGINFO("LoadVideoPortConfig: types=%zu ports=%zu resolutions=%zu",
+            store.typeConfigs.size(), store.portConfigs.size(), store.resolutions.size());
+    return true;
 }
 
-std::string DeviceSettingsConfig::BuildVideoPortName(const std::string& typeName, int32_t index)
+// ============================================================================
+// LoadAudioConfig
+// ============================================================================
+
+bool LoadAudioConfig(Exchange::IDeviceSettingsAudio* iface, AudioConfigStore& store)
 {
-    if (typeName.empty()) {
-        return std::string("VIDEO") + std::to_string(index);
+    store.Clear();
+
+    if (iface == nullptr) {
+        LOGERR("LoadAudioConfig: iface is null");
+        return false;
     }
-    return typeName + std::to_string(index);
+
+    IAudioTypeConfigIterator* typeIt = nullptr;
+    IAudioPortConfigIterator* portIt = nullptr;
+
+    const uint32_t result = iface->GetAudioConfig(typeIt, portIt);
+    if (result != Core::ERROR_NONE) {
+        LOGERR("LoadAudioConfig: GetAudioConfig failed: %u", result);
+        if (typeIt) typeIt->Release();
+        if (portIt) portIt->Release();
+        return false;
+    }
+
+    if (typeIt != nullptr) {
+        AudioTypeConfigInfo cfg;
+        while (typeIt->Next(cfg)) {
+            store.typeConfigs.push_back(cfg);
+        }
+        typeIt->Release();
+    }
+
+    if (portIt != nullptr) {
+        AudioPortConfigInfo cfg;
+        while (portIt->Next(cfg)) {
+            store.portConfigs.push_back(cfg);
+        }
+        portIt->Release();
+    }
+
+    LOGINFO("LoadAudioConfig: types=%zu ports=%zu",
+            store.typeConfigs.size(), store.portConfigs.size());
+    return true;
 }
 
-std::string DeviceSettingsConfig::BuildAudioPortName(AudioPortType portType, int32_t index)
+// ============================================================================
+// LoadVideoDeviceConfig
+// ============================================================================
+
+bool LoadVideoDeviceConfig(Exchange::IDeviceSettingsVideoDevice* iface, VideoDeviceConfigStore& store)
 {
-    switch (portType) {
-    case AudioPortType::AUDIO_PORT_TYPE_HDMI:
-        return std::string("HDMI") + std::to_string(index);
-    case AudioPortType::AUDIO_PORT_TYPE_SPDIF:
-        return std::string("SPDIF") + std::to_string(index);
-    case AudioPortType::AUDIO_PORT_TYPE_LR:
-        return std::string("LR") + std::to_string(index);
-    case AudioPortType::AUDIO_PORT_TYPE_SPEAKER:
-        return std::string("SPEAKER") + std::to_string(index);
-    case AudioPortType::AUDIO_PORT_TYPE_HDMIARC:
-        return std::string("HDMIARC") + std::to_string(index);
-    case AudioPortType::AUDIO_PORT_TYPE_HEADPHONE:
-        return std::string("HEADPHONE") + std::to_string(index);
-    default:
-        return std::string("AUDIO") + std::to_string(index);
+    store.Clear();
+
+    if (iface == nullptr) {
+        LOGERR("LoadVideoDeviceConfig: iface is null");
+        return false;
     }
+
+    IVideoDeviceConfigIterator* it = nullptr;
+
+    const uint32_t result = iface->GetVideoDeviceConfig(it);
+    if (result != Core::ERROR_NONE) {
+        LOGERR("LoadVideoDeviceConfig: GetVideoDeviceConfig failed: %u", result);
+        if (it) it->Release();
+        return false;
+    }
+
+    if (it != nullptr) {
+        VideoDeviceConfigInfo cfg;
+        while (it->Next(cfg)) {
+            store.deviceConfigs.push_back(cfg);
+        }
+        it->Release();
+    }
+
+    LOGINFO("LoadVideoDeviceConfig: devices=%zu", store.deviceConfigs.size());
+    return true;
+}
+
+// ============================================================================
+// LoadFrontPanelConfig
+// ============================================================================
+
+bool LoadFrontPanelConfig(Exchange::IDeviceSettingsFPD* iface, FrontPanelConfigStore& store)
+{
+    store.Clear();
+
+    if (iface == nullptr) {
+        LOGERR("LoadFrontPanelConfig: iface is null");
+        return false;
+    }
+
+    IFPDTextDisplayConfigIterator* textIt    = nullptr;
+    IFPDIndicatorConfigIterator*   indicIt   = nullptr;
+    IFPDColorConfigIterator*       colorIt   = nullptr;
+    IFPDColorBindingIterator*      bindingIt = nullptr;
+
+    const uint32_t result = iface->GetFrontPanelConfig(textIt, indicIt, colorIt, bindingIt);
+    if (result != Core::ERROR_NONE) {
+        LOGERR("LoadFrontPanelConfig: GetFrontPanelConfig failed: %u", result);
+        if (textIt)    textIt->Release();
+        if (indicIt)   indicIt->Release();
+        if (colorIt)   colorIt->Release();
+        if (bindingIt) bindingIt->Release();
+        return false;
+    }
+
+    if (textIt != nullptr) {
+        FPDTextDisplayConfig cfg;
+        while (textIt->Next(cfg)) {
+            store.textDisplays.push_back(cfg);
+        }
+        textIt->Release();
+    }
+
+    if (indicIt != nullptr) {
+        FPDIndicatorConfig cfg;
+        while (indicIt->Next(cfg)) {
+            store.indicators.push_back(cfg);
+        }
+        indicIt->Release();
+    }
+
+    if (colorIt != nullptr) {
+        FPDColorConfig cfg;
+        while (colorIt->Next(cfg)) {
+            store.colors.push_back(cfg);
+        }
+        colorIt->Release();
+    }
+
+    if (bindingIt != nullptr) {
+        FPDColorBinding cfg;
+        while (bindingIt->Next(cfg)) {
+            store.colorBindings.push_back(cfg);
+        }
+        bindingIt->Release();
+    }
+
+    LOGINFO("LoadFrontPanelConfig: textDisplays=%zu indicators=%zu colors=%zu bindings=%zu",
+            store.textDisplays.size(), store.indicators.size(),
+            store.colors.size(), store.colorBindings.size());
+    return true;
 }
 
 } // namespace Plugin
