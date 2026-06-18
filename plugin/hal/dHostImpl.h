@@ -31,7 +31,7 @@
 #include "dsError.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-#include "dsRpc.h"
+// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "UtilsLogging.h"
 
 #include <WPEFramework/interfaces/IDeviceSettingsHost.h>
@@ -42,7 +42,7 @@
 // Static global variables from dsHost.cpp conversion
 static int host_isInitialized = 0;
 static int host_isPlatInitialized = 0;
-static dsSleepMode_t srv_SleepMode = dsHOST_SLEEP_MODE_LIGHT;
+static SleepMode srv_SleepMode = dsHOST_SLEEP_MODE_LIGHT;
 
 // MS12 Configuration constants
 #ifndef MS12_CONFIG_BUF_SIZE
@@ -62,8 +62,8 @@ static dsSleepMode_t srv_SleepMode = dsHOST_SLEEP_MODE_LIGHT;
 static std::function<void(const HostSleepMode)> g_HostSleepModeChangedCallback;
 
 // DS HAL function type definitions
-typedef dsError_t (*dsGetPreferredSleepModeFunc_t)(dsSleepMode_t *mode);
-typedef dsError_t (*dsSetPreferredSleepModeFunc_t)(dsSleepMode_t mode);
+typedef dsError_t (*dsGetPreferredSleepModeFunc_t)(SleepMode *mode);
+typedef dsError_t (*dsSetPreferredSleepModeFunc_t)(SleepMode mode);
 typedef dsError_t (*dsGetCPUTemperatureFunc_t)(float *cpuTemperature);
 typedef dsError_t (*dsGetVersionFunc_t)(uint32_t *versionNumber);
 typedef dsError_t (*dsGetSocIDFromSDKFunc_t)(char* socID);
@@ -150,7 +150,7 @@ public:
         LOGINFO("SetPreferredSleepMode: mode=%d", static_cast<int>(mode));
 
         try {
-            dsSleepMode_t dsMode = convertHostSleepModeToDS(mode);
+            SleepMode dsMode = convertHostSleepModeToDS(mode);
 
             // Persist the sleep mode setting
             device::HostPersistence::getInstance().persistHostProperty("Power.Mode", enumToString(dsMode));
@@ -363,7 +363,7 @@ public:
 private:
 
     // Helper methods for DS Host HAL conversion  
-    HostSleepMode convertDSSleepMode(dsSleepMode_t dsMode) {
+    HostSleepMode convertDSSleepMode(SleepMode dsMode) {
         switch (dsMode) {
             case dsHOST_SLEEP_MODE_LIGHT: return HostSleepMode::DS_HOST_SLEEPMODE_LIGHT;
             case dsHOST_SLEEP_MODE_DEEP: return HostSleepMode::DS_HOST_SLEEPMODE_DEEP;
@@ -371,7 +371,7 @@ private:
         }
     }
     
-    dsSleepMode_t convertHostSleepModeToDS(HostSleepMode mode) {
+    SleepMode convertHostSleepModeToDS(HostSleepMode mode) {
         switch (mode) {
             case HostSleepMode::DS_HOST_SLEEPMODE_LIGHT: return dsHOST_SLEEP_MODE_LIGHT;
             case HostSleepMode::DS_HOST_SLEEPMODE_DEEP: return dsHOST_SLEEP_MODE_DEEP;
@@ -380,7 +380,7 @@ private:
     }
     
     // Helper functions for string conversion
-    string enumToString(dsSleepMode_t mode) {
+    string enumToString(SleepMode mode) {
         string ret;
         switch (mode) {
             case dsHOST_SLEEP_MODE_LIGHT:
@@ -395,7 +395,7 @@ private:
         return ret;
     }
     
-    dsSleepMode_t stringToEnum(string mode) {
+    SleepMode stringToEnum(string mode) {
         if (mode == "LIGHT_SLEEP") {
             return dsHOST_SLEEP_MODE_LIGHT;
         } else if (mode == "DEEP_SLEEP") {

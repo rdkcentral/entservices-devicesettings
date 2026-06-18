@@ -39,7 +39,7 @@
 #include "dsUtl.h"
 #include "dsError.h"
 #include "dsDisplay.h"
-#include "dsRpc.h"
+// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "dsFPDTypes.h"
 
 #include "hal/dFPD.h"

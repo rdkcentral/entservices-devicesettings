@@ -28,16 +28,10 @@
 #include "dsError.h"
 #include "dsTypes.h"
 #include "dsUtl.h"
-#include "dsRpc.h"
+// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 
-// Device Settings library includes for accessing audio port configurations
-#include "manager.hpp"
-#include "audioOutputPortType.hpp"
-#include "audioOutputPort.hpp"
-#include "audioCompression.hpp"
-#include "audioEncoding.hpp"
-#include "audioStereoMode.hpp"
-#include "exception.hpp"
+// Legacy Device Settings C++ audio config headers removed.
+// Audio runtime path now relies on DS HAL APIs and local persistence helpers.
 
 // WPEFramework includes for RPC iterator creation
 #include <core/core.h>
@@ -454,45 +448,32 @@ public:
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
-        /*try {
-            // Convert AudioPortType to dsAudioPortType_t
+        // Port name lookup — plugin-local, no lib32-devicesettings dependency.
+        struct PortNameEntry { dsAudioPortType_t type; const char* name; };
+        static const PortNameEntry kPortNames[] = {
+            { dsAUDIOPORT_TYPE_ID_LR,    "LR"        },
+            { dsAUDIOPORT_TYPE_HDMI,     "HDMI0"     },
+            { dsAUDIOPORT_TYPE_SPDIF,    "SPDIF0"    },
+            { dsAUDIOPORT_TYPE_SPEAKER,  "SPEAKER0"  },
+            { dsAUDIOPORT_TYPE_HDMI_ARC, "HDMI_ARC0" },
+            { dsAUDIOPORT_TYPE_HEADPHONE,"HEADPHONE0"},
+        };
+        try {
             dsAudioPortType_t dsType = convertToDS(audioPort);
-            
-            // Get audio port type information
-            try {
-                // Initialize device settings manager to access port configurations
-                device::Manager::Initialize();
-                
-                // Get the audio output port type
-                device::AudioOutputPortType &portType = device::AudioOutputPortType::getInstance(dsType);
-                
-                // Fill the AudioConfig structure
-                audioConfig.typeId = static_cast<int32_t>(dsType);
-                audioConfig.name = portType.getName();
-                
-                // Log supported features for debugging
-                const device::List<device::AudioCompression> compressions = portType.getSupportedCompressions();
-                const device::List<device::AudioEncoding> encodings = portType.getSupportedEncodings();
-                const device::List<device::AudioStereoMode> stereoModes = portType.getSupportedStereoModes();
-                
-                LOGINFO("GetAudioPortConfig success: typeId=%d, name=%s, compressions=%d, encodings=%d, stereoModes=%d", 
-                       audioConfig.typeId, audioConfig.name.c_str(), 
-                       compressions.size(), encodings.size(), stereoModes.size());
-                       
-                // Note: The iterator fields are commented out in AudioConfig struct
-                // If needed, they can be populated using WPEFramework RPC iterator creation
-                
-            } catch (const device::Exception &e) {
-                LOGERR("Device settings exception in GetAudioPortConfig: %s", e.what());
-                return WPEFramework::Core::ERROR_GENERAL;
-            } catch (...) {
-                LOGERR("Unknown exception in GetAudioPortConfig");
-                return WPEFramework::Core::ERROR_GENERAL;
+            audioConfig.typeId = static_cast<int32_t>(dsType);
+            audioConfig.name   = "UNKNOWN";
+            for (const auto& entry : kPortNames) {
+                if (entry.type == dsType) {
+                    audioConfig.name = entry.name;
+                    break;
+                }
             }
+            LOGINFO("GetAudioPortConfig success: typeId=%d, name=%s",
+                    audioConfig.typeId, audioConfig.name.c_str());
         } catch (...) {
             LOGERR("Exception in GetAudioPortConfig");
             return WPEFramework::Core::ERROR_GENERAL;
-        }*/
+        }
         EXIT_LOG;
         return WPEFramework::Core::ERROR_NONE;
     }
@@ -634,55 +615,43 @@ public:
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
-        /*try {
+        // Derive supported compressions from dsGetAudioCapabilities — no lib32-devicesettings dependency.
+        try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsAudioPortType_t portType = getAudioPortType(dsHandle);
-            
-            if (portType >= dsAUDIOPORT_TYPE_MAX) {
-                LOGERR("Invalid audio port type for handle: %d", handle);
-                return WPEFramework::Core::ERROR_GENERAL;
+
+            // Resolve dsGetAudioCapabilities via dlopen (same pattern as all other HAL calls).
+            typedef dsError_t (*dsGetAudioCapabilities_t)(intptr_t handle, int* capabilities);
+            static dsGetAudioCapabilities_t dsGetAudioCapabilitiesFunc = 0;
+            if (dsGetAudioCapabilitiesFunc == 0) {
+                dsGetAudioCapabilitiesFunc = (dsGetAudioCapabilities_t)resolve(RDK_DSHAL_NAME, "dsGetAudioCapabilities");
             }
-            
-            try {
-                // Initialize device settings manager to access port configurations
-                device::Manager::Initialize();
-                
-                // Get the audio output port type and supported compressions
-                device::AudioOutputPortType &audioPortType = device::AudioOutputPortType::getInstance(portType);
-                const device::List<device::AudioCompression> supportedCompressions = audioPortType.getSupportedCompressions();
-                
-                // Create vector to hold compression values for RPC iterator
-                std::vector<AudioCompression> compressionList;
-                
-                // Convert device::AudioCompression to AudioCompression enum
-                for (size_t i = 0; i < supportedCompressions.size(); i++) {
-                    const device::AudioCompression &compression = supportedCompressions.at(i);
-                    // Map device settings compression IDs to AudioCompression enum values
-                    AudioCompression audioComp = static_cast<AudioCompression>(compression.getId());
-                    compressionList.push_back(audioComp);
-                    LOGINFO("Supported compression [%d]: %s (ID: %d)", 
-                           static_cast<int>(i), compression.getName().c_str(), compression.getId());
-                }
-                
-                // Create RPC iterator using WPEFramework's iterator factory
-                // Note: This creates a proxy object that can be used in RPC calls
-                using IteratorImplementation = RPC::IteratorType<std::vector<AudioCompression>>;
-                compressions = Core::ProxyType<IteratorImplementation>::Create(compressionList);
-                
-                LOGINFO("GetSupportedCompressions success: handle=%d, compressions_count=%d", 
-                       handle, static_cast<int>(compressionList.size()));
-                       
-            } catch (const device::Exception &e) {
-                LOGERR("Device settings exception in GetSupportedCompressions: %s", e.what());
-                return WPEFramework::Core::ERROR_GENERAL;
-            } catch (...) {
-                LOGERR("Unknown exception in GetSupportedCompressions device settings access");
-                return WPEFramework::Core::ERROR_GENERAL;
+
+            int caps = 0;
+            if (dsGetAudioCapabilitiesFunc != 0) {
+                dsGetAudioCapabilitiesFunc(dsHandle, &caps);
             }
+
+            // Build compression list based on capabilities bitmask.
+            // dsAUDIOSUPPORT_DD / DDPLUS indicate heavy/medium compression support.
+            std::vector<AudioCompression> compressionList;
+            compressionList.push_back(AudioCompression::AUDIO_COMPRESSION_NONE);
+            compressionList.push_back(AudioCompression::AUDIO_COMPRESSION_LIGHT);
+            if (caps & dsAUDIOSUPPORT_DD) {
+                compressionList.push_back(AudioCompression::AUDIO_COMPRESSION_MEDIUM);
+            }
+            if (caps & dsAUDIOSUPPORT_DDPLUS) {
+                compressionList.push_back(AudioCompression::AUDIO_COMPRESSION_HEAVY);
+            }
+
+            using CompressionIterator = WPEFramework::RPC::IteratorType<IDeviceSettingsAudioCompressionIterator>;
+            compressions = WPEFramework::Core::Service<CompressionIterator>::Create<IDeviceSettingsAudioCompressionIterator>(compressionList);
+
+            LOGINFO("GetSupportedCompressions success: handle=%d, count=%zu, caps=0x%x",
+                    handle, compressionList.size(), caps);
         } catch (...) {
             LOGERR("Exception in GetSupportedCompressions");
             return WPEFramework::Core::ERROR_GENERAL;
-        }*/
+        }
         EXIT_LOG;
         return WPEFramework::Core::ERROR_NONE;
     }

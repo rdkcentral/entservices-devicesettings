@@ -35,10 +35,10 @@
 
 #include <interfaces/IDeviceSettingsVideoDevice.h>
 
-#include "dsMgr.h"
+// #include "dsMgr.h" // Disabled legacy lib32-devicesettings include
 #include "dsUtl.h"
 #include "dsError.h"
-#include "dsRpc.h"
+// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "dsVideoDevice.h"
 
 #include "hal/dVideoDevice.h"

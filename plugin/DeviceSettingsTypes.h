@@ -193,6 +193,122 @@ using IVideoDeviceConfigIterator = DeviceSettingsVideoDevice::IVideoDeviceConfig
 // Host type aliases for convenience
 using HostSleepMode = DeviceSettingsHost::SleepMode;
 
+// Local copy of the legacy DS RPC sleep mode enum used by the host HAL.
+typedef enum _dsSleepMode_t {
+    dsHOST_SLEEP_MODE_LIGHT,
+    dsHOST_SLEEP_MODE_DEEP,
+    dsHOST_SLEEP_MODE_MAX,
+} dsSleepMode_t;
+
+// Backward-compatible alias used by existing plugin code.
+typedef dsSleepMode_t SleepMode;
+
+// Legacy DSMGR/RPC compatibility definitions used by DSController and DSPwrEventListener.
+#ifndef DSMGR_MAX_VIDEO_PORT_NAME_LENGTH
+#define DSMGR_MAX_VIDEO_PORT_NAME_LENGTH 16
+#endif
+
+#ifndef PWRMGR_MAX_REBOOT_REASON_LENGTH
+#define PWRMGR_MAX_REBOOT_REASON_LENGTH 100
+#endif
+
+#ifndef IARM_BUS_DSMGR_NAME
+#define IARM_BUS_DSMGR_NAME "DSMgr"
+#endif
+
+typedef enum _DSMgr_EventId_t {
+    IARM_BUS_DSMGR_EVENT_RES_PRECHANGE = 0,
+    IARM_BUS_DSMGR_EVENT_RES_POSTCHANGE,
+    IARM_BUS_DSMGR_EVENT_ZOOM_SETTINGS,
+    IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG,
+    IARM_BUS_DSMGR_EVENT_AUDIO_MODE,
+    IARM_BUS_DSMGR_EVENT_HDCP_STATUS,
+    IARM_BUS_DSMGR_EVENT_RX_SENSE,
+    IARM_BUS_DSMGR_EVENT_HDMI_IN_HOTPLUG,
+    IARM_BUS_DSMGR_EVENT_HDMI_IN_SIGNAL_STATUS,
+    IARM_BUS_DSMGR_EVENT_HDMI_IN_STATUS,
+    IARM_BUS_DSMGR_EVENT_HDMI_IN_VIDEO_MODE_UPDATE,
+    IARM_BUS_DSMGR_EVENT_HDMI_IN_ALLM_STATUS,
+    IARM_BUS_DSMGR_EVENT_HDMI_IN_VRR_STATUS,
+    IARM_BUS_DSMGR_EVENT_COMPOSITE_IN_HOTPLUG,
+    IARM_BUS_DSMGR_EVENT_COMPOSITE_IN_SIGNAL_STATUS,
+    IARM_BUS_DSMGR_EVENT_COMPOSITE_IN_STATUS,
+    IARM_BUS_DSMGR_EVENT_COMPOSITE_IN_VIDEO_MODE_UPDATE,
+    IARM_BUS_DSMGR_EVENT_TIME_FORMAT_CHANGE,
+    IARM_BUS_DSMGR_EVENT_AUDIO_LEVEL_CHANGED,
+    IARM_BUS_DSMGR_EVENT_AUDIO_OUT_HOTPLUG,
+    IARM_BUS_DSMGR_EVENT_AUDIO_FORMAT_UPDATE,
+    IARM_BUS_DSMGR_EVENT_AUDIO_PRIMARY_LANGUAGE_CHANGED,
+    IARM_BUS_DSMGR_EVENT_AUDIO_SECONDARY_LANGUAGE_CHANGED,
+    IARM_BUS_DSMGR_EVENT_AUDIO_FADER_CONTROL_CHANGED,
+    IARM_BUS_DSMGR_EVENT_AUDIO_ASSOCIATED_AUDIO_MIXING_CHANGED,
+    IARM_BUS_DSMGR_EVENT_VIDEO_FORMAT_UPDATE,
+    IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_PRECHANGE,
+    IARM_BUS_DSMGR_EVENT_DISPLAY_FRAMRATE_POSTCHANGE,
+    IARM_BUS_DSMGR_EVENT_AUDIO_PORT_STATE,
+    IARM_BUS_DSMGR_EVENT_SLEEP_MODE_CHANGED,
+    IARM_BUS_DSMGR_EVENT_HDMI_IN_AVI_CONTENT_TYPE,
+    IARM_BUS_DSMGR_EVENT_HDMI_IN_AV_LATENCY,
+    IARM_BUS_DSMGR_EVENT_ATMOS_CAPS_CHANGED,
+    IARM_BUS_DSMGR_EVENT_MAX,
+} IARM_Bus_DSMgr_EventId_t;
+
+typedef struct _DSMgr_EventData_t {
+    union {
+        struct {
+            int event;
+        } hdmi_hpd;
+        struct {
+            int hdcpStatus;
+        } hdmi_hdcp;
+    } data;
+} IARM_Bus_DSMgr_EventData_t;
+
+typedef struct _dsMgrStandbyVideoStateParam_t {
+    char port[DSMGR_MAX_VIDEO_PORT_NAME_LENGTH];
+    int isEnabled;
+    int result;
+} dsMgrStandbyVideoStateParam_t;
+
+typedef struct _dsMgrRebootConfigParam_t {
+    char reboot_reason_custom[PWRMGR_MAX_REBOOT_REASON_LENGTH];
+    int powerState;
+    int result;
+} dsMgrRebootConfigParam_t;
+
+typedef struct _dsMgrAVPortStateParam_t {
+    int avPortPowerState;
+    int result;
+} dsMgrAVPortStateParam_t;
+
+typedef struct _dsMgrLEDStatusParam_t {
+    int ledState;
+    int result;
+} dsMgrLEDStatusParam_t;
+
+typedef struct _dsEdidIgnoreParam_t {
+    intptr_t handle;
+    bool ignoreEDID;
+} dsEdidIgnoreParam_t;
+
+// Plugin-wide exception logging helpers.
+// Use these instead of catching device::Exception from lib32-devicesettings.
+namespace WPEFramework {
+namespace Plugin {
+namespace DeviceSettingsExceptionHelper {
+    inline void LogException(const char* context, const std::exception& e)
+    {
+        LOGERR("%s: %s", context, e.what());
+    }
+
+    inline void LogUnknownException(const char* context)
+    {
+        LOGERR("%s: unknown exception", context);
+    }
+} // namespace DeviceSettingsExceptionHelper
+} // namespace Plugin
+} // namespace WPEFramework
+
 // Common constants
 #define API_VERSION_MAJOR 1
 #define API_VERSION_MINOR 0
