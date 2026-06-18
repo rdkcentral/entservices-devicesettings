@@ -33,9 +33,10 @@
 #include "dsHdmiIn.h"
 #include "dsError.h"
 #include "dsHdmiInTypes.h"
+#include "dsVideoDeviceTypes.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-#include "dsRpc.h"
+// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 
 // Include profile type definitions
 #include "../helpers/UtilsSearchRDKProfile.h"
@@ -982,13 +983,9 @@ public:
     uint32_t ScaleHDMIInVideo(const HDMIInVideoRectangle videoPosition) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        dsVideoRect_t rect;
-        rect.x = videoPosition.x;
-        rect.y = videoPosition.y;
-        rect.width = videoPosition.width;
-        rect.height = videoPosition.height;
-        if (dsHdmiInScaleVideo(rect.x, rect.y, rect.width, rect.height) == dsERR_NONE) {
-            LOGINFO("Successfully set the video position x=%d, y=%d, width=%d, height=%d", rect.x, rect.y, rect.width, rect.height);
+        if (dsHdmiInScaleVideo(videoPosition.x, videoPosition.y, videoPosition.width, videoPosition.height) == dsERR_NONE) {
+            LOGINFO("Successfully set the video position x=%d, y=%d, width=%d, height=%d",
+                    videoPosition.x, videoPosition.y, videoPosition.width, videoPosition.height);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;

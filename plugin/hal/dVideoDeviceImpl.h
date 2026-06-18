@@ -35,7 +35,7 @@
 #include "dsError.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-#include "dsRpc.h"
+// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "dsHdmiIn.h"
 
 #include "../helpers/UtilsSearchRDKProfile.h"

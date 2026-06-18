@@ -21,10 +21,12 @@
 
 #include <queue>
 #include <atomic>
+#include <vector>
 #include <unistd.h>
 #include <pthread.h>
 #include <interfaces/IPowerManager.h>
 #include "PowerManagerInterface.h"
+#include "../helpers/DeviceSettingsConfig.h"
 #include "Module.h"
 
 #include "DeviceSettingsImplementation.h"
@@ -34,7 +36,7 @@
 #include "libIARM.h"
 #include "libIBusDaemon.h"
 #include "sysMgr.h"
-#include "dsMgr.h"
+// #include "dsMgr.h" // Disabled legacy lib32-devicesettings include
 #include "libIBus.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;
@@ -105,6 +107,9 @@ public:
     void registerPowerEventHandler();
 
 private:
+    using VideoPortEntry = DeviceSettingsConfig::VideoPortEntry;
+    using AudioPortEntry = DeviceSettingsConfig::AudioPortEntry;
+
     static void* PwrEventHandlingThreadFunc(void* arg);
     static void* PwrRetryEstablishConnThread(void* arg);
     
@@ -113,6 +118,12 @@ private:
     void PwrControllerFetchNinitStateValues();
     void HandlePwrEventData(const PowerState currentState,
                            const PowerState newState);
+
+    bool IsDeviceSettingsReady(bool refreshCacheIfEmpty = true);
+    void RefreshPortConfigurationCache();
+    bool BuildVideoPortEntries(std::vector<VideoPortEntry>& entries);
+    bool BuildAudioPortEntries(std::vector<AudioPortEntry>& entries);
+    bool ResolveVideoPortEntryByName(const std::string& requestedPort, VideoPortEntry& resolvedEntry);
     
     int SetLEDStatus(PowerState powerState);
     int SetAVPortsPowerState(PowerState powerState);
@@ -152,6 +163,7 @@ private:
     Core::Sink<PowerManagerNotification> _pwrMgrNotification;
     PluginHost::IShell* _service;
     DeviceSettingsImp* _deviceSettings;
+    DeviceSettingsConfig _deviceSettingsConfig;
 };
 
 } // namespace Plugin

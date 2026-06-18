@@ -36,7 +36,7 @@
 
 #include <interfaces/IDeviceSettingsCompositeIn.h>
 
-#include "dsMgr.h"
+// #include "dsMgr.h" // Disabled legacy lib32-devicesettings include
 #include "dsUtl.h"
 #include "dsError.h"
 #include "dsCompositeIn.h"

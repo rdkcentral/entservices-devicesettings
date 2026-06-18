@@ -37,7 +37,7 @@
 #include "fpd.h"
 #include "HdmiIn.h"
 
-#include "list.hpp"
+// #include "list.hpp" // Disabled legacy lib32-devicesettings include
 #include "DeviceSettingsTypes.h"
 
 namespace WPEFramework {

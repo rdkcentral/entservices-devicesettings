@@ -32,11 +32,11 @@ extern "C" {
 #include "libIBus.h"
 #include "iarmUtil.h"
 #include "sysMgr.h"
-#include "dsMgr.h"
+// #include "dsMgr.h" // Disabled legacy lib32-devicesettings include
 #include "dsUtl.h"
 #include "dsError.h"
 #include "dsTypes.h"
-#include "dsRpc.h"
+// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "dsVideoPort.h"
 #include "dsDisplay.h"
 #include "dsAudio.h"

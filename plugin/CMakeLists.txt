@@ -73,6 +73,7 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     DSController.cpp
     DSPwrEventListener.cpp
     DSProductTraitsHandler.cpp
+    ../helpers/DeviceSettingsConfig.cpp
     ../helpers/UtilsSearchRDKProfile.cpp
     )
 

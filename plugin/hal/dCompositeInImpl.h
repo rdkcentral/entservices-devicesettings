@@ -27,7 +27,7 @@
 #include "dCompositeIn.h"
 #include "dsCompositeIn.h"
 #include "dsError.h" 
-#include "dsMgr.h"
+// #include "dsMgr.h" // Disabled legacy lib32-devicesettings include
 #include "dsUtl.h"
 #include "dsTypes.h"
 #include "dsError.h"

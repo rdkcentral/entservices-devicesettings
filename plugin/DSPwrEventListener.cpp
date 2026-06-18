@@ -32,19 +32,12 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <vector>
 
 //extern profile_t profileType;
 
-#include "frontPanelIndicator.hpp"
-#include "host.hpp"
-#include "videoOutputPort.hpp"
-#include "audioOutputPort.hpp"
-#include "exception.hpp"
-#include "manager.hpp"
-#include "UtilsLogging.h"
-
 // DS RPC header (already has extern "C" protection built-in)
-#include "dsRpc.h"
+// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 
 // Extern declaration for EAS audio mode (from original dsMgr)
 extern "C" {
@@ -73,12 +66,58 @@ DSPwrEventListener::DSPwrEventListener()
     LOGINFO("DSPwrEventListener Constructor");
     memset(_standbyVideoPortSetting, 0, sizeof(_standbyVideoPortSetting));
     DSPwrEventListener::_instance = this;
-    
-    // Get DeviceSettings implementation instance
-    _deviceSettings = DeviceSettingsImp::instance();
-    if (!_deviceSettings) {
-        LOGERR("Failed to get DeviceSettings implementation instance");
+
+    IsDeviceSettingsReady(true);
+}
+
+bool DSPwrEventListener::IsDeviceSettingsReady(bool refreshCacheIfEmpty)
+{
+    if (_deviceSettings == nullptr) {
+        _deviceSettings = DeviceSettingsImp::instance();
+        if (_deviceSettings == nullptr) {
+            LOGERR("DeviceSettings implementation not available yet");
+            return false;
+        }
+
+        LOGINFO("DeviceSettings implementation recovered");
+        RefreshPortConfigurationCache();
+        return true;
     }
+
+    if (refreshCacheIfEmpty && _deviceSettingsConfig.IsCacheEmpty()) {
+            RefreshPortConfigurationCache();
+    }
+
+    return true;
+}
+
+void DSPwrEventListener::RefreshPortConfigurationCache()
+{
+    _deviceSettingsConfig.Refresh(_deviceSettings);
+}
+
+bool DSPwrEventListener::BuildVideoPortEntries(std::vector<DSPwrEventListener::VideoPortEntry>& entries)
+{
+    if (IsDeviceSettingsReady(true) == false) {
+        return false;
+    }
+    return _deviceSettingsConfig.BuildVideoPortEntries(entries);
+}
+
+bool DSPwrEventListener::BuildAudioPortEntries(std::vector<DSPwrEventListener::AudioPortEntry>& entries)
+{
+    if (IsDeviceSettingsReady(true) == false) {
+        return false;
+    }
+    return _deviceSettingsConfig.BuildAudioPortEntries(entries);
+}
+
+bool DSPwrEventListener::ResolveVideoPortEntryByName(const std::string& requestedPort, DSPwrEventListener::VideoPortEntry& resolvedEntry)
+{
+    if (IsDeviceSettingsReady(true) == false) {
+        return false;
+    }
+    return _deviceSettingsConfig.ResolveVideoPortEntryByName(requestedPort, resolvedEntry);
 }
 
 DSPwrEventListener::~DSPwrEventListener()
@@ -93,6 +132,10 @@ void DSPwrEventListener::Init(PluginHost::IShell* service)
     
     _service = service;
     _service->AddRef();
+
+    if (IsDeviceSettingsReady(true) == false) {
+        LOGERR("Init: DeviceSettings implementation not ready, will retry lazily");
+    }
     
     // profileType is already initialized in DeviceSettingsImplementation.cpp constructor
     // No need to call searchRdkProfile() again here
@@ -122,31 +165,34 @@ void DSPwrEventListener::Init(PluginHost::IShell* service)
     //     LOGERR("Exception Caught during device::Manager::load");
     // }
 
-    IARM_Result_t rc;
-    rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_SetStandbyVideoState, SetStandbyVideoState);
-    if (IARM_RESULT_SUCCESS != rc) {
-        LOGERR("IARM_Bus_RegisterCall Failed for SetStandbyVideoState, Error: %d", rc);
-    }
-    
-    rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_GetStandbyVideoState, GetStandbyVideoState);
-    if (IARM_RESULT_SUCCESS != rc) {
-        LOGERR("IARM_Bus_RegisterCall Failed for GetStandbyVideoState, Error: %d", rc);
-    }
-    
-    rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_SetAvPortState, SetAvPortState);
-    if (IARM_RESULT_SUCCESS != rc) {
-        LOGERR("IARM_Bus_RegisterCall Failed for SetAvPortState, Error: %d", rc);
-    }
-    
-    rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_SetLEDStatus, SetLEDState);
-    if (IARM_RESULT_SUCCESS != rc) {
-        LOGERR("IARM_Bus_RegisterCall Failed for SetLEDStatus, Error: %d", rc);
-    }
-    
-    rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_SetRebootConfig, SetRebootConfig);
-    if (IARM_RESULT_SUCCESS != rc) {
-        LOGERR("IARM_Bus_RegisterCall Failed for SetRebootConfig, Error: %d", rc);
-    }
+    // TODO: Re-enable these DSMGR IARM API registrations when a client starts consuming them.
+    // Currently no client calls these APIs, so registration is intentionally disabled.
+    //
+    // IARM_Result_t rc;
+    // rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_SetStandbyVideoState, SetStandbyVideoState);
+    // if (IARM_RESULT_SUCCESS != rc) {
+    //     LOGERR("IARM_Bus_RegisterCall Failed for SetStandbyVideoState, Error: %d", rc);
+    // }
+    //
+    // rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_GetStandbyVideoState, GetStandbyVideoState);
+    // if (IARM_RESULT_SUCCESS != rc) {
+    //     LOGERR("IARM_Bus_RegisterCall Failed for GetStandbyVideoState, Error: %d", rc);
+    // }
+    //
+    // rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_SetAvPortState, SetAvPortState);
+    // if (IARM_RESULT_SUCCESS != rc) {
+    //     LOGERR("IARM_Bus_RegisterCall Failed for SetAvPortState, Error: %d", rc);
+    // }
+    //
+    // rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_SetLEDStatus, SetLEDState);
+    // if (IARM_RESULT_SUCCESS != rc) {
+    //     LOGERR("IARM_Bus_RegisterCall Failed for SetLEDStatus, Error: %d", rc);
+    // }
+    //
+    // rc = IARM_Bus_RegisterCall(IARM_BUS_DSMGR_API_SetRebootConfig, SetRebootConfig);
+    // if (IARM_RESULT_SUCCESS != rc) {
+    //     LOGERR("IARM_Bus_RegisterCall Failed for SetRebootConfig, Error: %d", rc);
+    // }
 
     // Initialize mutexes and condition variables
     pthread_mutex_init(&_pwrEventQueueMutexLock, NULL);
@@ -314,6 +360,11 @@ int DSPwrEventListener::SetLEDStatus(PowerState powerState)
     LOGINFO("SetLEDStatus - powerState: %d", powerState);
     
     try {
+        if (IsDeviceSettingsReady(true) == false) {
+            LOGERR("SetLEDStatus: DeviceSettings implementation not available");
+            return -1;
+        }
+
         if (_deviceSettings) {
             FPDIndicator indicator = static_cast<FPDIndicator>(dsFPD_INDICATOR_POWER);
             FPDState fpdState;
@@ -356,80 +407,64 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
         if (PowerState::POWER_STATE_ON != powerState) {
             // Non-ON power state (standby or off) - certain ports may stay on in standby modes
             try {
-                device::List<device::VideoOutputPort> videoPorts = device::Host::getInstance().getVideoOutputPorts();
+                std::vector<VideoPortEntry> videoPorts;
+                if (!BuildVideoPortEntries(videoPorts)) {
+                    LOGERR("Failed to enumerate video ports for powerState %d", static_cast<int>(powerState));
+                }
+
                 LOGINFO("Number of Video Ports: %zu", videoPorts.size());
-                
+
                 for (size_t i = 0; i < videoPorts.size(); i++) {
-                    /*try {
-                        device::VideoOutputPort vPort = videoPorts.at(i);
-                        bool doEnable = GetVideoPortStandbySetting(vPort.getName().c_str());
+                    try {
+                        const VideoPortEntry& vPort = videoPorts.at(i);
+                        bool doEnable = GetVideoPortStandbySetting(vPort.name.c_str());
                         LOGINFO("Video port %s will be %s for PowerState %d", 
-                               vPort.getName().c_str(), 
+                               vPort.name.c_str(), 
                                (doEnable ? "enabled" : "disabled"), 
                                static_cast<int>(powerState));
                                
                         if ((false == doEnable) || (PowerState::POWER_STATE_OFF == powerState)) {
-                            // Disable the port
-                            // Get port type using DS HAL APIs for proper type identification
-                            int portTypeId = 0;
-                            // Use DS HAL to get port type ID - fallback to HDMI if unavailable 
-                            if (vPort.getName().find("HDMI") != std::string::npos) {
-                                portTypeId = dsVIDEOPORT_TYPE_HDMI;
-                            } else if (vPort.getName().find("COMPONENT") != std::string::npos) {
-                                portTypeId = dsVIDEOPORT_TYPE_COMPONENT;
-                            } else {
-                                portTypeId = dsVIDEOPORT_TYPE_HDMI; // default
-                            }
-                            dsVideoPortType_t videoPortType = static_cast<dsVideoPortType_t>(portTypeId);
-                            uint32_t result = ConfigureVideoPort(vPort.getName(), 
-                                                               static_cast<VideoPortType>(videoPortType), 
-                                                               vPort.getIndex(), 
+                            uint32_t result = ConfigureVideoPort(vPort.name,
+                                                               vPort.type,
+                                                               vPort.index,
                                                                false);
                             if (result == WPEFramework::Core::ERROR_NONE) {
                                 LOGINFO("VideoPort %s disabled for powerState %d", 
-                                       vPort.getName().c_str(), static_cast<int>(powerState));
+                                       vPort.name.c_str(), static_cast<int>(powerState));
                             }
                         } else {
                             LOGINFO("VideoPort %s stays enabled for powerState %d", 
-                                   vPort.getName().c_str(), static_cast<int>(powerState));
+                                   vPort.name.c_str(), static_cast<int>(powerState));
                         }
                     } catch (...) {
                         LOGERR("Exception caught in video port processing for port %zu", i);
-                    }*/
+                    }
                 }
             } catch (...) {
                 LOGERR("Exception caught during video port enumeration");
             }
             
             // Configure Audio Ports  
-            /*try {
-                device::List<device::AudioOutputPort> audioPorts = device::Host::getInstance().getAudioOutputPorts();
+            try {
+                std::vector<AudioPortEntry> audioPorts;
+                if (!BuildAudioPortEntries(audioPorts)) {
+                    LOGERR("Failed to enumerate audio ports for powerState %d", static_cast<int>(powerState));
+                }
                 LOGINFO("Number of Audio Ports: %zu", audioPorts.size());
                 
                 for (size_t i = 0; i < audioPorts.size(); i++) {
                     try {
-                        device::AudioOutputPort aPort = audioPorts.at(i);
+                        const AudioPortEntry& aPort = audioPorts.at(i);
                         bool isConfigSkipped = false;
-                        // Get port type using DS HAL APIs for proper type identification
-                        int portTypeId = 0;
-                        // Use DS HAL to get port type ID - fallback to HDMI Output if unavailable
-                        if (aPort.getName().find("HDMI") != std::string::npos) {
-                            portTypeId = dsAUDIOPORT_TYPE_HDMI;
-                        } else if (aPort.getName().find("SPDIF") != std::string::npos) {
-                            portTypeId = dsAUDIOPORT_TYPE_SPDIF;
-                        } else {
-                            portTypeId = dsAUDIOPORT_TYPE_HDMI; // default
-                        }
-                        dsAudioPortType_t audioPortType = static_cast<dsAudioPortType_t>(portTypeId);
                         
-                        uint32_t result = ConfigureAudioPort(aPort.getName(),
-                                                           static_cast<AudioPortType>(audioPortType),
-                                                           aPort.getIndex(),
+                        uint32_t result = ConfigureAudioPort(aPort.name,
+                                                           aPort.type,
+                                                           aPort.index,
                                                            false,
                                                            &isConfigSkipped);
                         if (result == WPEFramework::Core::ERROR_NONE) {
                             LOGINFO("AudioPort %s disabled for powerState %d", 
-                                   aPort.getName().c_str(), static_cast<int>(powerState));
+                                   aPort.name.c_str(), static_cast<int>(powerState));
                         }
                     } catch (...) {
                         LOGERR("Exception caught in audio port processing for port %zu", i);
@@ -437,65 +472,49 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                 }
             } catch (...) {
                 LOGERR("Exception caught during audio port enumeration");
-            }*/
+            }
         } else {
             // POWER_STATE_ON - Enable all ports
-            /*try {
-                device::List<device::VideoOutputPort> videoPorts = device::Host::getInstance().getVideoOutputPorts();
-                
+            try {
+                std::vector<VideoPortEntry> videoPorts;
+                if (!BuildVideoPortEntries(videoPorts)) {
+                    LOGERR("Failed to enumerate video ports for POWER_STATE_ON");
+                }
+
                 for (size_t i = 0; i < videoPorts.size(); i++) {
                     try {
-                        device::VideoOutputPort vPort = videoPorts.at(i);
-                        // Get port type using DS HAL APIs for proper type identification
-                        int portTypeId = 0;
-                        // Use DS HAL to get port type ID - fallback to HDMI if unavailable 
-                        if (vPort.getName().find("HDMI") != std::string::npos) {
-                            portTypeId = dsVIDEOPORT_TYPE_HDMI;
-                        } else if (vPort.getName().find("COMPONENT") != std::string::npos) {
-                            portTypeId = dsVIDEOPORT_TYPE_COMPONENT;
-                        } else {
-                            portTypeId = dsVIDEOPORT_TYPE_HDMI; // default
-                        }
-                        dsVideoPortType_t videoPortType = static_cast<dsVideoPortType_t>(portTypeId);
-                        
-                        uint32_t result = ConfigureVideoPort(vPort.getName(),
-                                                           static_cast<VideoPortType>(videoPortType),
-                                                           vPort.getIndex(),
+                        const VideoPortEntry& vPort = videoPorts.at(i);
+
+                        uint32_t result = ConfigureVideoPort(vPort.name,
+                                                           vPort.type,
+                                                           vPort.index,
                                                            true);
                         if (result == WPEFramework::Core::ERROR_NONE) {
                             LOGINFO("VideoPort %s enabled for powerState %d", 
-                                   vPort.getName().c_str(), static_cast<int>(powerState));
+                                   vPort.name.c_str(), static_cast<int>(powerState));
                         }
                     } catch (...) {
                         LOGERR("Exception caught in video port processing for port %zu", i);
                     }
                 }
                 
-                device::List<device::AudioOutputPort> audioPorts = device::Host::getInstance().getAudioOutputPorts();
+                std::vector<AudioPortEntry> audioPorts;
+                if (!BuildAudioPortEntries(audioPorts)) {
+                    LOGERR("Failed to enumerate audio ports for POWER_STATE_ON");
+                }
                 for (size_t i = 0; i < audioPorts.size(); i++) {
                     try {
-                        device::AudioOutputPort aPort = audioPorts.at(i);
+                        const AudioPortEntry& aPort = audioPorts.at(i);
                         bool isConfigSkipped = false;
-                        // Get port type using DS HAL APIs for proper type identification
-                        int portTypeId = 0;
-                        // Use DS HAL to get port type ID - fallback to HDMI Output if unavailable
-                        if (aPort.getName().find("HDMI") != std::string::npos) {
-                            portTypeId = dsAUDIOPORT_TYPE_HDMI;
-                        } else if (aPort.getName().find("SPDIF") != std::string::npos) {
-                            portTypeId = dsAUDIOPORT_TYPE_SPDIF;
-                        } else {
-                            portTypeId = dsAUDIOPORT_TYPE_HDMI; // default
-                        }
-                        dsAudioPortType_t audioPortType = static_cast<dsAudioPortType_t>(portTypeId);
                         
-                        uint32_t result = ConfigureAudioPort(aPort.getName(),
-                                                           static_cast<AudioPortType>(audioPortType),
-                                                           aPort.getIndex(),
+                        uint32_t result = ConfigureAudioPort(aPort.name,
+                                                           aPort.type,
+                                                           aPort.index,
                                                            true,
                                                            &isConfigSkipped);
                         if (result == WPEFramework::Core::ERROR_NONE && !isConfigSkipped) {
                             LOGINFO("AudioPort %s enabled for powerState %d", 
-                                   aPort.getName().c_str(), static_cast<int>(powerState));
+                                   aPort.name.c_str(), static_cast<int>(powerState));
                         }
                     } catch (...) {
                         LOGERR("Exception caught in audio port processing for port %zu", i);
@@ -511,7 +530,7 @@ int DSPwrEventListener::SetAVPortsPowerState(PowerState powerState)
                 
             } catch (...) {
                 LOGERR("Exception caught during video port enumeration");
-            }*/
+            }
         }
     } catch (...) {
         LOGERR("Exception Caught during SetAVPortsPowerState");
@@ -650,12 +669,20 @@ IARM_Result_t WPEFramework::Plugin::DSPwrEventListener::SetStandbyVideoState(voi
             // We're currently in one of the standby states. Apply this new setting right away.
             LOGINFO("Setting standby %s port status to %s immediately", 
                    param->port, (param->isEnabled ? "enabled" : "disabled"));
-            
-            device::VideoOutputPort& vPort = device::Host::getInstance().getVideoOutputPort(param->port);
-            if (1 == param->isEnabled) {
-                vPort.enable();
+
+            VideoPortEntry resolvedPort;
+                 if (_instance->ResolveVideoPortEntryByName(param->port, resolvedPort)) {
+                const uint32_t result = _instance->ConfigureVideoPort(resolvedPort.name,
+                                                                      resolvedPort.type,
+                                                                      resolvedPort.index,
+                                                                      (1 == param->isEnabled));
+                if (result != WPEFramework::Core::ERROR_NONE) {
+                    LOGERR("Failed to update standby video port state for %s", param->port);
+                    param->result = -1;
+                }
             } else {
-                vPort.disable();
+                LOGERR("Failed to resolve standby video port %s", param->port);
+                param->result = -1;
             }
         } else {
             LOGINFO("Video port %s will be %s when going into standby mode", 
@@ -813,8 +840,8 @@ IARM_Result_t WPEFramework::Plugin::DSPwrEventListener::SetRebootConfig(void* ar
 uint32_t WPEFramework::Plugin::DSPwrEventListener::ConfigureVideoPort(const std::string& portName, VideoPortType portType, int index, bool requestEnable)
 {
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
-    
-    if (!_deviceSettings) {
+
+    if (IsDeviceSettingsReady(true) == false) {
         LOGERR("DeviceSettings implementation not available");
         return result;
     }
@@ -851,7 +878,7 @@ uint32_t WPEFramework::Plugin::DSPwrEventListener::ConfigureAudioPort(const std:
     
     *isConfigurationSkippedPtr = false;
     
-    if (!_deviceSettings) {
+    if (IsDeviceSettingsReady(true) == false) {
         LOGERR("DeviceSettings implementation not available");
         return result;
     }

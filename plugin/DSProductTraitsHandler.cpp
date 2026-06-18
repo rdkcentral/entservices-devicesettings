@@ -27,10 +27,9 @@
 #include <chrono>
 #include <fstream>
 #include <unistd.h>
-#include "frontPanelIndicator.hpp"
 
 // C header with built-in C++ protection
-#include "dsRpc.h"
+// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 
 namespace WPEFramework {
 namespace Plugin {
