@@ -25,8 +25,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <interfaces/IPowerManager.h>
-#include "PowerManagerInterface.h"
-#include "../helpers/DeviceSettingsConfig.h"
+#include <WPEFrameworkHelpers/PowerManagerInterface.h>
+#include <WPEFrameworkHelpers/DeviceSettingsConfig.h>
 #include "Module.h"
 
 #include "DeviceSettingsImplementation.h"

@@ -28,6 +28,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
+find_package(WPEFrameworkHelpers CONFIG REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
 
 add_library(${MODULE_NAME} SHARED
@@ -73,7 +74,6 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     DSController.cpp
     DSPwrEventListener.cpp
     DSProductTraitsHandler.cpp
-    ../helpers/DeviceSettingsConfig.cpp
     ../helpers/UtilsSearchRDKProfile.cpp
     )
 
@@ -151,7 +151,8 @@ target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${OEMHAL_LIBRARIES})
 target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
-        ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
+        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+        WPEFrameworkHelpers::WPEFrameworkHelpers)
 
 install(TARGETS ${PLUGIN_IMPLEMENTATION}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)
