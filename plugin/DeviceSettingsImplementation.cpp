@@ -24,9 +24,10 @@
 #include "DeviceSettingsAudioImplementation.h"
 #include "DeviceSettingsHostImplementation.h"
 
-#include "UtilsLogging.h"
-#include "UtilsSearchRDKProfile.h"
 #include <dlfcn.h>
+
+// Definition of the shared global declared in DeviceSettingsTypes.h
+profile_t profileType = NOT_FOUND;
 #include <syscall.h>
 
 using namespace std;

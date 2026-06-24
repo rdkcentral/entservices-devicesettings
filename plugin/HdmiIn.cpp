@@ -17,8 +17,6 @@
  * limitations under the License.
  */
 
-#include "UtilsLogging.h"
-
 #include "HdmiIn.h"
 #include "DeviceSettingsTypes.h"
 

@@ -21,18 +21,15 @@
 
 #include "Module.h"
 
-//#include <interfaces/IDeviceSettingsManager.h>
 #include <interfaces/IDeviceSettingsAudio.h>
 #include <interfaces/IDeviceSettingsCompositeIn.h>
 #include <interfaces/IDeviceSettingsDisplay.h>
 #include <interfaces/IDeviceSettingsFPD.h>
 #include <interfaces/IDeviceSettingsHDMIIn.h>
 #include <interfaces/IDeviceSettingsHost.h>
-//#include <interfaces/IDeviceSettingsManager.h>
 #include <interfaces/IDeviceSettingsVideoDevice.h>
 #include <interfaces/IDeviceSettingsVideoPort.h>
 
-#include "UtilsLogging.h"
 #include <com/com.h>
 #include <core/core.h>
 #include <plugins/plugins.h>

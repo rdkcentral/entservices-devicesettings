@@ -19,7 +19,6 @@
 
 #include "DeviceSettingsAudioImplementation.h"
 
-#include "UtilsLogging.h"
 #include <syscall.h>
 #include <vector>
 

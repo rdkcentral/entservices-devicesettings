@@ -30,12 +30,10 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-// Note: Need Exchange interface includes for notification interfaces  
-#include <interfaces/IDeviceSettingsCompositeIn.h>  // For IDeviceSettingsCompositeIn::INotification
+#include <interfaces/IDeviceSettingsCompositeIn.h>
 
 #include "CompositeIn.h"
 
-// #include "list.hpp" // Disabled legacy lib32-devicesettings include
 #include "DeviceSettingsTypes.h"
 
 namespace WPEFramework {

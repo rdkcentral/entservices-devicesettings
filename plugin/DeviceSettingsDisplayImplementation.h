@@ -30,12 +30,10 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-// Note: Need Exchange interface includes for notification interfaces  
-#include <interfaces/IDeviceSettingsDisplay.h>  // For IDeviceSettingsDisplay::INotification
+#include <interfaces/IDeviceSettingsDisplay.h>
 
 #include "Display.h"
 
-// #include "list.hpp" // Disabled legacy lib32-devicesettings include
 #include "DeviceSettingsTypes.h"
 
 namespace WPEFramework {
@@ -43,10 +41,6 @@ namespace Plugin {
     class DeviceSettingsDisplayImpl : public Display::INotification
     {
     public:
-        // Note: No need to inherit from Exchange::IDeviceSettingsDisplay anymore
-        // DeviceSettingsImp handles the WPEFramework interface contract
-        // This class only needs Display::INotification for hardware callbacks
-        
         DeviceSettingsDisplayImpl();
         ~DeviceSettingsDisplayImpl() override;
 

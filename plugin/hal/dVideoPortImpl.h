@@ -28,15 +28,12 @@
 #include "dVideoPort.h"
 #include "dsVideoPort.h"
 #include "dsError.h"
-//#include "dsVideoPortTypes.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "UtilsLogging.h"
 
 #include <WPEFramework/interfaces/IDeviceSettingsVideoPort.h>
 #include "DeviceSettingsTypes.h"
-//#include "hostPersistence.hpp"  // Removed - HostPersistence is already defined in DeviceSettingsTypes.h
 
 static int videoPort_isInitialized = 0;
 static int videoPort_isPlatInitialized = 0;

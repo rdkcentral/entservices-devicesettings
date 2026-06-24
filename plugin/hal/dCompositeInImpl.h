@@ -26,15 +26,14 @@
 #include <string>
 #include "dCompositeIn.h"
 #include "dsCompositeIn.h"
-#include "dsError.h" 
-// #include "dsMgr.h" // Disabled legacy lib32-devicesettings include
+#include "dsError.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
 #include "dsError.h"
 #include "dsCompositeIn.h"
 #include "dsDisplay.h"
 #include "UtilsLogging.h"
-#include "../../helpers/UtilsSearchRDKProfile.h"
+
 
 #include <WPEFramework/interfaces/IDeviceSettingsCompositeIn.h>
 #include "DeviceSettingsTypes.h"

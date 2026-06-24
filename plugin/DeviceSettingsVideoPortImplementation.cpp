@@ -19,7 +19,6 @@
 
 #include "DeviceSettingsVideoPortImplementation.h"
 
-#include "UtilsLogging.h"
 #include <syscall.h>
 #include <vector>
 

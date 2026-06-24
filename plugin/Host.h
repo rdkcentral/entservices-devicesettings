@@ -29,7 +29,6 @@
 
 #include <interfaces/IDeviceSettingsHost.h>
 
-#include "UtilsLogging.h"
 #include "hal/dHost.h"
 #include "hal/dHostImpl.h"
 #include "DeviceSettingsTypes.h"

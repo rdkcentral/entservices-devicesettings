@@ -29,7 +29,7 @@
 #include <type_traits>
 #include <utility>
 #include <pthread.h>
-#include <cstdlib>  // for NULL
+#include <cstdlib>
 
 #include <com/com.h>
 #include <core/core.h>
@@ -38,7 +38,6 @@
 // IARM includes for event handling
 #include "iarmUtil.h"
 
-//#include <interfaces/IDeviceSettingsManager.h>
 #include <interfaces/IDeviceSettingsAudio.h>
 #include <interfaces/IDeviceSettingsCompositeIn.h>
 #include <interfaces/IDeviceSettingsDisplay.h>
@@ -51,7 +50,6 @@
 #include "fpd.h"
 #include "HdmiIn.h"
 
-// #include "list.hpp" // Disabled legacy lib32-devicesettings include
 #include "DeviceSettingsTypes.h"
 
 #include "DeviceSettingsImplementation.h"

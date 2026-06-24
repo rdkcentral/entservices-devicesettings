@@ -28,12 +28,6 @@
 #include "dsError.h"
 #include "dsTypes.h"
 #include "dsUtl.h"
-// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
-
-// Legacy Device Settings C++ audio config headers removed.
-// Audio runtime path now relies on DS HAL APIs and local persistence helpers.
-
-// WPEFramework includes for RPC iterator creation
 #include <core/core.h>
 #include <com/com.h>
 

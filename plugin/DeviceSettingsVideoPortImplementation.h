@@ -31,12 +31,8 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-// Note: Need Exchange interface includes for notification interfaces  
-#include <interfaces/IDeviceSettingsVideoPort.h>  // For IDeviceSettingsVideoPort::INotification
-
+#include <interfaces/IDeviceSettingsVideoPort.h>
 #include "VideoPort.h"
-
-// #include "list.hpp" // Disabled legacy lib32-devicesettings include
 #include "DeviceSettingsTypes.h"
 
 namespace WPEFramework {
@@ -44,9 +40,6 @@ namespace Plugin {
     class DeviceSettingsVideoPortImpl : public VideoPort::INotification
     {
     public:
-        // Note: No need to inherit from Exchange::IDeviceSettingsVideoPort anymore
-        // DeviceSettingsImp handles the WPEFramework interface contract
-        // This class only needs VideoPort::INotification for hardware callbacks
         
         DeviceSettingsVideoPortImpl();
         ~DeviceSettingsVideoPortImpl() override;

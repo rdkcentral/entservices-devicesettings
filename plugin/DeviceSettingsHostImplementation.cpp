@@ -19,7 +19,6 @@
 
 #include "DeviceSettingsHostImplementation.h"
 
-#include "UtilsLogging.h"
 #include <syscall.h>
 #include <chrono>
 

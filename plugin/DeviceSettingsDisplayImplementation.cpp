@@ -19,7 +19,6 @@
 
 #include "DeviceSettingsDisplayImplementation.h"
 
-#include "UtilsLogging.h"
 #include <syscall.h>
 
 using namespace std;

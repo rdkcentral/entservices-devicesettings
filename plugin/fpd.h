@@ -28,18 +28,15 @@
 #include <core/Proxy.h>
 #include <core/Trace.h>
 
-#include "UtilsLogging.h"
 #include <com/com.h>
 #include <core/core.h>
 #include <plugins/plugins.h>
 
 #include <interfaces/IDeviceSettingsFPD.h>
 
-// #include "dsMgr.h" // Removed - dsMgr functionality moved to DSController
 #include "dsUtl.h"
 #include "dsError.h"
 #include "dsDisplay.h"
-// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "dsFPDTypes.h"
 
 #include "hal/dFPD.h"

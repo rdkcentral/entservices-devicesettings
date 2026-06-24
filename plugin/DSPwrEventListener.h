@@ -25,8 +25,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <interfaces/IPowerManager.h>
-#include <WPEFrameworkHelpers/PowerManagerInterface.h>
-#include <WPEFrameworkHelpers/DeviceSettingsConfig.h>
+#include <wpeframework/helpers/PowerManagerInterface.h>
+#include <wpeframework/helpers/DeviceSettingsConfig.h>
 #include "Module.h"
 
 #include "DeviceSettingsImplementation.h"
@@ -36,7 +36,6 @@
 #include "libIARM.h"
 #include "libIBusDaemon.h"
 #include "sysMgr.h"
-// #include "dsMgr.h" // Disabled legacy lib32-devicesettings include
 #include "libIBus.h"
 
 using PowerState = WPEFramework::Exchange::IPowerManager::PowerState;

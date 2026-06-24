@@ -18,7 +18,6 @@
  */
 
 #include "DSProductTraitsHandler.h"
-#include "UtilsLogging.h"
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsImplementation.h"
 
@@ -27,9 +26,6 @@
 #include <chrono>
 #include <fstream>
 #include <unistd.h>
-
-// C header with built-in C++ protection
-// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 
 namespace WPEFramework {
 namespace Plugin {

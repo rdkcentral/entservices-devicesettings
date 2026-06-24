@@ -19,7 +19,6 @@
 
 #include "DeviceSettingsCompositeInImplementation.h"
 
-#include "UtilsLogging.h"
 #include <syscall.h>
 
 using namespace std;
