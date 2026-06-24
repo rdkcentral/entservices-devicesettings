@@ -20,7 +20,6 @@
 #include "DSPwrEventListener.h"
 #include "DSProductTraitsHandler.h"  
 #include "DSController.h"
-#include "UtilsLogging.h"
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsImplementation.h"
 
@@ -34,12 +33,6 @@
 #include <sys/stat.h>
 #include <vector>
 
-//extern profile_t profileType;
-
-// DS RPC header (already has extern "C" protection built-in)
-// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
-
-// Extern declaration for EAS audio mode (from original dsMgr)
 extern "C" {
     extern void _setEASAudioMode();
 }

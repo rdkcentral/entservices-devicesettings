@@ -29,6 +29,55 @@
 #include <cstring>
 #include <mutex>
 #include <unistd.h>
+
+// RDK profile search - inlined from UtilsSearchRDKProfile
+#define RDK_PROFILE "RDK_PROFILE="
+#define PROFILE_TV "TV"
+#define PROFILE_STB "STB"
+
+typedef enum profile {
+    NOT_FOUND = -1,
+    STB = 0,
+    TV,
+    MAX
+} profile_t;
+
+extern profile_t profileType;
+
+inline profile_t searchRdkProfile(void) {
+    const char* devPropPath = "/etc/device.properties";
+    char line[256], *rdkProfile = NULL;
+    profile_t ret = NOT_FOUND;
+    FILE* file;
+
+    file = fopen(devPropPath, "r");
+    if (file == NULL) {
+        printf("File not found issue \n");
+        return NOT_FOUND;
+    }
+
+    while (fgets(line, sizeof(line), file)) {
+        rdkProfile = strstr(line, RDK_PROFILE);
+        if (rdkProfile != NULL) {
+            rdkProfile += strlen(RDK_PROFILE);
+            printf("Found RDK_PROFILE: %s \n", rdkProfile);
+            break;
+        }
+    }
+
+    if (rdkProfile != NULL) {
+        if (strncmp(rdkProfile, PROFILE_TV, strlen(PROFILE_TV)) == 0) {
+            ret = TV;
+        } else if (strncmp(rdkProfile, PROFILE_STB, strlen(PROFILE_STB)) == 0) {
+            ret = STB;
+        }
+    } else {
+        printf("Found RDK_PROFILE: NOT_FOUND \n");
+        ret = NOT_FOUND;
+    }
+    fclose(file);
+    return ret;
+}
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <interfaces/IDeviceSettings.h>
@@ -40,7 +89,7 @@
 #include <interfaces/IDeviceSettingsHost.h>
 #include <interfaces/IDeviceSettingsVideoDevice.h>
 #include <interfaces/IDeviceSettingsVideoPort.h>
-#include "UtilsLogging.h"
+#include <wpeframework/helpers/UtilsLogging.h>
 
 #define USE_LEGACY_INTERFACE
 

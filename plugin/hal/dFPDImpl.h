@@ -27,7 +27,6 @@
 #include "dsHdmiInTypes.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "dsFPD.h"
 #include "dsFPDTypes.h"
 #include "UtilsLogging.h"

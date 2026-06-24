@@ -24,7 +24,7 @@
 #include <memory>
 #include <unordered_map>
 #include <chrono>
-#include <cstdint>  // for uint32_t
+#include <cstdint>
 
 #include <com/com.h>
 #include <core/core.h>
@@ -40,14 +40,6 @@
 #include <interfaces/IDeviceSettingsVideoDevice.h>
 #include <interfaces/IDeviceSettingsVideoPort.h>
 
-// Forward declarations for implementation classes  
-// Since we now store implementation class pointers directly instead of interface pointers
-
-
-//#include "fpd.h"
-//#include "HdmiIn.h"
-
-// #include "list.hpp" // Disabled legacy lib32-devicesettings include
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsVideoPortImplementation.h"
 #include "DeviceSettingsVideoDeviceImplementation.h"

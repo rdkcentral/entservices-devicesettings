@@ -36,10 +36,6 @@
 #include "dsVideoDeviceTypes.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
-
-// Include profile type definitions
-#include "../helpers/UtilsSearchRDKProfile.h"
 
 #include <WPEFramework/interfaces/IDeviceSettingsHDMIIn.h>
 #include "DeviceSettingsTypes.h"

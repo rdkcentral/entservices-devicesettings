@@ -28,7 +28,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
-find_package(WPEFrameworkHelpers CONFIG REQUIRED)
+find_package(WPEFrameworkHelpers REQUIRED)
 find_library(PROCPS_LIBRARIES NAMES procps)
 
 add_library(${MODULE_NAME} SHARED
@@ -74,32 +74,15 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     DSController.cpp
     DSPwrEventListener.cpp
     DSProductTraitsHandler.cpp
-    ../helpers/UtilsSearchRDKProfile.cpp
     )
-
-#add_executable(${PLUGIN_IMPLEMENTATION}
-#    Module.cpp
-#    DeviceSettingsImplementation.cpp
-#    DeviceSettingsFPDImplementation.cpp
-#    DeviceSettingsHdmiInImplementation.cpp
-#    DeviceSettingsHostImplementation.cpp
-#    fpd.cpp
-#    HdmiIn.cpp
-#    Host.cpp
-#    DSController.cpp
-#    DSPwrEventListener.cpp
-#    DSProductTraitsHandler.cpp
-#    )
 
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/../helpers
 )
 
 # Add current directory to target include directories for proper header resolution
 target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/../helpers  
     ${CMAKE_SOURCE_DIR}/../rdk-halif-device_settings/include
     ${CMAKE_SOURCE_DIR}/../devicesettings/ds/include
 )

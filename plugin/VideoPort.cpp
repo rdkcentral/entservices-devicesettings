@@ -25,7 +25,6 @@
 #include <core/Time.h>
 #include <core/WorkerPool.h>
 
-#include "UtilsLogging.h"
 #include "secure_wrapper.h"
 #include "VideoPort.h"
 #include "hal/dVideoPortImpl.h"

@@ -29,21 +29,16 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
-// Note: Need Exchange interface includes for notification interfaces  
-#include <interfaces/IDeviceSettingsHost.h>  // For IDeviceSettingsHost::INotification
+#include <interfaces/IDeviceSettingsHost.h>
 
 #include "Host.h"
 
-// #include "list.hpp" // Disabled legacy lib32-devicesettings include
 #include "DeviceSettingsTypes.h"
 
 namespace WPEFramework {
 namespace Plugin {
 
     class DeviceSettingsHostImpl : public Host::INotification {
-        // Note: No need to inherit from Exchange::IDeviceSettingsHost anymore
-        // DeviceSettingsImp handles the WPEFramework interface contract
-        // This class only needs Host::INotification for hardware callbacks
 
     private:
         DeviceSettingsHostImpl(const DeviceSettingsHostImpl&) = delete;

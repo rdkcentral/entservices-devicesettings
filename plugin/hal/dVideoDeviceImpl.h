@@ -35,10 +35,9 @@
 #include "dsError.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "dsHdmiIn.h"
 
-#include "../helpers/UtilsSearchRDKProfile.h"
+
 
 #include <WPEFramework/interfaces/IDeviceSettingsVideoDevice.h>
 #include "DeviceSettingsTypes.h"

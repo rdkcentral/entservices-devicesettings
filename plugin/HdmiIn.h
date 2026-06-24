@@ -25,16 +25,12 @@
 #include <core/Proxy.h>
 #include <core/Trace.h>
 
-#include "UtilsLogging.h"
 #include <com/com.h>
 #include <core/core.h>
 #include <plugins/plugins.h>
 
 #include <interfaces/IDeviceSettingsHDMIIn.h>
 #include "DeviceSettingsTypes.h"
-
-// Include profile definitions before dHdmiInImpl.h to ensure proper access
-#include "../helpers/UtilsSearchRDKProfile.h"
 #include "hal/dHdmiInImpl.h"
 
 class HdmiIn {

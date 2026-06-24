@@ -31,13 +31,12 @@
 #include "dsError.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-// #include "dsRpc.h" // Disabled legacy lib32-devicesettings include
 #include "UtilsLogging.h"
 
 #include <WPEFramework/interfaces/IDeviceSettingsHost.h>
 #include "DeviceSettingsTypes.h"
 
-#include "../helpers/UtilsSearchRDKProfile.h"
+
 
 // Static global variables from dsHost.cpp conversion
 static int host_isInitialized = 0;
