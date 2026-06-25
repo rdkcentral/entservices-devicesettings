@@ -153,7 +153,7 @@ namespace Plugin {
         void SetAudioMode();
         void SetEASAudioMode();
         void SetBackgroundColor(dsVideoBackgroundColor_t color);
-        void DumpHdmiEdidInfo(dsDisplayEDID_t* pedidData);
+        void DumpHdmiEdidInfo(const DisplayEDID& edidData);
         void ScheduleEdidDump();
         
         void EventHandler(const char *owner, int eventId, void *data, size_t len);

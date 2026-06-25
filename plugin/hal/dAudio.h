@@ -22,14 +22,12 @@
 #include "dsError.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
+#include <cstdint>
 
 #include <core/Portability.h>
 #include <interfaces/IDeviceSettingsAudio.h>
 #include "Module.h"
 #include "DeviceSettingsTypes.h"
-
-#include "UtilsLogging.h"
-#include <cstdint>
 
 using namespace WPEFramework::Exchange;
 

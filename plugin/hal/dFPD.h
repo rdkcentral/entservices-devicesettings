@@ -30,7 +30,6 @@
 #include <WPEFramework/interfaces/IDeviceSettingsFPD.h>
 #include "DeviceSettingsTypes.h"
 
-#include "UtilsLogging.h"
 #include <cstdint>
 
 namespace hal {

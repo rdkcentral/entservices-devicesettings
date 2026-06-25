@@ -40,6 +40,7 @@ extern "C" {
 #include "rfcapi.h"
 }
 
+#include <glib.h>
 // For glib APIs - conditional include
 #ifdef GLIB_AVAILABLE
 #include <glib.h>
@@ -119,10 +120,6 @@ namespace Plugin {
         
         pthread_mutex_init(&_mutexLock, NULL);
         pthread_cond_init(&_mutexCond, NULL);
-        
-        setupPlatformConfig();
-        InitializeDeviceSettingsComponents();
-        Start();
     }
 
     DSController::~DSController() {
@@ -166,6 +163,8 @@ namespace Plugin {
     // Migrated from DSMgr_Start
     uint32_t DSController::Start()
     {
+        setupPlatformConfig();
+        InitializeDeviceSettingsComponents();
 
         setvbuf(stdout, NULL, _IOLBF, 0);
 
@@ -512,7 +511,7 @@ namespace Plugin {
                     
                     result = _deviceSettings->GetDisplayEdid(displayHandle, edidData, supportedResolutionList);
                     if (result == Core::ERROR_NONE) {
-                        DumpHdmiEdidInfo(reinterpret_cast<dsDisplayEDID_t*>(&edidData));
+                        DumpHdmiEdidInfo(edidData);
                         numResolutions = edidData.numOfSupportedResolution;
                         LOGINFO("numResolutions is %d", numResolutions);
                         
@@ -736,24 +735,19 @@ namespace Plugin {
         
     }
 
-    void DSController::DumpHdmiEdidInfo(dsDisplayEDID_t* pedidData)
+    void DSController::DumpHdmiEdidInfo(const DisplayEDID& edidData)
     {
         LOGINFO("Connected HDMI Display Device Info");
-        
-        if (nullptr == pedidData) {
-            LOGINFO("Received EDID is NULL");
-            return;
-        }
-        
-        if (pedidData->monitorName && strlen(pedidData->monitorName))
-            LOGINFO("HDMI Monitor Name is %s", pedidData->monitorName);
-        LOGINFO("HDMI Manufacturing ID is %d", pedidData->serialNumber);
-        LOGINFO("HDMI Product Code is %d", pedidData->productCode);
-        LOGINFO("HDMI Device Type is %s", pedidData->hdmiDeviceType ? "HDMI" : "DVI");
-        LOGINFO("HDMI Sink Device %s a Repeater", pedidData->isRepeater ? "is" : "is not");
+
+        if (!edidData.monitorName.empty())
+            LOGINFO("HDMI Monitor Name is %s", edidData.monitorName.c_str());
+        LOGINFO("HDMI Manufacturing ID is %d", edidData.serialNumber);
+        LOGINFO("HDMI Product Code is %d", edidData.productCode);
+        LOGINFO("HDMI Device Type is %s", edidData.hdmiDeviceType ? "HDMI" : "DVI");
+        LOGINFO("HDMI Sink Device %s a Repeater", edidData.isRepeater ? "is" : "is not");
         LOGINFO("HDMI Physical Address is %d:%d:%d:%d",
-                pedidData->physicalAddressA, pedidData->physicalAddressB,
-                pedidData->physicalAddressC, pedidData->physicalAddressD);
+                edidData.physicalAddressA, edidData.physicalAddressB,
+                edidData.physicalAddressC, edidData.physicalAddressD);
         
     }
 
