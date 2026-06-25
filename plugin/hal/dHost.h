@@ -29,7 +29,6 @@
 #include <WPEFramework/interfaces/IDeviceSettingsHost.h>
 #include "DeviceSettingsTypes.h"
 
-#include "UtilsLogging.h"
 #include <cstdint>
 
 namespace hal {

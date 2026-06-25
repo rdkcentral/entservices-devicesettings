@@ -32,7 +32,6 @@
 #include "dsError.h"
 #include "dsCompositeIn.h"
 #include "dsDisplay.h"
-#include "UtilsLogging.h"
 
 
 #include <WPEFramework/interfaces/IDeviceSettingsCompositeIn.h>

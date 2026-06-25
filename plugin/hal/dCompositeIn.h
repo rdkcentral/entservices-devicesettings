@@ -29,7 +29,6 @@
 #include <WPEFramework/interfaces/IDeviceSettingsCompositeIn.h>
 #include "DeviceSettingsTypes.h"
 
-#include "UtilsLogging.h"  
 #include <cstdint>
 
 using namespace WPEFramework;

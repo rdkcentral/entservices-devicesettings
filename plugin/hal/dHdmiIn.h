@@ -30,7 +30,6 @@
 #include <WPEFramework/interfaces/IDeviceSettingsHDMIIn.h>
 #include "DeviceSettingsTypes.h"
 
-#include "UtilsLogging.h"
 #include <cstdint>
 
 namespace hal {

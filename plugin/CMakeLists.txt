@@ -29,6 +29,8 @@ find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 find_package(WPEFrameworkHelpers REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 find_library(PROCPS_LIBRARIES NAMES procps)
 
 add_library(${MODULE_NAME} SHARED
@@ -85,7 +87,10 @@ target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_SOURCE_DIR}/../rdk-halif-device_settings/include
     ${CMAKE_SOURCE_DIR}/../devicesettings/ds/include
+    ${GLIB2_INCLUDE_DIRS}
 )
+
+target_compile_definitions(${PLUGIN_IMPLEMENTATION} PRIVATE GLIB_AVAILABLE)
 
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
         CXX_STANDARD 11
@@ -135,7 +140,8 @@ target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
-        WPEFrameworkHelpers::WPEFrameworkHelpers)
+        WPEFrameworkHelpers::WPEFrameworkHelpers
+        ${GLIB2_LIBRARIES})
 
 install(TARGETS ${PLUGIN_IMPLEMENTATION}
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)

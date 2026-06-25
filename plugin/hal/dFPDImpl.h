@@ -29,7 +29,6 @@
 #include "dsTypes.h"
 #include "dsFPD.h"
 #include "dsFPDTypes.h"
-#include "UtilsLogging.h"
 
 #include <WPEFramework/interfaces/IDeviceSettingsFPD.h>
 #include "DeviceSettingsTypes.h"

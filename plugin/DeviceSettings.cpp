@@ -114,7 +114,7 @@ namespace Plugin
         _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
 
         if (_mDeviceSettings == nullptr) {
-            SYSLOG(Logging::Startup, (_T("DeviceSettings::Initialize: Failed to initialise DeviceSettings plugin")));
+            LOGERR("DeviceSettings::Initialize: Failed to initialise DeviceSettings plugin");
             message = _T("DeviceSettings plugin could not be initialised");
             LOGERR("Failed to get IDeviceSettings interface");
         } else {
@@ -208,7 +208,7 @@ namespace Plugin
         _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
 
         if (_mDeviceSettings == nullptr) {
-            SYSLOG(Logging::Startup, (_T("DeviceSettings::Initialize: Failed to initialise DeviceSettings plugin")));
+            LOGERR("DeviceSettings::Initialize: Failed to initialise DeviceSettings plugin");
             message = _T("DeviceSettings plugin could not be initialised");
             LOGERR("Failed to get IDeviceSettings interface");
         } else {
@@ -391,7 +391,7 @@ namespace Plugin
             mService->Release();
             mService = nullptr;
             mConnectionId = 0;
-            SYSLOG(Logging::Shutdown, (string(_T("DeviceSettings de-initialised"))));
+            LOGINFO("DeviceSettings de-initialised");
         }
     }
 

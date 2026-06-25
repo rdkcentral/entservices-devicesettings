@@ -101,22 +101,12 @@ namespace Plugin {
     {
         // Set the static instance for backward compatibility (if still needed)
         DeviceSettingsImp::_instance = this;
-        LOGINFO("DeviceSettingsImp Constructor - Instance Address: %p", this);
-        LOGINFO("DSController implementation instance: %p", _dsController);
 
         // Initialize profile type
         profileType = searchRdkProfile();
+        _dsController->Start();  // Start the DSController after initialization
+
         LOGINFO("Initialized profileType: %d (0=STB, 1=TV)", profileType);
-
-        LOGINFO("FPD implementation instance: %p", _fpdSettings);
-        LOGINFO("VideoPort implementation instance: %p", _videoPortSettings);
-        LOGINFO("VideoDevice implementation instance: %p", _videoDeviceSettings);
-        LOGINFO("Host implementation instance: %p", _hostSettings);
-        LOGINFO("HDMIIn implementation instance: %p", _hdmiInSettings);
-        LOGINFO("Audio implementation instance: %p", _audioSettings);
-        LOGINFO("Display implementation instance: %p", _displaySettings);
-        LOGINFO("CompositeIn implementation instance: %p", _compositeInSettings);
-
     }
 
     DeviceSettingsImp::~DeviceSettingsImp() {

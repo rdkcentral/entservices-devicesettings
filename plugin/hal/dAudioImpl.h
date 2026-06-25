@@ -19,7 +19,6 @@
 #pragma once
 
 #include "dAudio.h"
-#include "UtilsLogging.h"
 #include "DeviceSettingsTypes.h"
 
 #include <interfaces/IDeviceSettingsAudio.h>

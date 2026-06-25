@@ -30,7 +30,6 @@
 #include "dsError.h"
 #include "dsUtl.h"
 #include "dsTypes.h"
-#include "UtilsLogging.h"
 
 #include <WPEFramework/interfaces/IDeviceSettingsVideoPort.h>
 #include "DeviceSettingsTypes.h"
