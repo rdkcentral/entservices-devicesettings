@@ -261,6 +261,8 @@ jobs:
 
       - name: Build entservices-helpers
         run: >
+          touch "$GITHUB_WORKSPACE/entservices-helpers/helpers/tr181api.h"
+          &&
           cmake -G Ninja
           -S "$GITHUB_WORKSPACE/entservices-helpers"
           -B build/entservices-helpers

@@ -84,6 +84,11 @@ cmake --build build/entservices-apis --target install
 
 echo "======================================================================================"
 echo "building entservices-helpers"
+
+# entservices-helpers references a platform header not available in public CI.
+# Provide a minimal stub so helpers can compile.
+touch "$GITHUB_WORKSPACE/entservices-helpers/helpers/tr181api.h"
+
 cmake -G Ninja -S entservices-helpers -B build/entservices-helpers \
     -DEXCEPTIONS_ENABLE=ON \
     -DCOMCAST_CONFIG=OFF \
