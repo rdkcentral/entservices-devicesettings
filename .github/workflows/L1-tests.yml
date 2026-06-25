@@ -49,6 +49,7 @@ jobs:
           path: |
             build/Thunder
             build/entservices-apis
+            build/entservices-helpers
             build/ThunderTools
             install
             !install/etc/WPEFramework/plugins
@@ -65,7 +66,7 @@ jobs:
             !install/usr/lib/pkgconfig/gtest.pc
             !install/usr/lib/pkgconfig/gtest_main.pc
             !install/usr/lib/wpeframework/plugins
-          key: ${{ runner.os }}-${{ env.THUNDER_REF }}-${{ env.INTERFACES_REF }}-4
+          key: ${{ runner.os }}-${{ env.THUNDER_REF }}-${{ env.INTERFACES_REF }}-5
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -87,7 +88,7 @@ jobs:
         run: >
           sudo apt update
           &&
-          sudo apt install -y libsqlite3-dev libcurl4-openssl-dev valgrind lcov clang libsystemd-dev libboost-all-dev libwebsocketpp-dev meson libcunit1 libcunit1-dev curl protobuf-compiler-grpc libgrpc-dev libgrpc++-dev
+          sudo apt install -y libsqlite3-dev libcurl4-openssl-dev valgrind lcov clang libsystemd-dev libboost-all-dev libwebsocketpp-dev meson libcunit1 libcunit1-dev curl protobuf-compiler-grpc libgrpc-dev libgrpc++-dev libglib2.0-dev pkg-config
 
       - name: Install GStreamer
         run: |
@@ -153,6 +154,13 @@ jobs:
           repository: rdkcentral/iarmmgrs
           path: iarmmgrs
           ref: main
+
+      - name: Checkout entservices-helpers
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/entservices-helpers
+          path: entservices-helpers
+          ref: DeviceSetting_Plugin
 
       - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
@@ -250,6 +258,21 @@ jobs:
           cmake --build build/entservices-apis -j8
           &&
           cmake --install build/entservices-apis
+
+      - name: Build entservices-helpers
+        run: >
+          cmake -G Ninja
+          -S "$GITHUB_WORKSPACE/entservices-helpers"
+          -B build/entservices-helpers
+          -DEXCEPTIONS_ENABLE=ON
+          -DCOMCAST_CONFIG=OFF
+          -DPLUGIN_HELPERS=ON
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          &&
+          cmake --build build/entservices-helpers -j8
+          &&
+          cmake --install build/entservices-helpers
 
       - name: Copy DeviceSettings interface headers
         run: |
@@ -400,7 +423,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
-          -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
+          -I $GITHUB_WORKSPACE/install/usr/include/wpeframework/helpers
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core
           -I $GITHUB_WORKSPACE/install/usr/include
@@ -450,7 +473,7 @@ jobs:
           -DTHUNDER_VERSION_MINOR=4
           -DRDK_SERVICES_L1_TEST
           -I $GITHUB_WORKSPACE/entservices-devicesettings/plugin
-          -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
+          -I $GITHUB_WORKSPACE/install/usr/include/wpeframework/helpers
           -I $GITHUB_WORKSPACE/iarmbus/core/include
           -I $GITHUB_WORKSPACE/rdk-halif-device_settings/include
           -I $GITHUB_WORKSPACE/devicesettings/rpc/include
@@ -506,6 +529,7 @@ jobs:
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
+          -DWPEFrameworkHelpers_INCLUDE_DIRS=$GITHUB_WORKSPACE/install/usr/include/wpeframework/helpers
           &&
           cmake --build build/entservices-devicesettings -j8
           &&
@@ -538,7 +562,7 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
-          -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
+          -I $GITHUB_WORKSPACE/install/usr/include/wpeframework/helpers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
           -I $GITHUB_WORKSPACE/Thunder/Source
           -I $GITHUB_WORKSPACE/Thunder/Source/core

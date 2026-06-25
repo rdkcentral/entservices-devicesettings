@@ -7,7 +7,7 @@ ls -la "${GITHUB_WORKSPACE}"
 cd "${GITHUB_WORKSPACE}"
 
 apt update
-apt install -y libsqlite3-dev libcurl4-openssl-dev valgrind lcov clang libsystemd-dev libboost-all-dev libwebsocketpp-dev meson libcunit1 libcunit1-dev curl protobuf-compiler-grpc libgrpc-dev libgrpc++-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libdrm-dev
+apt install -y libsqlite3-dev libcurl4-openssl-dev valgrind lcov clang libsystemd-dev libboost-all-dev libwebsocketpp-dev meson libcunit1 libcunit1-dev curl protobuf-compiler-grpc libgrpc-dev libgrpc++-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libdrm-dev libglib2.0-dev pkg-config
 pip install jsonref
 
 if [ ! -d "trower-base64" ]; then
@@ -27,6 +27,7 @@ git clone --branch main https://github.com/rdkcentral/rdk-halif-device_settings.
 git clone --branch main https://github.com/rdkcentral/devicesettings.git
 git clone --branch develop https://github.com/rdkcentral/iarmbus.git
 git clone https://github.com/rdkcentral/iarmmgrs.git
+git clone --branch DeviceSetting_Plugin https://github.com/rdkcentral/entservices-helpers.git
 
 # Ensure mock iarmmgrs-hal headers exist in testframework for CI builds.
 mkdir -p "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal"
@@ -80,6 +81,17 @@ cmake -G Ninja -S entservices-apis -B build/entservices-apis \
     -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
 
 cmake --build build/entservices-apis --target install
+
+echo "======================================================================================"
+echo "building entservices-helpers"
+cmake -G Ninja -S entservices-helpers -B build/entservices-helpers \
+    -DEXCEPTIONS_ENABLE=ON \
+    -DCOMCAST_CONFIG=OFF \
+    -DPLUGIN_HELPERS=ON \
+    -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
+    -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+
+cmake --build build/entservices-helpers --target install
 
 mkdir -p "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces"
 find "$GITHUB_WORKSPACE/entservices-apis/apis/DeviceSettings" -name "IDeviceSettings*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces/" \; 2>/dev/null || true

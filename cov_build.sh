@@ -7,6 +7,16 @@ ls -la "${GITHUB_WORKSPACE}"
 
 echo "building entservices-devicesettings"
 
+if ! pkg-config --exists glib-2.0; then
+    echo "glib-2.0 development files are missing; run build_dependencies.sh first"
+    exit 1
+fi
+
+if [ ! -d "$GITHUB_WORKSPACE/install/usr/include/wpeframework/helpers" ]; then
+    echo "WPEFramework helpers headers are missing; run build_dependencies.sh first"
+    exit 1
+fi
+
 cd "${GITHUB_WORKSPACE}"
 cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-devicesettings \
     -DUSE_THUNDER_R4=ON \
@@ -19,6 +29,7 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-devicesettings \
     -DCOMCAST_CONFIG=OFF \
     -DRDK_SERVICES_COVERITY=ON \
     -DHIDE_NON_EXTERNAL_SYMBOLS=OFF \
+    -DWPEFrameworkHelpers_INCLUDE_DIRS="$GITHUB_WORKSPACE/install/usr/include/wpeframework/helpers" \
     -DPLUGIN_DEVICESETTINGS=ON \
     -DCMAKE_CXX_FLAGS="-DEXCEPTIONS_ENABLE=ON \
     -I ${GITHUB_WORKSPACE}/install/usr/include \
