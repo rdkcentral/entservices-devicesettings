@@ -89,6 +89,12 @@ echo "building entservices-helpers"
 # Provide a minimal stub so helpers can compile.
 touch "$GITHUB_WORKSPACE/entservices-helpers/helpers/tr181api.h"
 
+# entservices-helpers expects IARMBus headers in rdk/iarmbus include layout.
+mkdir -p "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus"
+cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIARM.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
+cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIBus.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
+cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIBusDaemon.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
+
 cmake -G Ninja -S entservices-helpers -B build/entservices-helpers \
     -DEXCEPTIONS_ENABLE=ON \
     -DCOMCAST_CONFIG=OFF \

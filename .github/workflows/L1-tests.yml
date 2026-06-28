@@ -263,6 +263,14 @@ jobs:
         run: >
           touch "$GITHUB_WORKSPACE/entservices-helpers/helpers/tr181api.h"
           &&
+          mkdir -p "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus"
+          &&
+          cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIARM.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
+          &&
+          cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIBus.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
+          &&
+          cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIBusDaemon.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
+          &&
           cmake -G Ninja
           -S "$GITHUB_WORKSPACE/entservices-helpers"
           -B build/entservices-helpers
