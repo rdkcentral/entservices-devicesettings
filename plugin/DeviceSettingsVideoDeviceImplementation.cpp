@@ -29,8 +29,6 @@ using namespace std;
 namespace WPEFramework {
 namespace Plugin {
 
-    //SERVICE_REGISTRATION(DeviceSettingsVideoDeviceImpl, 1, 0);
-
     DeviceSettingsVideoDeviceImpl::DeviceSettingsVideoDeviceImpl() : 
         _VideoDeviceNotifications(),
         _apiLock(),

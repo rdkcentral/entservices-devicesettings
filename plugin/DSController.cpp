@@ -70,11 +70,8 @@ using namespace std;
 namespace WPEFramework {
 namespace Plugin {
 
-//    SERVICE_REGISTRATION(DSController, 1, 0);
-
     DSController* DSController::_instance = nullptr;
     
-// Platform configuration constants
     bool DSController::IsEUPlatform = false;
     char DSController::fallBackResolutionList[6][64];
     

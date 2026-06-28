@@ -27,8 +27,6 @@ using namespace std;
 namespace WPEFramework {
 namespace Plugin {
 
-    //SERVICE_REGISTRATION(DeviceSettingsHostImpl, 1, 0);
-
     DeviceSettingsHostImpl::DeviceSettingsHostImpl() : 
         _HostNotifications(),
         _apiLock(),
