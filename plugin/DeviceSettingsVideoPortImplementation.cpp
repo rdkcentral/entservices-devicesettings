@@ -47,13 +47,15 @@ namespace Plugin {
 
     void DeviceSettingsVideoPortImpl::InitializeVideoPortConfigCache()
     {
+        std::vector<VideoPortResolution> resolutionConfigs;
+
         _apiLock.Lock();
-        DeviceSettingsHAL::PopulateVideoPortConfig(_cachedVideoPortTypes, _cachedVideoPorts, _cachedResolutions);
-        DeviceSettingsHAL::DumpVideoPortConfig(_cachedVideoPortTypes, _cachedVideoPorts, _cachedResolutions);
+        DeviceSettingsHAL::PopulateVideoPortConfig(_cachedVideoPortTypes, _cachedVideoPorts);
+        DeviceSettingsHAL::DumpVideoPortConfig(_cachedVideoPortTypes, _cachedVideoPorts, resolutionConfigs);
         _apiLock.Unlock();
 
-        LOGINFO("InitializeVideoPortConfigCache: videoPortTypes=%zu videoPorts=%zu resolutions=%zu",
-            _cachedVideoPortTypes.size(), _cachedVideoPorts.size(), _cachedResolutions.size());
+        LOGINFO("InitializeVideoPortConfigCache: videoPortTypes=%zu videoPorts=%zu",
+            _cachedVideoPortTypes.size(), _cachedVideoPorts.size());
     }
 
     template<typename Func, typename... Args>
@@ -172,8 +174,7 @@ namespace Plugin {
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
-                                                             IVideoPortPortConfigIterator*& videoPorts,
-                                     IVideoPortResolutionIterator*& resolutions)
+                                                             IVideoPortPortConfigIterator*& videoPorts)
     {
         std::vector<VideoPortTypeConfig> typeConfigs;
         std::vector<VideoPortPortConfig> portConfigs;
@@ -182,21 +183,33 @@ namespace Plugin {
         _apiLock.Lock();
         typeConfigs = _cachedVideoPortTypes;
         portConfigs = _cachedVideoPorts;
-        resolutionConfigs = _cachedResolutions;
         _apiLock.Unlock();
 
         DeviceSettingsHAL::DumpVideoPortConfig(typeConfigs, portConfigs, resolutionConfigs);
 
         using VideoPortTypeIterator = RPC::IteratorType<IVideoPortTypeConfigIterator>;
         using VideoPortPortIterator = RPC::IteratorType<IVideoPortPortConfigIterator>;
-        using ResolutionIterator = RPC::IteratorType<IVideoPortResolutionIterator>;
 
         videoPortTypes = Core::Service<VideoPortTypeIterator>::Create<IVideoPortTypeConfigIterator>(typeConfigs);
         videoPorts = Core::Service<VideoPortPortIterator>::Create<IVideoPortPortConfigIterator>(portConfigs);
+
+        LOGINFO("GetVideoPortConfig: returning cached config videoPortTypes=%zu videoPorts=%zu",
+            typeConfigs.size(), portConfigs.size());
+        return Core::ERROR_NONE;
+    }
+
+    uint32_t DeviceSettingsVideoPortImpl::GetVideoPortResolutionConfig(VideoPortType videoPortType,
+                                                                        IVideoPortResolutionIterator*& resolutions) const
+    {
+        std::vector<VideoPortResolution> resolutionConfigs;
+
+        DeviceSettingsHAL::PopulateVideoPortResolutionConfig(videoPortType, resolutionConfigs);
+
+        using ResolutionIterator = RPC::IteratorType<IVideoPortResolutionIterator>;
         resolutions = Core::Service<ResolutionIterator>::Create<IVideoPortResolutionIterator>(resolutionConfigs);
 
-        LOGINFO("GetVideoPortConfig: returning cached config videoPortTypes=%zu videoPorts=%zu resolutions=%zu",
-            typeConfigs.size(), portConfigs.size(), resolutionConfigs.size());
+        LOGINFO("GetVideoPortResolutionConfig: videoPortType=%d resolutions=%zu",
+            static_cast<int>(videoPortType), resolutionConfigs.size());
         return Core::ERROR_NONE;
     }
 

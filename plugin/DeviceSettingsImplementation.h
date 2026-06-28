@@ -269,8 +269,9 @@ namespace Plugin {
         Core::hresult Unregister(Exchange::IDeviceSettingsVideoPort::INotification* notification) override;
         Core::hresult GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle) override;
         Core::hresult GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
-                         IVideoPortPortConfigIterator*& videoPorts,
-                         IVideoPortResolutionIterator*& resolutions) override;
+                         IVideoPortPortConfigIterator*& videoPorts) override;
+        Core::hresult GetVideoPortResolutionConfig(VideoPortType videoPortType,
+                         IVideoPortResolutionIterator*& videoPortResolutions) const override;
         Core::hresult IsVideoPortEnabled(const int32_t handle, bool &enabled) override;
         Core::hresult EnableVideoPort(const int32_t handle, const bool enabled) override;
         Core::hresult IsVideoPortDisplayConnected(const int32_t handle, bool &connected) override;

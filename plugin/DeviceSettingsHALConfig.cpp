@@ -43,6 +43,7 @@
 #include <dlfcn.h>
 #include <cstring>
 #include <unistd.h>
+#include <set>
 #include <sstream>
 #include <type_traits>
 
@@ -580,8 +581,7 @@ void DumpAudioConfig(
 
 void PopulateVideoPortConfig(
     std::vector<VideoPortTypeConfig>& videoPortTypes,
-    std::vector<VideoPortPortConfig>& videoPorts,
-    std::vector<VideoPortResolution>& resolutions)
+    std::vector<VideoPortPortConfig>& videoPorts)
 {
     videoPortConfigs_t halConfig;
     void* halHandle = NULL;
@@ -590,16 +590,14 @@ void PopulateVideoPortConfig(
 
     videoPortTypes.clear();
     videoPorts.clear();
-    resolutions.clear();
 
     if (!loadedFromHAL) {
         LOGWARN("PopulateVideoPortConfig: HAL config not available, returning empty config");
         return;
     }
 
-    const int configCount     = *(halConfig.pKVideoPortConfigs_size);
-    const int portCount       = *(halConfig.pKVideoPortPorts_size);
-    const int resolutionCount = *(halConfig.pKResolutionsSettings_size);
+    const int configCount = *(halConfig.pKVideoPortConfigs_size);
+    const int portCount   = *(halConfig.pKVideoPortPorts_size);
 
     for (int i = 0; i < configCount; i++) {
         const dsVideoPortTypeConfig_t& cfg = halConfig.pKConfigs[i];
@@ -637,8 +635,67 @@ void PopulateVideoPortConfig(
         videoPorts.push_back(portCfg);
     }
 
-    for (int i = 0; i < resolutionCount; i++) {
+    LOGINFO("PopulateVideoPortConfig: Loaded config from HAL (videoPortTypes=%zu videoPorts=%zu)",
+            videoPortTypes.size(), videoPorts.size());
+    dlclose(halHandle);
+    halHandle = NULL;
+}
+
+void PopulateVideoPortResolutionConfig(
+    const VideoPortType videoPortType,
+    std::vector<VideoPortResolution>& resolutions)
+{
+    videoPortConfigs_t halConfig;
+    void* halHandle = NULL;
+    memset(&halConfig, 0, sizeof(halConfig));
+    const bool loadedFromHAL = LoadVideoPortConfigFromHAL(halConfig, halHandle);
+
+    resolutions.clear();
+
+    if (!loadedFromHAL) {
+        LOGWARN("PopulateVideoPortResolutionConfig: HAL config not available, returning empty config");
+        return;
+    }
+
+    const int configCount = *(halConfig.pKVideoPortConfigs_size);
+    const int resolutionCount = *(halConfig.pKResolutionsSettings_size);
+    std::set<std::string> supportedResolutionNames;
+    bool typeFound = false;
+
+    for (int i = 0; i < configCount; ++i) {
+        const dsVideoPortTypeConfig_t& cfg = halConfig.pKConfigs[i];
+        if (static_cast<VideoPortType>(cfg.typeId) != videoPortType) {
+            continue;
+        }
+
+        typeFound = true;
+        if ((cfg.supportedResolutions != NULL) && (cfg.numSupportedResolutions > 0)) {
+            for (size_t j = 0; j < cfg.numSupportedResolutions; ++j) {
+                const char* resolutionName = cfg.supportedResolutions[j].name;
+                if (resolutionName != NULL) {
+                    supportedResolutionNames.insert(resolutionName);
+                }
+            }
+        }
+        break;
+    }
+
+    if (!typeFound) {
+        LOGWARN("PopulateVideoPortResolutionConfig: videoPortType=%d not found in HAL type config", static_cast<int>(videoPortType));
+        dlclose(halHandle);
+        halHandle = NULL;
+        return;
+    }
+
+    for (int i = 0; i < resolutionCount; ++i) {
         const dsVideoPortResolution_t& cfg = halConfig.pKResolutionsSettings[i];
+        if (cfg.name == NULL) {
+            continue;
+        }
+
+        if (supportedResolutionNames.find(cfg.name) == supportedResolutionNames.end()) {
+            continue;
+        }
 
         VideoPortResolution resCfg;
         resCfg.name              = cfg.name;
@@ -650,8 +707,8 @@ void PopulateVideoPortConfig(
         resolutions.push_back(resCfg);
     }
 
-    LOGINFO("PopulateVideoPortConfig: Loaded config from HAL (videoPortTypes=%zu videoPorts=%zu resolutions=%zu)",
-            videoPortTypes.size(), videoPorts.size(), resolutions.size());
+    LOGINFO("PopulateVideoPortResolutionConfig: Loaded resolution config from HAL (videoPortType=%d resolutions=%zu)",
+            static_cast<int>(videoPortType), resolutions.size());
     dlclose(halHandle);
     halHandle = NULL;
 }

@@ -715,9 +715,13 @@ namespace Plugin {
     }
 
     Core::hresult DeviceSettingsImp::GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
-                                                        IVideoPortPortConfigIterator*& videoPorts,
-                                                        IVideoPortResolutionIterator*& resolutions) {
-        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortConfig, videoPortTypes, videoPorts, resolutions)
+                                                        IVideoPortPortConfigIterator*& videoPorts) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortConfig, videoPortTypes, videoPorts)
+    }
+
+    Core::hresult DeviceSettingsImp::GetVideoPortResolutionConfig(VideoPortType videoPortType,
+                                                                  IVideoPortResolutionIterator*& videoPortResolutions) const {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortResolutionConfig, videoPortType, videoPortResolutions)
     }
     
     Core::hresult DeviceSettingsImp::IsVideoPortEnabled(const int32_t handle, bool &enabled) {

@@ -84,8 +84,9 @@ namespace Plugin {
         // VideoPort interface method implementations called by DeviceSettingsImp 
         uint32_t GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle);
         uint32_t GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
-                        IVideoPortPortConfigIterator*& videoPorts,
-                        IVideoPortResolutionIterator*& resolutions);
+                        IVideoPortPortConfigIterator*& videoPorts);
+        uint32_t GetVideoPortResolutionConfig(VideoPortType videoPortType,
+                        IVideoPortResolutionIterator*& resolutions) const;
         uint32_t IsVideoPortEnabled(const int32_t handle, bool &enabled);
         uint32_t EnableVideoPort(const int32_t handle, const bool enabled);
         uint32_t IsVideoPortDisplayConnected(const int32_t handle, bool &connected);
@@ -137,7 +138,6 @@ namespace Plugin {
 
         std::vector<VideoPortTypeConfig> _cachedVideoPortTypes;
         std::vector<VideoPortPortConfig> _cachedVideoPorts;
-        std::vector<VideoPortResolution> _cachedResolutions;
 
         VideoPort _videoPort;
     };

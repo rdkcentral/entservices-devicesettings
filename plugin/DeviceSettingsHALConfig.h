@@ -74,7 +74,10 @@ namespace DeviceSettingsHAL {
 
     void PopulateVideoPortConfig(
         std::vector<VideoPortTypeConfig>& videoPortTypes,
-        std::vector<VideoPortPortConfig>& videoPorts,
+        std::vector<VideoPortPortConfig>& videoPorts);
+
+    void PopulateVideoPortResolutionConfig(
+        const VideoPortType videoPortType,
         std::vector<VideoPortResolution>& resolutions);
 
     void DumpVideoPortConfig(
