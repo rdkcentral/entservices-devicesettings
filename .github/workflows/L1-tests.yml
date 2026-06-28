@@ -162,6 +162,10 @@ jobs:
           path: entservices-helpers
           ref: DeviceSetting_Plugin
 
+      - name: Create parent helpers compatibility path
+        run: >
+          if [ ! -e "$GITHUB_WORKSPACE/../entservices-helpers" ]; then ln -s "$GITHUB_WORKSPACE/entservices-helpers" "$GITHUB_WORKSPACE/../entservices-helpers"; fi
+
       - name: Checkout entservices-devicesettings
         if: ${{ inputs.caller_source == 'local' }}
         uses: actions/checkout@v3
@@ -261,15 +265,13 @@ jobs:
 
       - name: Build entservices-helpers
         run: >
-          touch "$GITHUB_WORKSPACE/entservices-helpers/helpers/tr181api.h"
+          mkdir -p "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus"
           &&
-          mkdir -p "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus"
+          touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/libIARM.h"
           &&
-          cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIARM.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
+          touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/libIBus.h"
           &&
-          cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIBus.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
-          &&
-          cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIBusDaemon.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
+          touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/iarm.h"
           &&
           cmake -G Ninja
           -S "$GITHUB_WORKSPACE/entservices-helpers"
@@ -279,6 +281,12 @@ jobs:
           -DPLUGIN_HELPERS=ON
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          "-DCMAKE_CXX_FLAGS=
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus
+          -I$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/tr181api.h
+          -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h"
           &&
           cmake --build build/entservices-helpers -j8
           &&

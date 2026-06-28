@@ -29,10 +29,21 @@ git clone --branch develop https://github.com/rdkcentral/iarmbus.git
 git clone https://github.com/rdkcentral/iarmmgrs.git
 git clone --branch DeviceSetting_Plugin https://github.com/rdkcentral/entservices-helpers.git
 
+# Keep backward-compatible parent path expected by some test CMake files.
+if [ ! -e "$GITHUB_WORKSPACE/../entservices-helpers" ]; then
+    ln -s "$GITHUB_WORKSPACE/entservices-helpers" "$GITHUB_WORKSPACE/../entservices-helpers"
+fi
+
 # Ensure mock iarmmgrs-hal headers exist in testframework for CI builds.
 mkdir -p "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal"
 touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal/sysMgr.h"
 touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal/mfrMgr.h"
+
+# Generate minimal mock headers before building entservices-helpers.
+mkdir -p "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus"
+touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/libIARM.h"
+touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/libIBus.h"
+touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/iarm.h"
 
 echo "======================================================================================"
 echo "building thunderTools"
@@ -85,22 +96,13 @@ cmake --build build/entservices-apis --target install
 echo "======================================================================================"
 echo "building entservices-helpers"
 
-# entservices-helpers references a platform header not available in public CI.
-# Provide a minimal stub so helpers can compile.
-touch "$GITHUB_WORKSPACE/entservices-helpers/helpers/tr181api.h"
-
-# entservices-helpers expects IARMBus headers in rdk/iarmbus include layout.
-mkdir -p "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus"
-cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIARM.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
-cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIBus.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
-cp "$GITHUB_WORKSPACE/iarmbus/core/include/libIBusDaemon.h" "$GITHUB_WORKSPACE/entservices-helpers/helpers/rdk/iarmbus/"
-
 cmake -G Ninja -S entservices-helpers -B build/entservices-helpers \
     -DEXCEPTIONS_ENABLE=ON \
     -DCOMCAST_CONFIG=OFF \
     -DPLUGIN_HELPERS=ON \
     -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
-    -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+    -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
+    "-DCMAKE_CXX_FLAGS=-I$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h"
 
 cmake --build build/entservices-helpers --target install
 
