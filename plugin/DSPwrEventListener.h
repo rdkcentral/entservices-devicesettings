@@ -26,7 +26,7 @@
 #include <pthread.h>
 #include <interfaces/IPowerManager.h>
 #include <wpeframework/helpers/PowerManagerInterface.h>
-#include <wpeframework/helpers/DeviceSettingsConfig.h>
+#include <wpeframework/helpers/DeviceSettingsClientHelper.h>
 #include "Module.h"
 
 #include "DeviceSettingsImplementation.h"
