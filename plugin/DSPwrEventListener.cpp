@@ -103,7 +103,7 @@ bool DSPwrEventListener::BuildAudioPortEntries(std::vector<DSPwrEventListener::A
     if (IsDeviceSettingsReady(true) == false) {
         return false;
     }
-    return _audioConfig.BuildAudioPortEntries(entries);
+    return _audioConfig.getAudioPortEntries(entries);
 }
 
 bool DSPwrEventListener::ResolveVideoPortEntryByName(const std::string& requestedPort, DSPwrEventListener::VideoPortEntry& resolvedEntry)
