@@ -127,10 +127,12 @@ using HDMIInCapabilityVersion  = DeviceSettingsHDMIIn::HDMIInCapabilityVersion;
 using HDMIInEdidVersion        = DeviceSettingsHDMIIn::HDMIInEdidVersion;
 using HDMIInVideoZoom          = DeviceSettingsHDMIIn::HDMIInVideoZoom;
 using HDMIInVideoRectangle     = DeviceSettingsHDMIIn::HDMIInVideoRectangle;
-using HDMIVideoAspectRatio     = DeviceSettingsHDMIIn::HDMIVideoAspectRatio;
+// HDMIVideoAspectRatio, HDMIInVideoStereoScopicMode, HDMIInVideoFrameRate removed from
+// IDeviceSettingsHDMIIn — now sourced from IDeviceSettingsVideoPort (same HAL struct).
+using HDMIVideoAspectRatio        = DeviceSettingsVideoPort::VideoAspectRatio;
+using HDMIInVideoStereoScopicMode = DeviceSettingsVideoPort::VideoStereoScopicMode;
+using HDMIInVideoFrameRate        = DeviceSettingsVideoPort::VideoFrameRate;
 using HDMIInTVResolution       = DeviceSettingsHDMIIn::HDMIInTVResolution;
-using HDMIInVideoStereoScopicMode = DeviceSettingsHDMIIn::HDMIInVideoStereoScopicMode;
-using HDMIInVideoFrameRate     = DeviceSettingsHDMIIn::HDMIInVideoFrameRate;
 using IHDMIInPortConnectionStatusIterator = DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator;
 using IHDMIInGameFeatureListIterator      = DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator;
 //using GameFeatureListIteratorImpl = WPEFramework::Core::Service<WPEFramework::RPC::IIteratorType<IHDMIInGameFeatureListIterator>>;
