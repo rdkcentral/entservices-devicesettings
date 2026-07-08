@@ -141,9 +141,9 @@ public:
         
         if (!display_isInitialized) {
             // Set the global callback function pointers
-            g_DisplayRxSenseCallback = bundle.DisplayRxSenseEventCallback;
-            g_DisplayHDCPStatusCallback = bundle.DisplayHDCPStatusEventCallback;
-            g_DisplayHDMIHotPlugCallback = bundle.DisplayHDMIHotPlugEventCallback;
+            g_DisplayRxSenseCallback = bundle.OnDisplayRxSense;
+            g_DisplayHDCPStatusCallback = bundle.OnDisplayHDCPStatus;
+            g_DisplayHDMIHotPlugCallback = bundle.OnDisplayHDMIHotPlug;
 
             // Register HAL callbacks
             registerDisplayEventCallbacks();

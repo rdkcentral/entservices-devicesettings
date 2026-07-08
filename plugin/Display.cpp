@@ -43,16 +43,18 @@ void Display::Platform_init()
     // Set up callback bundle for Display events - using global CallbackBundle pattern
     CallbackBundle bundle;
     
-    bundle.OnDisplayRxSense = [this](const DisplayEvent displayEvent) {
-        this->OnDisplayRxSense(displayEvent);
+    bundle.OnDisplayRxSense = [this](const uint8_t /*port*/, const bool rxSenseOn) {
+        this->OnDisplayRxSense(rxSenseOn ? DisplayEvent::DS_DISPLAY_RXSENSE_ON
+                                         : DisplayEvent::DS_DISPLAY_RXSENSE_OFF);
     };
-    bundle.OnDisplayHDCPStatus = [this]() {
+    bundle.OnDisplayHDCPStatus = [this](const uint8_t /*port*/, const bool /*authenticated*/) {
         this->OnDisplayHDCPStatus();
     };
-    bundle.OnDisplayHDMIHotPlug = [this](const DisplayEvent displayEvent) {
-        this->OnDisplayHDMIHotPlug(displayEvent);
+    bundle.OnDisplayHDMIHotPlug = [this](const uint8_t /*port*/, const bool connected) {
+        this->OnDisplayHDMIHotPlug(connected ? DisplayEvent::DS_DISPLAY_EVENT_CONNECTED
+                                             : DisplayEvent::DS_DISPLAY_EVENT_DISCONNECTED);
     };
-    
+
     if (_platform) {
         // Use interface method directly - no casting needed
         this->platform().setAllCallbacks(bundle);

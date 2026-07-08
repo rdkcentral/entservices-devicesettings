@@ -613,16 +613,11 @@ struct CallbackBundle {
     std::function<void(const ResolutionChange)> OnResolutionPostChange;
     std::function<void(const VideoPortHdcpStatus)> OnHDCPStatusChange;
     std::function<void(const HDRStandard)> OnVideoFormatUpdate;
-    
-    // Display callbacks
-    std::function<void(const DisplayEvent)> OnDisplayRxSense;
-    std::function<void()> OnDisplayHDCPStatus;
-    std::function<void(const DisplayEvent)> OnDisplayHDMIHotPlug;
-    
+
     // Display event callbacks (for HAL implementations)
-    std::function<void(const uint8_t, const bool)> DisplayRxSenseEventCallback;
-    std::function<void(const uint8_t, const bool)> DisplayHDCPStatusEventCallback;
-    std::function<void(const uint8_t, const bool)> DisplayHDMIHotPlugEventCallback;
+    std::function<void(const uint8_t, const bool)> OnDisplayRxSense;
+    std::function<void(const uint8_t, const bool)> OnDisplayHDCPStatus;
+    std::function<void(const uint8_t, const bool)> OnDisplayHDMIHotPlug;
     
     // CompositeIn callbacks  
     std::function<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const bool)> OnCompositeInHotPlug;
