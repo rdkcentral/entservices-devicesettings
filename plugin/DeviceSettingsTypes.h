@@ -127,11 +127,10 @@ using HDMIInCapabilityVersion  = DeviceSettingsHDMIIn::HDMIInCapabilityVersion;
 using HDMIInEdidVersion        = DeviceSettingsHDMIIn::HDMIInEdidVersion;
 using HDMIInVideoZoom          = DeviceSettingsHDMIIn::HDMIInVideoZoom;
 using HDMIInVideoRectangle     = DeviceSettingsHDMIIn::HDMIInVideoRectangle;
-// HDMIVideoAspectRatio, HDMIInVideoStereoScopicMode, HDMIInVideoFrameRate removed from
-// IDeviceSettingsHDMIIn — now sourced from IDeviceSettingsVideoPort (same HAL struct).
-using HDMIVideoAspectRatio        = DeviceSettingsVideoPort::VideoAspectRatio;
-using HDMIInVideoStereoScopicMode = DeviceSettingsVideoPort::VideoStereoScopicMode;
-using HDMIInVideoFrameRate        = DeviceSettingsVideoPort::VideoFrameRate;
+using HDMIVideoAspectRatio        = DeviceSettingsHDMIIn::HDMIVideoAspectRatio;
+using HDMIInVideoStereoScopicMode = DeviceSettingsHDMIIn::HDMIInVideoStereoScopicMode;
+using HDMIInVideoFrameRate        = DeviceSettingsHDMIIn::HDMIInVideoFrameRate;
+using HDMIInVideoResolution       = DeviceSettingsHDMIIn::HDMIInVideoResolution;
 using HDMIInTVResolution       = DeviceSettingsHDMIIn::HDMIInTVResolution;
 using IHDMIInPortConnectionStatusIterator = DeviceSettingsHDMIIn::IHDMIInPortConnectionStatusIterator;
 using IHDMIInGameFeatureListIterator      = DeviceSettingsHDMIIn::IHDMIInGameFeatureListIterator;

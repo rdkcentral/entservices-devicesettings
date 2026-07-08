@@ -1113,10 +1113,10 @@ public:
                 LOGWARN("GetHDMIVideoMode: Invalid video mode name, using 'UNKNOWN'");
             }
 
-            videoPortResolution.pixelResolution = static_cast<DeviceSettingsVideoPort::VideoResolution>(videoRes.pixelResolution);
-            videoPortResolution.aspectRatio = static_cast<DeviceSettingsVideoPort::VideoAspectRatio>(videoRes.aspectRatio);
-            videoPortResolution.stereoScopicMode = static_cast<DeviceSettingsVideoPort::VideoStereoScopicMode>(videoRes.stereoScopicMode);
-            videoPortResolution.frameRate = static_cast<DeviceSettingsVideoPort::VideoFrameRate>(videoRes.frameRate);
+            videoPortResolution.pixelResolution = static_cast<HDMIInVideoResolution>(videoRes.pixelResolution);
+            videoPortResolution.aspectRatio = static_cast<HDMIVideoAspectRatio>(videoRes.aspectRatio);
+            videoPortResolution.stereoScopicMode = static_cast<HDMIInVideoStereoScopicMode>(videoRes.stereoScopicMode);
+            videoPortResolution.frameRate = static_cast<HDMIInVideoFrameRate>(videoRes.frameRate);
             videoPortResolution.interlaced = videoRes.interlaced;
 
             // Debug print all the assigned data
@@ -1133,10 +1133,10 @@ public:
             LOGERR("GetHDMIVideoMode: dsHdmiInGetCurrentVideoMode failed");
             // Initialize output with safe defaults
             videoPortResolution.name = "ERROR";
-            videoPortResolution.pixelResolution = static_cast<DeviceSettingsVideoPort::VideoResolution>(0);
-            videoPortResolution.aspectRatio = static_cast<DeviceSettingsVideoPort::VideoAspectRatio>(0);
-            videoPortResolution.stereoScopicMode = static_cast<DeviceSettingsVideoPort::VideoStereoScopicMode>(0);
-            videoPortResolution.frameRate = static_cast<DeviceSettingsVideoPort::VideoFrameRate>(0);
+            videoPortResolution.pixelResolution = static_cast<HDMIInVideoResolution>(0);
+            videoPortResolution.aspectRatio = static_cast<HDMIVideoAspectRatio>(0);
+            videoPortResolution.stereoScopicMode = static_cast<HDMIInVideoStereoScopicMode>(0);
+            videoPortResolution.frameRate = static_cast<HDMIInVideoFrameRate>(0);
             videoPortResolution.interlaced = false;
         }
         return retCode;
