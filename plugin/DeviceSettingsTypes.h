@@ -263,7 +263,7 @@ typedef dsSleepMode_t SleepMode;
 #endif
 
 #ifndef IARM_BUS_DSMGR_NAME
-#define IARM_BUS_DSMGR_NAME "DSMgr"
+#define IARM_BUS_DSMGR_NAME "DSMgr_Plugin"
 #endif
 
 typedef enum _DSMgr_EventId_t {
