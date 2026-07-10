@@ -86,8 +86,25 @@ bool DSPwrEventListener::IsDeviceSettingsReady(bool refreshCacheIfEmpty)
 
 void DSPwrEventListener::RefreshPortConfigurationCache()
 {
-    LoadVideoPortConfig(static_cast<Exchange::IDeviceSettingsVideoPort*>(_deviceSettings), _videoPortConfig);
-    LoadAudioConfig(static_cast<Exchange::IDeviceSettingsAudio*>(_deviceSettings), _audioConfig);
+    // DeviceSettingsImp inherits only IDeviceSettings — use QueryInterface(id) for sub-interfaces,
+    // not static_cast which is undefined behaviour across unrelated types.
+    auto* vp = static_cast<Exchange::IDeviceSettingsVideoPort*>(
+        _deviceSettings->QueryInterface(Exchange::IDeviceSettingsVideoPort::ID));
+    if (vp) {
+        LoadVideoPortConfig(vp, _videoPortConfig);
+        vp->Release();
+    } else {
+        LOGERR("RefreshPortConfigurationCache: IDeviceSettingsVideoPort not available");
+    }
+
+    auto* audio = static_cast<Exchange::IDeviceSettingsAudio*>(
+        _deviceSettings->QueryInterface(Exchange::IDeviceSettingsAudio::ID));
+    if (audio) {
+        LoadAudioConfig(audio, _audioConfig);
+        audio->Release();
+    } else {
+        LOGERR("RefreshPortConfigurationCache: IDeviceSettingsAudio not available");
+    }
 }
 
 bool DSPwrEventListener::BuildVideoPortEntries(std::vector<DSPwrEventListener::VideoPortEntry>& entries)
@@ -95,7 +112,7 @@ bool DSPwrEventListener::BuildVideoPortEntries(std::vector<DSPwrEventListener::V
     if (IsDeviceSettingsReady(true) == false) {
         return false;
     }
-    return _videoPortConfig.BuildVideoPortEntries(entries);
+    return _videoPortConfig.getVideoPortEntries(entries);
 }
 
 bool DSPwrEventListener::BuildAudioPortEntries(std::vector<DSPwrEventListener::AudioPortEntry>& entries)
