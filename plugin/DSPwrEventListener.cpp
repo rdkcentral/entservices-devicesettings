@@ -59,8 +59,6 @@ DSPwrEventListener::DSPwrEventListener()
     LOGINFO("DSPwrEventListener Constructor");
     memset(_standbyVideoPortSetting, 0, sizeof(_standbyVideoPortSetting));
     DSPwrEventListener::_instance = this;
-
-    IsDeviceSettingsReady(true);
 }
 
 bool DSPwrEventListener::IsDeviceSettingsReady(bool refreshCacheIfEmpty)
