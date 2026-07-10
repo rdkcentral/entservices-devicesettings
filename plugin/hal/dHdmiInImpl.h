@@ -770,6 +770,11 @@ public:
         if (g_HdmiInVideoModeUpdateCallback) {
             HDMIVideoPortResolution res;
             res.name = std::string(videoPortResolution.name); // convert char[] to std::string
+            res.pixelResolution   = static_cast<HDMIInVideoResolution>(videoPortResolution.pixelResolution);
+            res.aspectRatio       = static_cast<HDMIVideoAspectRatio>(videoPortResolution.aspectRatio);
+            res.stereoScopicMode  = static_cast<HDMIInVideoStereoScopicMode>(videoPortResolution.stereoScopicMode);
+            res.frameRate         = static_cast<HDMIInVideoFrameRate>(videoPortResolution.frameRate);
+            res.interlaced        = videoPortResolution.interlaced;
             g_HdmiInVideoModeUpdateCallback(static_cast<HDMIInPort>(port), res);
         }
     }
