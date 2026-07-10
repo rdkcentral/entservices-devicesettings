@@ -20,6 +20,7 @@
 #include "DSController.h"
 #include "DSPwrEventListener.h"
 
+#include <set>
 #include <syscall.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -476,7 +477,6 @@ namespace Plugin {
         
         int32_t displayHandle = 0;
         int numResolutions = 0;
-        int resIndex = 0;
         bool isValidResolution = false;
         
         // Return if Handle is NULL
@@ -519,14 +519,29 @@ namespace Plugin {
                             LOGERR("numResolutions = %d edidData.hdmiDeviceType = %d !!", numResolutions, edidData.hdmiDeviceType);
                             return;
                         }
-                        
-                        // Check if Persisted Resolution matches with TV Resolution list
-                        dsDisplayEDID_t* halEdidData = reinterpret_cast<dsDisplayEDID_t*>(&edidData);
-                        int pNumResolutions = 0; // Platform supported resolution count (would need platform config)
-                        
+
+                        std::set<std::string> edidSupportedNames;
+                        if (supportedResolutionList != nullptr) {
+                            DisplayVideoPortResolution res;
+                            while (supportedResolutionList->Next(res)) {
+                                if (!res.name.empty()) {
+                                    edidSupportedNames.insert(res.name);
+                                }
+                            }
+                            supportedResolutionList->Release();
+                            supportedResolutionList = nullptr;
+                        }
+                        LOGINFO("SetResolution: EDID supported resolution count from iterator: %zu", edidSupportedNames.size());
+
+                        auto isResInEdid = [&](const char* name) -> bool {
+                            if (!name || name[0] == '\0') return false;
+                            bool found = edidSupportedNames.count(std::string(name)) > 0;
+                            if (found) LOGINFO("Resolution supported in EDID: %s", name);
+                            return found;
+                        };
+
                         // First check if persisted resolution is directly supported
-                        if (isResolutionSupported(halEdidData, numResolutions, pNumResolutions, 
-                                                 const_cast<char*>(presolution.name.c_str()), &resIndex)) {
+                        if (isResInEdid(presolution.name.c_str())) {
                             isValidResolution = true;
                             LOGINFO("Persisted resolution %s is directly supported", presolution.name.c_str());
                         }
@@ -536,7 +551,7 @@ namespace Plugin {
                             char secResn[RES_MAX_LEN];
                             // Get secondary resolution based on presolution
                             if (getSecondaryResolution(const_cast<char*>(presolution.name.c_str()), secResn)) {
-                                if (isResolutionSupported(halEdidData, numResolutions, pNumResolutions, secResn, &resIndex)) {
+                                if (isResInEdid(secResn)) {
                                     LOGINFO("Got Secondary Resolution - %s", secResn);
                                     isValidResolution = true;
                                     // Update presolution to use the secondary resolution
@@ -565,14 +580,14 @@ namespace Plugin {
                                 if (IsEUPlatform) {
                                     getFallBackResolution(fallBackResolutionList[i], fbResn, 1); // EU fps
                                     LOGINFO("Check next resolution: %s", fbResn);
-                                    if (isResolutionSupported(halEdidData, numResolutions, pNumResolutions, fbResn, &resIndex)) {
+                                    if (isResInEdid(fbResn)) {
                                         isValidResolution = true;
                                     }
                                 }
                                 if (!isValidResolution) {
                                     getFallBackResolution(fallBackResolutionList[i], fbResn, 0); // default fps
                                     LOGINFO("Check next resolution: %s", fbResn);
-                                    if (isResolutionSupported(halEdidData, numResolutions, pNumResolutions, fbResn, &resIndex)) {
+                                    if (isResInEdid(fbResn)) {
                                         isValidResolution = true;
                                     }
                                 }
