@@ -476,13 +476,13 @@ namespace device {
                 /*Default case*/
             #endif
             defaultFilePath = "/etc/hostDataDefault";
-            _isInitialized = true;
+            // _isInitialized remains false — load() will be called lazily on first access
         }
 
         HostPersistence(const std::string &storeFileName) {
             filePath = storeFileName;
             defaultFilePath = "/etc/hostDataDefault";
-            _isInitialized = true;
+            // _isInitialized remains false — load() will be called lazily on first access
         }
 
         virtual ~HostPersistence() {

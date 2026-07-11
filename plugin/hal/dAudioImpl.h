@@ -719,6 +719,9 @@ public:
             
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioCompression success: handle=%d, compression=%d", handle, static_cast<int>(compression));
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.Compression", std::to_string(static_cast<int>(compression)));
+#endif
             } else {
                 LOGERR("dsSetAudioCompression failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -759,7 +762,17 @@ public:
             
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioLevel success: handle=%d, level=%f", handle, audioLevel);
-                
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                std::string _audioLevel = std::to_string(audioLevel);
+                dsAudioPortType_t _portType = getAudioPortType(dsHandle);
+                switch (_portType) {
+                    case dsAUDIOPORT_TYPE_SPDIF:     device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.Level",     _audioLevel); break;
+                    case dsAUDIOPORT_TYPE_HDMI:      device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.Level",      _audioLevel); break;
+                    case dsAUDIOPORT_TYPE_SPEAKER:   device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.Level",   _audioLevel); break;
+                    case dsAUDIOPORT_TYPE_HEADPHONE: device::HostPersistence::getInstance().persistHostProperty("HEADPHONE0.audio.Level", _audioLevel); break;
+                    default: break;
+                }
+#endif
                 // Notify about audio level change
                 notifyAudioLevelChanged(static_cast<int32_t>(audioLevel));
             } else {
@@ -841,9 +854,18 @@ public:
             if (0 != dsSetAudioGainFunc) {
                 ret = dsSetAudioGainFunc(dsHandle, gainLevel);
             }
-            
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioGain success: handle=%d, gain=%f", handle, gainLevel);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                std::string _gain = std::to_string(gainLevel);
+                dsAudioPortType_t _portType = getAudioPortType(dsHandle);
+                switch (_portType) {
+                    case dsAUDIOPORT_TYPE_SPDIF:   device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.Gain",   _gain); break;
+                    case dsAUDIOPORT_TYPE_HDMI:    device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.Gain",    _gain); break;
+                    case dsAUDIOPORT_TYPE_SPEAKER: device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.Gain", _gain); break;
+                    default: break;
+                }
+#endif
             } else {
                 LOGERR("dsSetAudioGain failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -909,9 +931,21 @@ public:
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             
             dsError_t ret = dsSetAudioMute(dsHandle, mute);
-            
             if (ret == dsERR_NONE) {
+                _muteStatus = mute;
                 LOGINFO("SetAudioMute success: handle=%d, mute=%d", handle, mute);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                std::string _mute = mute ? "TRUE" : "FALSE";
+                dsAudioPortType_t _portType = getAudioPortType(dsHandle);
+                switch (_portType) {
+                    case dsAUDIOPORT_TYPE_SPDIF:     device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.mute",     _mute); break;
+                    case dsAUDIOPORT_TYPE_HDMI:      device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.mute",      _mute); break;
+                    case dsAUDIOPORT_TYPE_SPEAKER:   device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.mute",   _mute); break;
+                    case dsAUDIOPORT_TYPE_HEADPHONE: device::HostPersistence::getInstance().persistHostProperty("HEADPHONE0.audio.mute", _mute); break;
+                    case dsAUDIOPORT_TYPE_HDMI_ARC:  device::HostPersistence::getInstance().persistHostProperty("HDMI_ARC0.audio.mute",  _mute); break;
+                    default: break;
+                }
+#endif
             } else {
                 LOGERR("dsSetAudioMute failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -1222,7 +1256,9 @@ public:
             
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAssociatedAudioMixing success: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
-
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.AssociatedAudioMixing", mixing ? "Enabled" : "Disabled");
+#endif
                 // Notify about associated audio mixing change
                 notifyAssociatedAudioMixingChanged(mixing);
             } else {
@@ -1307,7 +1343,9 @@ public:
             
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioFaderControl success: handle=%d, balance=%d", handle, mixerBalance);
-
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.FaderControl", std::to_string(mixerBalance));
+#endif
                 // Notify about fader control change
                 notifyAudioFaderControlChanged(mixerBalance);
             } else {
@@ -1392,7 +1430,9 @@ public:
             
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioPrimaryLanguage success: handle=%d, language=%s", handle, primaryAudioLanguage.c_str());
-
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.PrimaryLanguage", primaryAudioLanguage);
+#endif
                 // Notify about primary language change
                 notifyAudioPrimaryLanguageChanged(primaryAudioLanguage);
             } else {
@@ -1477,7 +1517,9 @@ public:
             
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioSecondaryLanguage success: handle=%d, language=%s", handle, secondaryAudioLanguage.c_str());
-
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.SecondaryLanguage", secondaryAudioLanguage);
+#endif
                 // Notify about secondary language change
                 notifyAudioSecondaryLanguageChanged(secondaryAudioLanguage);
             } else {
@@ -1545,27 +1587,27 @@ public:
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             bool dsConnected;
             
-            // Use resolve function for dsIsAudioPortEnabled (used as connection check)
-            typedef dsError_t (*dsIsAudioPortEnabled_t)(intptr_t handle, bool* enabled);
-            static dsIsAudioPortEnabled_t dsIsAudioPortEnabledFunc = 0;
-            if (dsIsAudioPortEnabledFunc == 0) {
-                dsIsAudioPortEnabledFunc = (dsIsAudioPortEnabled_t)resolve(RDK_DSHAL_NAME, "dsIsAudioPortEnabled");
-                if (dsIsAudioPortEnabledFunc == 0) {
-                    LOGERR("dsIsAudioPortEnabled is not defined");
+            // dsAudio.c uses dsAudioOutIsConnected (not dsIsAudioPortEnabled)
+            typedef dsError_t (*dsAudioOutIsConnected_t)(intptr_t handle, bool* isConnected);
+            static dsAudioOutIsConnected_t dsAudioOutIsConnectedFunc = 0;
+            if (dsAudioOutIsConnectedFunc == 0) {
+                dsAudioOutIsConnectedFunc = (dsAudioOutIsConnected_t)resolve(RDK_DSHAL_NAME, "dsAudioOutIsConnected");
+                if (dsAudioOutIsConnectedFunc == 0) {
+                    LOGERR("dsAudioOutIsConnected is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
             
             dsError_t ret = dsERR_GENERAL;
-            if (0 != dsIsAudioPortEnabledFunc) {
-                ret = dsIsAudioPortEnabledFunc(dsHandle, &dsConnected);
+            if (0 != dsAudioOutIsConnectedFunc) {
+                ret = dsAudioOutIsConnectedFunc(dsHandle, &dsConnected);
             }
             
             if (ret == dsERR_NONE) {
                 isConnected = dsConnected;
                 LOGINFO("IsAudioOutputConnected success: handle=%d, connected=%s", handle, isConnected ? "true" : "false");
             } else {
-                LOGERR("dsIsAudioPortEnabled failed with error: %d", ret);
+                LOGERR("dsAudioOutIsConnected failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
@@ -1831,21 +1873,25 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             
-            typedef dsError_t (*dsSetSAD_t)(intptr_t handle, const uint8_t* sadList, uint8_t count);
-            static dsSetSAD_t dsSetSADFunc = 0;
-            if (dsSetSADFunc == 0) {
-                dsSetSADFunc = (dsSetSAD_t)resolve(RDK_DSHAL_NAME, "dsSetSAD");
-                if(dsSetSADFunc == 0) {
-                    LOGERR("dsSetSAD is not defined");
+            // dsAudio.c uses dsAudioSetSAD (not dsSetSAD)
+            typedef dsError_t (*dsAudioSetSAD_t)(intptr_t handle, dsAudioSADList_t sad_list);
+            static dsAudioSetSAD_t dsAudioSetSADFunc = 0;
+            if (dsAudioSetSADFunc == 0) {
+                dsAudioSetSADFunc = (dsAudioSetSAD_t)resolve(RDK_DSHAL_NAME, "dsAudioSetSAD");
+                if(dsAudioSetSADFunc == 0) {
+                    LOGERR("dsAudioSetSAD is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
-            
+
+            dsAudioSADList_t sadList_hal;
+            memcpy(sadList_hal.sad, sadList, count < 15 ? count : 15);
+            sadList_hal.count = count;
             dsError_t ret = dsERR_GENERAL;
-            if (0 != dsSetSADFunc) {
-                ret = dsSetSADFunc(dsHandle, sadList, count);
+            if (0 != dsAudioSetSADFunc) {
+                ret = dsAudioSetSADFunc(dsHandle, sadList_hal);
             }
-            
+
             if (ret == dsERR_NONE) {
                 LOGINFO("SetSAD success: handle=%d, count=%d", handle, count);
             } else {
@@ -1873,19 +1919,20 @@ public:
             dsARCStatus.type = static_cast<dsAudioARCTypes_t>(arcStatus.arcType);
             dsARCStatus.status = arcStatus.status;
             
-            typedef dsError_t (*dsEnableARC_t)(intptr_t handle, dsAudioARCStatus_t* arcStatus);
-            static dsEnableARC_t dsEnableARCFunc = 0;
-            if (dsEnableARCFunc == 0) {
-                dsEnableARCFunc = (dsEnableARC_t)resolve(RDK_DSHAL_NAME, "dsEnableARC");
-                if(dsEnableARCFunc == 0) {
-                    LOGERR("dsEnableARC is not defined");
+            // dsAudio.c uses dsAudioEnableARC (not dsEnableARC)
+            typedef dsError_t (*dsAudioEnableARC_t)(intptr_t handle, dsAudioARCStatus_t arcStatus);
+            static dsAudioEnableARC_t dsAudioEnableARCFunc = 0;
+            if (dsAudioEnableARCFunc == 0) {
+                dsAudioEnableARCFunc = (dsAudioEnableARC_t)resolve(RDK_DSHAL_NAME, "dsAudioEnableARC");
+                if(dsAudioEnableARCFunc == 0) {
+                    LOGERR("dsAudioEnableARC is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
             
             dsError_t ret = dsERR_GENERAL;
-            if (0 != dsEnableARCFunc) {
-                ret = dsEnableARCFunc(dsHandle, &dsARCStatus);
+            if (0 != dsAudioEnableARCFunc) {
+                ret = dsAudioEnableARCFunc(dsHandle, dsARCStatus);
             }
             
             if (ret == dsERR_NONE) {
@@ -2073,12 +2120,24 @@ public:
     uint32_t EnableAudioLEConfig(const int32_t handle, const bool enable) override {
         ENTRY_LOG;
         try {
-            // dsMS12FEATURE_LOUDNESSEQUIVALENCE constant doesn't exist, using DAPV2 as fallback
-            dsError_t dsResult = dsEnableMS12Config(static_cast<intptr_t>(handle), dsMS12FEATURE_DAPV2, enable);
+            // dsAudio.c uses dsEnableLEConfig(handle, enable) — NOT dsEnableMS12Config
+            typedef dsError_t (*dsEnableLEConfig_t)(intptr_t handle, const bool enable);
+            static dsEnableLEConfig_t dsEnableLEConfigFunc = nullptr;
+            if (dsEnableLEConfigFunc == nullptr) {
+                dsEnableLEConfigFunc = (dsEnableLEConfig_t)resolve(RDK_DSHAL_NAME, "dsEnableLEConfig");
+                if (dsEnableLEConfigFunc == nullptr) {
+                    LOGERR("dsEnableLEConfig is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+            dsError_t dsResult = dsEnableLEConfigFunc(static_cast<intptr_t>(handle), enable);
             if (dsResult != dsERR_NONE) {
-                LOGERR("dsEnableMS12Config (LE) failed with error: %d", dsResult);
+                LOGERR("dsEnableLEConfig failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+            device::HostPersistence::getInstance().persistHostProperty("audio.LEEnable", enable ? "TRUE" : "FALSE");
+#endif
         } catch (...) {
             LOGERR("Exception in EnableAudioLEConfig");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -2108,6 +2167,17 @@ public:
             
             if (dsResult == dsERR_NONE) {
                 LOGINFO("SetAudioDelay success: handle=%d, delay=%u", handle, audioDelay);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                std::string _delay = std::to_string(audioDelay);
+                dsAudioPortType_t _portType = getAudioPortType(static_cast<intptr_t>(handle));
+                switch (_portType) {
+                    case dsAUDIOPORT_TYPE_SPDIF:    device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.Delay",    _delay); break;
+                    case dsAUDIOPORT_TYPE_HDMI:     device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.Delay",     _delay); break;
+                    case dsAUDIOPORT_TYPE_SPEAKER:  device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.Delay",  _delay); break;
+                    case dsAUDIOPORT_TYPE_HDMI_ARC: device::HostPersistence::getInstance().persistHostProperty("HDMI_ARC0.audio.Delay", _delay); break;
+                    default: break;
+                }
+#endif
             } else {
                 LOGERR("dsSetAudioDelay failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2254,6 +2324,9 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 LOGINFO("SetAudioCompression success: handle=%d, level=%d", handle, compressionLevel);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.Compression", std::to_string(compressionLevel));
+#endif
             } else {
                 LOGERR("dsSetAudioCompression failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2328,6 +2401,9 @@ public:
             
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioDialogEnhancement success: handle=%d, level=%d", handle, level);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("EnhancerLevel"), std::to_string(level));
+#endif
             } else {
                 LOGERR("dsSetDialogEnhancement failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2394,6 +2470,9 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 LOGINFO("SetAudioDolbyVolumeMode success: handle=%d, enable=%s", handle, enable ? "true" : "false");
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.DolbyVolumeMode", enable ? "TRUE" : "FALSE");
+#endif
             } else {
                 LOGERR("dsSetDolbyVolumeMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2460,6 +2539,9 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 LOGINFO("SetAudioIntelligentEqualizerMode success: handle=%d, mode=%d", handle, mode);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.IntelligentEQ", std::to_string(mode));
+#endif
             } else {
                 LOGERR("dsSetIntelligentEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2535,6 +2617,14 @@ public:
             }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioVolumeLeveller success: handle=%d, mode=%d, level=%d", handle, volumeLeveller.mode, volumeLeveller.level);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                std::string _PropertyMode  = getCurrentProfileProperty("VolumeLeveller.mode");
+                std::string _PropertyLevel = getCurrentProfileProperty("VolumeLeveller.level");
+                device::HostPersistence::getInstance().persistHostProperty(_PropertyMode, std::to_string(volumeLeveller.mode));
+                if ((volumeLeveller.mode == 0) || (volumeLeveller.mode == 1)) {
+                    device::HostPersistence::getInstance().persistHostProperty(_PropertyLevel, std::to_string(volumeLeveller.level));
+                }
+#endif
             } else {
                 LOGERR("dsSetVolumeLeveller failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2608,6 +2698,9 @@ public:
             }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioBassEnhancer success: handle=%d, boost=%d", handle, boost);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", std::to_string(boost));
+#endif
             } else {
                 LOGERR("dsSetBassEnhancer failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2679,6 +2772,9 @@ public:
             }
             if (ret == dsERR_NONE) {
                 LOGINFO("EnableAudioSurroudDecoder success: handle=%d, enable=%s", handle, enable ? "true" : "false");
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.SurroundDecoderEnabled", enable ? "TRUE" : "FALSE");
+#endif
             } else {
                 LOGERR("dsEnableSurroundDecoder failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2750,6 +2846,9 @@ public:
             }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioDRCMode success: handle=%d, drcMode=%d", handle, drcMode);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.DRCMode", drcMode ? "RF" : "Line");
+#endif
             } else {
                 LOGERR("dsSetDRCMode failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2824,6 +2923,14 @@ public:
             }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioSurroudVirtualizer success: handle=%d, mode=%d, boost=%d", handle, surroundVirtualizer.mode, surroundVirtualizer.boost);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                std::string _PropertyMode  = getCurrentProfileProperty("SurroundVirtualizer.mode");
+                std::string _PropertyBoost = getCurrentProfileProperty("SurroundVirtualizer.boost");
+                device::HostPersistence::getInstance().persistHostProperty(_PropertyMode, std::to_string(surroundVirtualizer.mode));
+                if ((surroundVirtualizer.mode >= 0) && (surroundVirtualizer.mode <= 2)) {
+                    device::HostPersistence::getInstance().persistHostProperty(_PropertyBoost, std::to_string(surroundVirtualizer.boost));
+                }
+#endif
             } else {
                 LOGERR("dsSetSurroundVirtualizer failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2897,6 +3004,9 @@ public:
             }
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioMISteering success: handle=%d, enable=%s", handle, enable ? "true" : "false");
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.MISteering", enable ? "Enabled" : "Disabled");
+#endif
             } else {
                 LOGERR("dsSetMISteering failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -2962,6 +3072,9 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 LOGINFO("SetAudioGraphicEqualizerMode success: handle=%d, mode=%d", handle, mode);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.GraphicEQ", std::to_string(mode));
+#endif
             } else {
                 LOGERR("dsSetGraphicEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -3060,6 +3173,9 @@ public:
             dsError_t ret = dsSetMS12AudioProfile(dsHandle, profile.c_str());
             if (ret == dsERR_NONE) {
                 LOGINFO("SetAudioMS12Profile success: handle=%d, profile=%s", handle, profile.c_str());
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                device::HostPersistence::getInstance().persistHostProperty("audio.MS12Profile", profile);
+#endif
             } else {
                 LOGERR("dsSetMS12AudioProfile failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -3121,33 +3237,119 @@ public:
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
+        // dsAudio.c: _dsSetMS12SetttingsOverride is pure in-process logic — no single HAL function.
+        // It orchestrates dsSetDialogEnhancement/dsSetBassEnhancer/dsSetVolumeLeveller/dsSetSurroundVirtualizer.
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            typedef dsError_t (*dsSetMS12SettingsOverride_t)(intptr_t handle, const char* profileName, const char* profileSettingsName, const char* profileSettingValue, const char* profileState);
-            static dsSetMS12SettingsOverride_t dsSetMS12SettingsOverrideFunc = 0;
-            if (dsSetMS12SettingsOverrideFunc == 0) {
-                dsSetMS12SettingsOverrideFunc = (dsSetMS12SettingsOverride_t)resolve(RDK_DSHAL_NAME, "dsSetMS12SettingsOverride");
-                if(dsSetMS12SettingsOverrideFunc == 0) {
-                    LOGERR("dsSetMS12SettingsOverride is not defined");
+            std::string _AProfile("Off");
+            try { _AProfile = device::HostPersistence::getInstance().getProperty("audio.MS12Profile"); }
+            catch(...) { try { _AProfile = device::HostPersistence::getInstance().getDefaultProperty("audio.MS12Profile"); } catch(...) { _AProfile = "Off"; } }
+
+            if (profileName == _AProfile) {
+                // Active profile — apply the setting immediately via HAL
+                if (profileSettingsName == "DialogEnhance") {
+                    typedef dsError_t (*dsSetDialogEnhancement_t)(intptr_t h, int level);
+                    dsSetDialogEnhancement_t fn = (dsSetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsSetDialogEnhancement");
+                    if (fn) {
+                        if (profileState == "ADD") {
+                            int val = atoi(profileSettingValue.c_str());
+                            if (fn(dsHandle, val) == dsERR_NONE)
+                                device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("EnhancerLevel"), profileSettingValue);
+                        } else if (profileState == "REMOVE") {
+                            std::string _p = getCurrentProfileProperty("EnhancerLevel");
+                            std::string _def("0"); try { _def = device::HostPersistence::getInstance().getDefaultProperty(_p); } catch(...) {}
+                            if (fn(dsHandle, atoi(_def.c_str())) == dsERR_NONE)
+                                device::HostPersistence::getInstance().persistHostProperty(_p, _def);
+                        }
+                    }
+                } else if (profileSettingsName == "VolumeLevellerMode") {
+                    int m = atoi(profileSettingValue.c_str());
+                    if (m == 0 || m == 1) device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.mode"), profileSettingValue);
+                } else if (profileSettingsName == "VolumeLevellerLevel") {
+                    typedef dsError_t (*dsSetVolumeLeveller_t)(intptr_t h, dsVolumeLeveller_t vl);
+                    dsSetVolumeLeveller_t fn = (dsSetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
+                    if (fn) {
+                        if (profileState == "ADD") {
+                            std::string _pMode = getCurrentProfileProperty("VolumeLeveller.mode");
+                            dsVolumeLeveller_t vl;
+                            try { vl.mode = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str()); } catch(...) { vl.mode = 0; }
+                            vl.level = atoi(profileSettingValue.c_str());
+                            if (fn(dsHandle, vl) == dsERR_NONE)
+                                device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.level"), profileSettingValue);
+                        } else if (profileState == "REMOVE") {
+                            std::string _pm = getCurrentProfileProperty("VolumeLeveller.mode"), _pl = getCurrentProfileProperty("VolumeLeveller.level");
+                            std::string _dm("0"), _dl("0"); try { _dm = device::HostPersistence::getInstance().getDefaultProperty(_pm); } catch(...) {} try { _dl = device::HostPersistence::getInstance().getDefaultProperty(_pl); } catch(...) {}
+                            dsVolumeLeveller_t vl; vl.mode = atoi(_dm.c_str()); vl.level = atoi(_dl.c_str());
+                            if (fn(dsHandle, vl) == dsERR_NONE) { device::HostPersistence::getInstance().persistHostProperty(_pm, _dm); device::HostPersistence::getInstance().persistHostProperty(_pl, _dl); }
+                        }
+                    }
+                } else if (profileSettingsName == "BassEnhancer") {
+                    typedef dsError_t (*dsSetBassEnhancer_t)(intptr_t h, int boost);
+                    dsSetBassEnhancer_t fn = (dsSetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer");
+                    if (fn) {
+                        if (profileState == "ADD") {
+                            if (fn(dsHandle, atoi(profileSettingValue.c_str())) == dsERR_NONE)
+                                device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", profileSettingValue);
+                        } else if (profileState == "REMOVE") {
+                            std::string _p = getCurrentProfileProperty("BassBoost");
+                            std::string _def("0"); try { _def = device::HostPersistence::getInstance().getDefaultProperty(_p); } catch(...) {}
+                            if (fn(dsHandle, atoi(_def.c_str())) == dsERR_NONE)
+                                device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", _def);
+                        }
+                    }
+                } else if (profileSettingsName == "SurroundVirtualizerMode") {
+                    int m = atoi(profileSettingValue.c_str());
+                    if (m >= 0 && m <= 2) device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.mode"), profileSettingValue);
+                } else if (profileSettingsName == "SurroundVirtualizerLevel") {
+                    typedef dsError_t (*dsSetSurroundVirtualizer_t)(intptr_t h, dsSurroundVirtualizer_t virt);
+                    dsSetSurroundVirtualizer_t fn = (dsSetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
+                    if (fn) {
+                        if (profileState == "ADD") {
+                            std::string _pMode = getCurrentProfileProperty("SurroundVirtualizer.mode");
+                            dsSurroundVirtualizer_t virt;
+                            try { virt.mode = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str()); } catch(...) { virt.mode = 0; }
+                            virt.boost = atoi(profileSettingValue.c_str());
+                            if (fn(dsHandle, virt) == dsERR_NONE)
+                                device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.boost"), profileSettingValue);
+                        } else if (profileState == "REMOVE") {
+                            std::string _pm = getCurrentProfileProperty("SurroundVirtualizer.mode"), _pb = getCurrentProfileProperty("SurroundVirtualizer.boost");
+                            std::string _dm("0"), _db("0"); try { _dm = device::HostPersistence::getInstance().getDefaultProperty(_pm); } catch(...) {} try { _db = device::HostPersistence::getInstance().getDefaultProperty(_pb); } catch(...) {}
+                            dsSurroundVirtualizer_t virt; virt.mode = atoi(_dm.c_str()); virt.boost = atoi(_db.c_str());
+                            if (fn(dsHandle, virt) == dsERR_NONE) { device::HostPersistence::getInstance().persistHostProperty(_pm, _dm); device::HostPersistence::getInstance().persistHostProperty(_pb, _db); }
+                        }
+                    }
+                } else {
+                    LOGWARN("SetAudioMS12SettingsOverride: Unknown setting name: %s", profileSettingsName.c_str());
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
-            }
-            
-            dsError_t ret = dsERR_GENERAL;
-            if (0 != dsSetMS12SettingsOverrideFunc) {
-                ret = dsSetMS12SettingsOverrideFunc(dsHandle, profileName.c_str(), profileSettingsName.c_str(), 
-                                                     profileSettingValue.c_str(), profileState.c_str());
-            }
-            if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioMS12SettingsOverride success: handle=%d", handle);
             } else {
-                LOGERR("dsSetMS12SettingsOverride failed with error: %d", ret);
-                return WPEFramework::Core::ERROR_GENERAL;
+                // Non-active profile — just persist the value for future use
+                std::string hostProperty;
+                if      (profileSettingsName == "DialogEnhance")          hostProperty = generateProfileProperty(profileName, "EnhancerLevel");
+                else if (profileSettingsName == "VolumeLevellerMode")      hostProperty = generateProfileProperty(profileName, "VolumeLeveller.mode");
+                else if (profileSettingsName == "VolumeLevellerLevel")     hostProperty = generateProfileProperty(profileName, "VolumeLeveller.level");
+                else if (profileSettingsName == "BassEnhancer")            hostProperty = "audio.BassBoost";
+                else if (profileSettingsName == "SurroundVirtualizerMode") hostProperty = generateProfileProperty(profileName, "SurroundVirtualizer.mode");
+                else if (profileSettingsName == "SurroundVirtualizerLevel")hostProperty = generateProfileProperty(profileName, "SurroundVirtualizer.boost");
+                else { LOGWARN("SetAudioMS12SettingsOverride: Unknown setting name: %s", profileSettingsName.c_str()); return WPEFramework::Core::ERROR_GENERAL; }
+
+                if (profileState == "ADD") {
+                    device::HostPersistence::getInstance().persistHostProperty(hostProperty, profileSettingValue);
+                } else if (profileState == "REMOVE") {
+                    std::string _def("0"); try { _def = device::HostPersistence::getInstance().getDefaultProperty(hostProperty); } catch(...) {}
+                    device::HostPersistence::getInstance().persistHostProperty(hostProperty, _def);
+                }
             }
+            LOGINFO("SetAudioMS12SettingsOverride success: handle=%d, profile=%s, setting=%s, state=%s",
+                    handle, profileName.c_str(), profileSettingsName.c_str(), profileState.c_str());
         } catch (...) {
             LOGERR("Exception in SetAudioMS12SettingsOverride");
             return WPEFramework::Core::ERROR_GENERAL;
         }
+#else
+        LOGINFO("SetAudioMS12SettingsOverride: DS_AUDIO_SETTINGS_PERSISTENCE not enabled");
+#endif
         EXIT_LOG;
         return WPEFramework::Core::ERROR_NONE;
     }
@@ -3161,26 +3363,36 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            typedef dsError_t (*dsResetDialogEnhancement_t)(intptr_t handle);
-            static dsResetDialogEnhancement_t dsResetDialogEnhancementFunc = 0;
-            if (dsResetDialogEnhancementFunc == 0) {
-                dsResetDialogEnhancementFunc = (dsResetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsResetDialogEnhancement");
-                if(dsResetDialogEnhancementFunc == 0) {
-                    LOGERR("dsResetDialogEnhancement is not defined");
+            // dsAudio.c: _resetDialogEnhancerLevel reads default, calls dsSetDialogEnhancement, persists
+            typedef dsError_t (*dsSetDialogEnhancement_t)(intptr_t handle, int enhancerLevel);
+            static dsSetDialogEnhancement_t dsSetDialogEnhancementFunc = 0;
+            if (dsSetDialogEnhancementFunc == 0) {
+                dsSetDialogEnhancementFunc = (dsSetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsSetDialogEnhancement");
+                if (dsSetDialogEnhancementFunc == 0) {
+                    LOGERR("dsSetDialogEnhancement is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
-            
-            dsError_t ret = dsERR_GENERAL;
-            if (0 != dsResetDialogEnhancementFunc) {
-                ret = dsResetDialogEnhancementFunc(dsHandle);
-            }
-            if (ret == dsERR_NONE) {
-                LOGINFO("ResetAudioDialogEnhancement success: handle=%d", handle);
+
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+            std::string _Property = getCurrentProfileProperty("EnhancerLevel");
+            std::string _EnhancerLevel("0");
+            try { _EnhancerLevel = device::HostPersistence::getInstance().getDefaultProperty(_Property); } catch(...) { _EnhancerLevel = "0"; }
+            int m_enhancerLevel = atoi(_EnhancerLevel.c_str());
+            if (dsSetDialogEnhancementFunc(dsHandle, m_enhancerLevel) == dsERR_NONE) {
+                LOGINFO("ResetAudioDialogEnhancement: handle=%d, default level=%d", handle, m_enhancerLevel);
+                device::HostPersistence::getInstance().persistHostProperty(_Property, _EnhancerLevel);
             } else {
-                LOGERR("dsResetDialogEnhancement failed with error: %d", ret);
+                LOGERR("ResetAudioDialogEnhancement dsSetDialogEnhancement failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
+#else
+            if (dsSetDialogEnhancementFunc(dsHandle, 0) != dsERR_NONE) {
+                LOGERR("ResetAudioDialogEnhancement failed");
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            LOGINFO("ResetAudioDialogEnhancement success: handle=%d", handle);
+#endif
         } catch (...) {
             LOGERR("Exception in ResetAudioDialogEnhancement");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -3198,26 +3410,36 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            typedef dsError_t (*dsResetBassEnhancer_t)(intptr_t handle);
-            static dsResetBassEnhancer_t dsResetBassEnhancerFunc = 0;
-            if (dsResetBassEnhancerFunc == 0) {
-                dsResetBassEnhancerFunc = (dsResetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsResetBassEnhancer");
-                if(dsResetBassEnhancerFunc == 0) {
-                    LOGERR("dsResetBassEnhancer is not defined");
+            // dsAudio.c: _resetBassEnhancer reads default, calls dsSetBassEnhancer, persists
+            typedef dsError_t (*dsSetBassEnhancer_t)(intptr_t handle, int boost);
+            static dsSetBassEnhancer_t dsSetBassEnhancerFunc = 0;
+            if (dsSetBassEnhancerFunc == 0) {
+                dsSetBassEnhancerFunc = (dsSetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer");
+                if (dsSetBassEnhancerFunc == 0) {
+                    LOGERR("dsSetBassEnhancer is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
-            
-            dsError_t ret = dsERR_GENERAL;
-            if (0 != dsResetBassEnhancerFunc) {
-                ret = dsResetBassEnhancerFunc(dsHandle);
-            }
-            if (ret == dsERR_NONE) {
-                LOGINFO("ResetAudioBassEnhancer success: handle=%d", handle);
+
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+            std::string _Property = getCurrentProfileProperty("BassBoost");
+            std::string _BassBoost("0");
+            try { _BassBoost = device::HostPersistence::getInstance().getDefaultProperty(_Property); } catch(...) { _BassBoost = "0"; }
+            int m_bassBoost = atoi(_BassBoost.c_str());
+            if (dsSetBassEnhancerFunc(dsHandle, m_bassBoost) == dsERR_NONE) {
+                LOGINFO("ResetAudioBassEnhancer: handle=%d, default boost=%d", handle, m_bassBoost);
+                device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", _BassBoost);
             } else {
-                LOGERR("dsResetBassEnhancer failed with error: %d", ret);
+                LOGERR("ResetAudioBassEnhancer dsSetBassEnhancer failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
+#else
+            if (dsSetBassEnhancerFunc(dsHandle, 0) != dsERR_NONE) {
+                LOGERR("ResetAudioBassEnhancer failed");
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            LOGINFO("ResetAudioBassEnhancer success: handle=%d", handle);
+#endif
         } catch (...) {
             LOGERR("Exception in ResetAudioBassEnhancer");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -3235,26 +3457,42 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            typedef dsError_t (*dsResetSurroundVirtualizer_t)(intptr_t handle);
-            static dsResetSurroundVirtualizer_t dsResetSurroundVirtualizerFunc = 0;
-            if (dsResetSurroundVirtualizerFunc == 0) {
-                dsResetSurroundVirtualizerFunc = (dsResetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsResetSurroundVirtualizer");
-                if(dsResetSurroundVirtualizerFunc == 0) {
-                    LOGERR("dsResetSurroundVirtualizer is not defined");
+            // dsAudio.c: _resetSurroundVirtualizer reads defaults for mode+boost, calls dsSetSurroundVirtualizer, persists
+            typedef dsError_t (*dsSetSurroundVirtualizer_t)(intptr_t handle, dsSurroundVirtualizer_t virtualizer);
+            static dsSetSurroundVirtualizer_t dsSetSurroundVirtualizerFunc = 0;
+            if (dsSetSurroundVirtualizerFunc == 0) {
+                dsSetSurroundVirtualizerFunc = (dsSetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
+                if (dsSetSurroundVirtualizerFunc == 0) {
+                    LOGERR("dsSetSurroundVirtualizer is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
-            
-            dsError_t ret = dsERR_GENERAL;
-            if (0 != dsResetSurroundVirtualizerFunc) {
-                ret = dsResetSurroundVirtualizerFunc(dsHandle);
-            }
-            if (ret == dsERR_NONE) {
-                LOGINFO("ResetAudioSurroundVirtualizer success: handle=%d", handle);
+
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+            std::string _PropertyMode = getCurrentProfileProperty("SurroundVirtualizer.mode");
+            std::string _PropertyBoost = getCurrentProfileProperty("SurroundVirtualizer.boost");
+            std::string _SVMode("0"), _SVBoost("0");
+            try { _SVMode  = device::HostPersistence::getInstance().getDefaultProperty(_PropertyMode);  } catch(...) { _SVMode  = "0"; }
+            try { _SVBoost = device::HostPersistence::getInstance().getDefaultProperty(_PropertyBoost); } catch(...) { _SVBoost = "0"; }
+            dsSurroundVirtualizer_t m_virtualizer;
+            m_virtualizer.mode  = atoi(_SVMode.c_str());
+            m_virtualizer.boost = atoi(_SVBoost.c_str());
+            if (dsSetSurroundVirtualizerFunc(dsHandle, m_virtualizer) == dsERR_NONE) {
+                LOGINFO("ResetAudioSurroundVirtualizer: handle=%d, mode=%d boost=%d", handle, m_virtualizer.mode, m_virtualizer.boost);
+                device::HostPersistence::getInstance().persistHostProperty(_PropertyMode,  _SVMode);
+                device::HostPersistence::getInstance().persistHostProperty(_PropertyBoost, _SVBoost);
             } else {
-                LOGERR("dsResetSurroundVirtualizer failed with error: %d", ret);
+                LOGERR("ResetAudioSurroundVirtualizer dsSetSurroundVirtualizer failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
+#else
+            dsSurroundVirtualizer_t m_virt = {0, 0};
+            if (dsSetSurroundVirtualizerFunc(dsHandle, m_virt) != dsERR_NONE) {
+                LOGERR("ResetAudioSurroundVirtualizer failed");
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            LOGINFO("ResetAudioSurroundVirtualizer success: handle=%d", handle);
+#endif
         } catch (...) {
             LOGERR("Exception in ResetAudioSurroundVirtualizer");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -3272,26 +3510,42 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            typedef dsError_t (*dsResetVolumeLeveller_t)(intptr_t handle);
-            static dsResetVolumeLeveller_t dsResetVolumeLevellerFunc = 0;
-            if (dsResetVolumeLevellerFunc == 0) {
-                dsResetVolumeLevellerFunc = (dsResetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsResetVolumeLeveller");
-                if(dsResetVolumeLevellerFunc == 0) {
-                    LOGERR("dsResetVolumeLeveller is not defined");
+            // dsAudio.c: _resetVolumeLeveller reads defaults for mode+level, calls dsSetVolumeLeveller, persists
+            typedef dsError_t (*dsSetVolumeLeveller_t)(intptr_t handle, dsVolumeLeveller_t volLeveller);
+            static dsSetVolumeLeveller_t dsSetVolumeLevellerFunc = 0;
+            if (dsSetVolumeLevellerFunc == 0) {
+                dsSetVolumeLevellerFunc = (dsSetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
+                if (dsSetVolumeLevellerFunc == 0) {
+                    LOGERR("dsSetVolumeLeveller is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
-            
-            dsError_t ret = dsERR_GENERAL;
-            if (0 != dsResetVolumeLevellerFunc) {
-                ret = dsResetVolumeLevellerFunc(dsHandle);
-            }
-            if (ret == dsERR_NONE) {
-                LOGINFO("ResetAudioVolumeLeveller success: handle=%d", handle);
+
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+            std::string _PropertyMode  = getCurrentProfileProperty("VolumeLeveller.mode");
+            std::string _PropertyLevel = getCurrentProfileProperty("VolumeLeveller.level");
+            std::string _volLevellerMode("0"), _volLevellerLevel("0");
+            try { _volLevellerMode  = device::HostPersistence::getInstance().getDefaultProperty(_PropertyMode);  } catch(...) { _volLevellerMode  = "0"; }
+            try { _volLevellerLevel = device::HostPersistence::getInstance().getDefaultProperty(_PropertyLevel); } catch(...) { _volLevellerLevel = "0"; }
+            dsVolumeLeveller_t m_vl;
+            m_vl.mode  = atoi(_volLevellerMode.c_str());
+            m_vl.level = atoi(_volLevellerLevel.c_str());
+            if (dsSetVolumeLevellerFunc(dsHandle, m_vl) == dsERR_NONE) {
+                LOGINFO("ResetAudioVolumeLeveller: handle=%d, mode=%d level=%d", handle, m_vl.mode, m_vl.level);
+                device::HostPersistence::getInstance().persistHostProperty(_PropertyMode,  _volLevellerMode);
+                device::HostPersistence::getInstance().persistHostProperty(_PropertyLevel, _volLevellerLevel);
             } else {
-                LOGERR("dsResetVolumeLeveller failed with error: %d", ret);
+                LOGERR("ResetAudioVolumeLeveller dsSetVolumeLeveller failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
+#else
+            dsVolumeLeveller_t m_vl = {0, 0};
+            if (dsSetVolumeLevellerFunc(dsHandle, m_vl) != dsERR_NONE) {
+                LOGERR("ResetAudioVolumeLeveller failed");
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            LOGINFO("ResetAudioVolumeLeveller success: handle=%d", handle);
+#endif
         } catch (...) {
             LOGERR("Exception in ResetAudioVolumeLeveller");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -3556,6 +3810,24 @@ private:
                     audioGainValue = atof(audioGain.c_str());
                     if (dsSetAudioGainFunc(handle, audioGainValue) == dsERR_NONE) {
                         LOGINFO("Port HDMI0: Initialized audio gain: %f", audioGainValue);
+                    }
+                }
+                // SPDIF init
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPDIF, 0, &handle) == dsERR_NONE) {
+                    try {
+                        audioGain = device::HostPersistence::getInstance().getProperty("SPDIF0.audio.Gain");
+                    } catch(...) {
+                        try {
+                            LOGINFO("SPDIF0.audio.Gain not found in persistence store. Try system default");
+                            audioGain = device::HostPersistence::getInstance().getDefaultProperty("SPDIF0.audio.Gain");
+                        } catch(...) {
+                            audioGain = "0";
+                        }
+                    }
+                    audioGainValue = atof(audioGain.c_str());
+                    if (dsSetAudioGainFunc(handle, audioGainValue) == dsERR_NONE) {
+                        LOGINFO("Port SPDIF0: Initialized audio gain: %f", audioGainValue);
                     }
                 }
             } else {
@@ -4047,9 +4319,243 @@ private:
                 }
             }
             
-            // Additional MS12 features would be initialized here (Volume Leveller, Bass Enhancer, etc.)
-            // Implementation follows similar pattern as above
-            
+            // DolbyVolumeMode override
+            profileOverride = "FALSE";
+            try {
+                profileOverride = device::HostPersistence::getInstance().getDefaultProperty("audio.DolbyVolumeMode.ms12ProfileOverride");
+            } catch(...) { profileOverride = "FALSE"; }
+            if (profileOverride == "TRUE") {
+                typedef dsError_t (*dsSetDolbyVolumeMode_ov_t)(intptr_t handle, bool enable);
+                dsSetDolbyVolumeMode_ov_t dsSetDolbyVolumeModeFunc = (dsSetDolbyVolumeMode_ov_t) resolve(RDK_DSHAL_NAME, "dsSetDolbyVolumeMode");
+                if (dsSetDolbyVolumeModeFunc) {
+                    try {
+                        std::string dolbyMode = device::HostPersistence::getInstance().getProperty("audio.DolbyVolumeMode");
+                        bool m_dolbyVolumeMode = (dolbyMode == "TRUE");
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsSetDolbyVolumeModeFunc(handle, m_dolbyVolumeMode) == dsERR_NONE)
+                                LOGINFO("Port SPEAKER0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
+                        }
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                            if (dsSetDolbyVolumeModeFunc(handle, m_dolbyVolumeMode) == dsERR_NONE)
+                                LOGINFO("Port HDMI0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
+                        }
+                    } catch(...) { LOGINFO("audio.DolbyVolumeMode not found. System Default configured through profiles"); }
+                }
+            }
+
+            // IntelligentEQ override
+            profileOverride = "FALSE";
+            try {
+                profileOverride = device::HostPersistence::getInstance().getDefaultProperty("audio.IntelligentEQ.ms12ProfileOverride");
+            } catch(...) { profileOverride = "FALSE"; }
+            if (profileOverride == "TRUE") {
+                typedef dsError_t (*dsSetIEQMode_ov_t)(intptr_t handle, int mode);
+                dsSetIEQMode_ov_t dsSetIEQModeFunc = (dsSetIEQMode_ov_t) resolve(RDK_DSHAL_NAME, "dsSetIntelligentEqualizerMode");
+                if (dsSetIEQModeFunc) {
+                    try {
+                        int m_IEQMode = atoi(device::HostPersistence::getInstance().getProperty("audio.IntelligentEQ").c_str());
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsSetIEQModeFunc(handle, m_IEQMode) == dsERR_NONE)
+                                LOGINFO("Port SPEAKER0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
+                        }
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                            if (dsSetIEQModeFunc(handle, m_IEQMode) == dsERR_NONE)
+                                LOGINFO("Port HDMI0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
+                        }
+                    } catch(...) { LOGINFO("audio.IntelligentEQ not found. System Default configured through profiles"); }
+                }
+            }
+
+            // VolumeLeveller override
+            profileOverride = "FALSE";
+            try {
+                profileOverride = device::HostPersistence::getInstance().getDefaultProperty("audio.VolumeLeveller.ms12ProfileOverride");
+            } catch(...) { profileOverride = "FALSE"; }
+            if (profileOverride == "TRUE") {
+                typedef dsError_t (*dsSetVolLev_ov_t)(intptr_t handle, dsVolumeLeveller_t volLeveller);
+                dsSetVolLev_ov_t dsSetVolLevFunc = (dsSetVolLev_ov_t) resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
+                if (dsSetVolLevFunc) {
+                    std::string _pMode = getCurrentProfileProperty("VolumeLeveller.mode");
+                    std::string _pLevel = getCurrentProfileProperty("VolumeLeveller.level");
+                    try {
+                        dsVolumeLeveller_t m_vl;
+                        m_vl.mode  = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str());
+                        m_vl.level = atoi(device::HostPersistence::getInstance().getProperty(_pLevel).c_str());
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsSetVolLevFunc(handle, m_vl) == dsERR_NONE)
+                                LOGINFO("Port SPEAKER0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
+                        }
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                            if (dsSetVolLevFunc(handle, m_vl) == dsERR_NONE)
+                                LOGINFO("Port HDMI0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
+                        }
+                    } catch(...) { LOGINFO("audio.VolumeLeveller not found. System Default configured through profiles"); }
+                }
+            }
+
+            // BassBoost override
+            profileOverride = "FALSE";
+            try {
+                profileOverride = device::HostPersistence::getInstance().getDefaultProperty("audio.BassBoost.ms12ProfileOverride");
+            } catch(...) { profileOverride = "FALSE"; }
+            if (profileOverride == "TRUE") {
+                typedef dsError_t (*dsSetBass_ov_t)(intptr_t handle, int boost);
+                dsSetBass_ov_t dsSetBassFunc = (dsSetBass_ov_t) resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer");
+                if (dsSetBassFunc) {
+                    try {
+                        int m_bassBoost = atoi(device::HostPersistence::getInstance().getProperty("audio.BassBoost").c_str());
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsSetBassFunc(handle, m_bassBoost) == dsERR_NONE)
+                                LOGINFO("Port SPEAKER0: Initialized Bass Boost: %d", m_bassBoost);
+                        }
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                            if (dsSetBassFunc(handle, m_bassBoost) == dsERR_NONE)
+                                LOGINFO("Port HDMI0: Initialized Bass Boost: %d", m_bassBoost);
+                        }
+                    } catch(...) { LOGINFO("audio.BassBoost not found. System Default configured through profiles"); }
+                }
+            }
+
+            // SurroundDecoder override
+            profileOverride = "FALSE";
+            try {
+                profileOverride = device::HostPersistence::getInstance().getDefaultProperty("audio.SurroundDecoder.ms12ProfileOverride");
+            } catch(...) { profileOverride = "FALSE"; }
+            if (profileOverride == "TRUE") {
+                typedef dsError_t (*dsEnableSurrDec_ov_t)(intptr_t handle, bool enabled);
+                dsEnableSurrDec_ov_t dsEnableSurrDecFunc = (dsEnableSurrDec_ov_t) resolve(RDK_DSHAL_NAME, "dsEnableSurroundDecoder");
+                if (dsEnableSurrDecFunc) {
+                    try {
+                        std::string sd = device::HostPersistence::getInstance().getProperty("audio.SurroundDecoderEnabled");
+                        bool m_surroundDecoder = (sd == "TRUE");
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsEnableSurrDecFunc(handle, m_surroundDecoder) == dsERR_NONE)
+                                LOGINFO("Port SPEAKER0: Initialized Surround Decoder: %d", m_surroundDecoder);
+                        }
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                            if (dsEnableSurrDecFunc(handle, m_surroundDecoder) == dsERR_NONE)
+                                LOGINFO("Port HDMI0: Initialized Surround Decoder: %d", m_surroundDecoder);
+                        }
+                    } catch(...) { LOGINFO("audio.SurroundDecoderEnabled not found. System Default configured through profiles"); }
+                }
+            }
+
+            // DRCMode override
+            profileOverride = "FALSE";
+            try {
+                profileOverride = device::HostPersistence::getInstance().getDefaultProperty("audio.DRCMode.ms12ProfileOverride");
+            } catch(...) { profileOverride = "FALSE"; }
+            if (profileOverride == "TRUE") {
+                typedef dsError_t (*dsSetDRC_ov_t)(intptr_t handle, int mode);
+                dsSetDRC_ov_t dsSetDRCFunc = (dsSetDRC_ov_t) resolve(RDK_DSHAL_NAME, "dsSetDRCMode");
+                if (dsSetDRCFunc) {
+                    try {
+                        std::string drc = device::HostPersistence::getInstance().getProperty("audio.DRCMode");
+                        int m_DRCMode = (drc == "RF") ? 1 : 0;
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsSetDRCFunc(handle, m_DRCMode) == dsERR_NONE)
+                                LOGINFO("Port SPEAKER0: Initialized DRCMode: %d", m_DRCMode);
+                        }
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                            if (dsSetDRCFunc(handle, m_DRCMode) == dsERR_NONE)
+                                LOGINFO("Port HDMI0: Initialized DRCMode: %d", m_DRCMode);
+                        }
+                    } catch(...) { LOGINFO("audio.DRCMode not found. System Default configured through profiles"); }
+                }
+            }
+
+            // SurroundVirtualizer override
+            profileOverride = "FALSE";
+            try {
+                profileOverride = device::HostPersistence::getInstance().getDefaultProperty("audio.SurroundVirtualizer.ms12ProfileOverride");
+            } catch(...) { profileOverride = "FALSE"; }
+            if (profileOverride == "TRUE") {
+                typedef dsError_t (*dsSetSurrVirt_ov_t)(intptr_t handle, dsSurroundVirtualizer_t virtualizer);
+                dsSetSurrVirt_ov_t dsSetSurrVirtFunc = (dsSetSurrVirt_ov_t) resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
+                if (dsSetSurrVirtFunc) {
+                    std::string _pMode = getCurrentProfileProperty("SurroundVirtualizer.mode");
+                    std::string _pBoost = getCurrentProfileProperty("SurroundVirtualizer.boost");
+                    try {
+                        dsSurroundVirtualizer_t m_virt;
+                        m_virt.mode  = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str());
+                        m_virt.boost = atoi(device::HostPersistence::getInstance().getProperty(_pBoost).c_str());
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsSetSurrVirtFunc(handle, m_virt) == dsERR_NONE)
+                                LOGINFO("Port SPEAKER0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
+                        }
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                            if (dsSetSurrVirtFunc(handle, m_virt) == dsERR_NONE)
+                                LOGINFO("Port HDMI0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
+                        }
+                    } catch(...) { LOGINFO("audio.SurroundVirtualizer not found. System Default configured through profiles"); }
+                }
+            }
+
+            // MISteering override
+            profileOverride = "FALSE";
+            try {
+                profileOverride = device::HostPersistence::getInstance().getDefaultProperty("audio.MISteering.ms12ProfileOverride");
+            } catch(...) { profileOverride = "FALSE"; }
+            if (profileOverride == "TRUE") {
+                typedef dsError_t (*dsSetMISteering_ov_t)(intptr_t handle, bool enabled);
+                dsSetMISteering_ov_t dsSetMIFunc = (dsSetMISteering_ov_t) resolve(RDK_DSHAL_NAME, "dsSetMISteering");
+                if (dsSetMIFunc) {
+                    try {
+                        std::string mi = device::HostPersistence::getInstance().getProperty("audio.MISteering");
+                        bool m_MISteering = (mi == "Enabled");
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsSetMIFunc(handle, m_MISteering) == dsERR_NONE)
+                                LOGINFO("Port SPEAKER0: Initialized MI Steering: %d", m_MISteering);
+                        }
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                            if (dsSetMIFunc(handle, m_MISteering) == dsERR_NONE)
+                                LOGINFO("Port HDMI0: Initialized MI Steering: %d", m_MISteering);
+                        }
+                    } catch(...) { LOGINFO("audio.MISteering not found. System Default configured through profiles"); }
+                }
+            }
+
+            // GraphicEQ override
+            profileOverride = "FALSE";
+            try {
+                profileOverride = device::HostPersistence::getInstance().getDefaultProperty("audio.GraphicEQ.ms12ProfileOverride");
+            } catch(...) { profileOverride = "FALSE"; }
+            if (profileOverride == "TRUE") {
+                typedef dsError_t (*dsSetGEQ_ov_t)(intptr_t handle, int mode);
+                dsSetGEQ_ov_t dsSetGEQFunc = (dsSetGEQ_ov_t) resolve(RDK_DSHAL_NAME, "dsSetGraphicEqualizerMode");
+                if (dsSetGEQFunc) {
+                    try {
+                        int m_GEQMode = atoi(device::HostPersistence::getInstance().getProperty("audio.GraphicEQ").c_str());
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsSetGEQFunc(handle, m_GEQMode) == dsERR_NONE)
+                                LOGINFO("Port SPEAKER0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
+                        }
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                            if (dsSetGEQFunc(handle, m_GEQMode) == dsERR_NONE)
+                                LOGINFO("Port HDMI0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
+                        }
+                    } catch(...) { LOGINFO("audio.GraphicEQ not found. System Default configured through profiles"); }
+                }
+            }
+
         } catch (...) {
             LOGERR("Exception in initializeMS12ProfileOverrides");
         }
@@ -4131,9 +4637,266 @@ private:
                 }
             }
             
-            // Additional individual MS12 settings initialization would continue here
-            // Following similar pattern for Volume Leveller, Bass Enhancer, Surround Decoder, etc.
-            
+            // DolbyVolumeMode (with bDolbyVolumeOverrideCheck: VolumeLeveller overrides DolbyVolumeMode)
+            typedef dsError_t (*dsSetDolbyVolumeMode_ind_t)(intptr_t handle, bool enable);
+            dsSetDolbyVolumeMode_ind_t dsSetDolbyVolumeModeIndFunc = nullptr;
+            bool bDolbyVolumeOverrideCheck = true;
+            dsSetDolbyVolumeModeIndFunc = (dsSetDolbyVolumeMode_ind_t) resolve(RDK_DSHAL_NAME, "dsSetDolbyVolumeMode");
+            if (dsSetDolbyVolumeModeIndFunc) {
+                std::string dolbyMode("FALSE");
+                bool m_dolbyVolumeMode = false;
+                try {
+                    dolbyMode = device::HostPersistence::getInstance().getProperty("audio.DolbyVolumeMode");
+                    bDolbyVolumeOverrideCheck = false;
+                } catch(...) {
+                    try {
+                        LOGINFO("audio.DolbyVolumeMode not found in persistence store. Try system default");
+                        dolbyMode = device::HostPersistence::getInstance().getDefaultProperty("audio.DolbyVolumeMode");
+                    } catch(...) { dolbyMode = "FALSE"; }
+                }
+                m_dolbyVolumeMode = (dolbyMode == "TRUE");
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                    if (dsSetDolbyVolumeModeIndFunc(handle, m_dolbyVolumeMode) == dsERR_NONE)
+                        LOGINFO("Port SPEAKER0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
+                }
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                    if (dsSetDolbyVolumeModeIndFunc(handle, m_dolbyVolumeMode) == dsERR_NONE)
+                        LOGINFO("Port HDMI0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
+                }
+            }
+
+            // IntelligentEQ
+            typedef dsError_t (*dsSetIEQMode_ind_t)(intptr_t handle, int mode);
+            dsSetIEQMode_ind_t dsSetIEQModeIndFunc = nullptr;
+            dsSetIEQModeIndFunc = (dsSetIEQMode_ind_t) resolve(RDK_DSHAL_NAME, "dsSetIntelligentEqualizerMode");
+            if (dsSetIEQModeIndFunc) {
+                std::string ieqMode("0");
+                try {
+                    ieqMode = device::HostPersistence::getInstance().getProperty("audio.IntelligentEQ");
+                } catch(...) {
+                    try {
+                        LOGINFO("audio.IntelligentEQ not found in persistence store. Try system default");
+                        ieqMode = device::HostPersistence::getInstance().getDefaultProperty("audio.IntelligentEQ");
+                    } catch(...) { ieqMode = "0"; }
+                }
+                int m_IEQMode = atoi(ieqMode.c_str());
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                    if (dsSetIEQModeIndFunc(handle, m_IEQMode) == dsERR_NONE)
+                        LOGINFO("Port SPEAKER0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
+                }
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                    if (dsSetIEQModeIndFunc(handle, m_IEQMode) == dsERR_NONE)
+                        LOGINFO("Port HDMI0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
+                }
+            }
+
+            // VolumeLeveller (bDolbyVolumeOverrideCheck: set true if found, then apply instead of DolbyVolumeMode)
+            typedef dsError_t (*dsSetVolLev_ind_t)(intptr_t handle, dsVolumeLeveller_t volLeveller);
+            dsSetVolLev_ind_t dsSetVolLevIndFunc = nullptr;
+            dsSetVolLevIndFunc = (dsSetVolLev_ind_t) resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
+            if (dsSetVolLevIndFunc) {
+                std::string volMode("0"), volLevel("0");
+                dsVolumeLeveller_t m_vl;
+                try {
+                    volMode  = device::HostPersistence::getInstance().getProperty("audio.VolumeLeveller.mode");
+                    volLevel = device::HostPersistence::getInstance().getProperty("audio.VolumeLeveller.level");
+                    bDolbyVolumeOverrideCheck = true;
+                } catch(...) {
+                    try {
+                        LOGINFO("audio.VolumeLeveller not found in persistence store. Try system default");
+                        volMode  = device::HostPersistence::getInstance().getDefaultProperty("audio.VolumeLeveller.mode");
+                        volLevel = device::HostPersistence::getInstance().getDefaultProperty("audio.VolumeLeveller.level");
+                    } catch(...) { volMode = "0"; volLevel = "0"; }
+                }
+                m_vl.mode  = atoi(volMode.c_str());
+                m_vl.level = atoi(volLevel.c_str());
+                LOGINFO("bDolbyVolumeOverrideCheck value: %d", (int)bDolbyVolumeOverrideCheck);
+                handle = 0;
+                if (bDolbyVolumeOverrideCheck && dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                    if (dsSetVolLevIndFunc(handle, m_vl) == dsERR_NONE)
+                        LOGINFO("Port SPEAKER0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
+                }
+                handle = 0;
+                if (bDolbyVolumeOverrideCheck && dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                    if (dsSetVolLevIndFunc(handle, m_vl) == dsERR_NONE)
+                        LOGINFO("Port HDMI0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
+                }
+            }
+
+            // BassBoost
+            typedef dsError_t (*dsSetBass_ind_t)(intptr_t handle, int boost);
+            dsSetBass_ind_t dsSetBassIndFunc = nullptr;
+            dsSetBassIndFunc = (dsSetBass_ind_t) resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer");
+            if (dsSetBassIndFunc) {
+                std::string bassBoost("0");
+                try {
+                    bassBoost = device::HostPersistence::getInstance().getProperty("audio.BassBoost");
+                } catch(...) {
+                    try {
+                        LOGINFO("audio.BassBoost not found in persistence store. Try system default");
+                        bassBoost = device::HostPersistence::getInstance().getDefaultProperty("audio.BassBoost");
+                    } catch(...) { bassBoost = "0"; }
+                }
+                int m_bassBoost = atoi(bassBoost.c_str());
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                    if (dsSetBassIndFunc(handle, m_bassBoost) == dsERR_NONE)
+                        LOGINFO("Port SPEAKER0: Initialized Bass Boost: %d", m_bassBoost);
+                }
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                    if (dsSetBassIndFunc(handle, m_bassBoost) == dsERR_NONE)
+                        LOGINFO("Port HDMI0: Initialized Bass Boost: %d", m_bassBoost);
+                }
+            }
+
+            // SurroundDecoder
+            typedef dsError_t (*dsEnableSurrDec_ind_t)(intptr_t handle, bool enabled);
+            dsEnableSurrDec_ind_t dsEnableSurrDecIndFunc = nullptr;
+            dsEnableSurrDecIndFunc = (dsEnableSurrDec_ind_t) resolve(RDK_DSHAL_NAME, "dsEnableSurroundDecoder");
+            if (dsEnableSurrDecIndFunc) {
+                std::string sd("FALSE");
+                try {
+                    sd = device::HostPersistence::getInstance().getProperty("audio.SurroundDecoderEnabled");
+                } catch(...) {
+                    try {
+                        LOGINFO("audio.SurroundDecoderEnabled not found in persistence store. Try system default");
+                        sd = device::HostPersistence::getInstance().getDefaultProperty("audio.SurroundDecoderEnabled");
+                    } catch(...) { sd = "FALSE"; }
+                }
+                bool m_surroundDecoder = (sd == "TRUE");
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                    if (dsEnableSurrDecIndFunc(handle, m_surroundDecoder) == dsERR_NONE)
+                        LOGINFO("Port SPEAKER0: Initialized Surround Decoder: %d", m_surroundDecoder);
+                }
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                    if (dsEnableSurrDecIndFunc(handle, m_surroundDecoder) == dsERR_NONE)
+                        LOGINFO("Port HDMI0: Initialized Surround Decoder: %d", m_surroundDecoder);
+                }
+            }
+
+            // DRCMode
+            typedef dsError_t (*dsSetDRC_ind_t)(intptr_t handle, int mode);
+            dsSetDRC_ind_t dsSetDRCIndFunc = nullptr;
+            dsSetDRCIndFunc = (dsSetDRC_ind_t) resolve(RDK_DSHAL_NAME, "dsSetDRCMode");
+            if (dsSetDRCIndFunc) {
+                std::string drcMode("Line");
+                try {
+                    drcMode = device::HostPersistence::getInstance().getProperty("audio.DRCMode");
+                } catch(...) {
+                    try {
+                        LOGINFO("audio.DRCMode not found in persistence store. Try system default");
+                        drcMode = device::HostPersistence::getInstance().getDefaultProperty("audio.DRCMode");
+                    } catch(...) { drcMode = "Line"; }
+                }
+                int m_DRCMode = (drcMode == "RF") ? 1 : 0;
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                    if (dsSetDRCIndFunc(handle, m_DRCMode) == dsERR_NONE)
+                        LOGINFO("Port SPEAKER0: Initialized DRCMode: %d", m_DRCMode);
+                }
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                    if (dsSetDRCIndFunc(handle, m_DRCMode) == dsERR_NONE)
+                        LOGINFO("Port HDMI0: Initialized DRCMode: %d", m_DRCMode);
+                }
+            }
+
+            // SurroundVirtualizer
+            typedef dsError_t (*dsSetSurrVirt_ind_t)(intptr_t handle, dsSurroundVirtualizer_t virtualizer);
+            dsSetSurrVirt_ind_t dsSetSurrVirtIndFunc = nullptr;
+            dsSetSurrVirtIndFunc = (dsSetSurrVirt_ind_t) resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
+            if (dsSetSurrVirtIndFunc) {
+                std::string svMode("0"), svBoost("0");
+                dsSurroundVirtualizer_t m_virt;
+                try {
+                    svMode  = device::HostPersistence::getInstance().getProperty("audio.SurroundVirtualizer.mode");
+                    svBoost = device::HostPersistence::getInstance().getProperty("audio.SurroundVirtualizer.boost");
+                    m_virt.mode  = atoi(svMode.c_str());
+                    m_virt.boost = atoi(svBoost.c_str());
+                } catch(...) {
+                    try {
+                        LOGINFO("audio.SurroundVirtualizer.mode/boost not found in persistence store. Try system default");
+                        svMode  = device::HostPersistence::getInstance().getDefaultProperty("audio.SurroundVirtualizer.mode");
+                        svBoost = device::HostPersistence::getInstance().getDefaultProperty("audio.SurroundVirtualizer.boost");
+                    } catch(...) { svMode = "0"; svBoost = "0"; }
+                }
+                m_virt.mode  = atoi(svMode.c_str());
+                m_virt.boost = atoi(svBoost.c_str());
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                    if (dsSetSurrVirtIndFunc(handle, m_virt) == dsERR_NONE)
+                        LOGINFO("Port SPEAKER0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
+                }
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                    if (dsSetSurrVirtIndFunc(handle, m_virt) == dsERR_NONE)
+                        LOGINFO("Port HDMI0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
+                }
+            }
+
+            // MISteering
+            typedef dsError_t (*dsSetMISteering_ind_t)(intptr_t handle, bool enabled);
+            dsSetMISteering_ind_t dsSetMIIndFunc = nullptr;
+            dsSetMIIndFunc = (dsSetMISteering_ind_t) resolve(RDK_DSHAL_NAME, "dsSetMISteering");
+            if (dsSetMIIndFunc) {
+                std::string miSteering("Disabled");
+                try {
+                    miSteering = device::HostPersistence::getInstance().getProperty("audio.MISteering");
+                } catch(...) {
+                    try {
+                        LOGINFO("audio.MISteering not found in persistence store. Try system default");
+                        miSteering = device::HostPersistence::getInstance().getDefaultProperty("audio.MISteering");
+                    } catch(...) { miSteering = "Disabled"; }
+                }
+                bool m_MISteering = (miSteering == "Enabled");
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                    if (dsSetMIIndFunc(handle, m_MISteering) == dsERR_NONE)
+                        LOGINFO("Port SPEAKER0: Initialized MI Steering: %d", m_MISteering);
+                }
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                    if (dsSetMIIndFunc(handle, m_MISteering) == dsERR_NONE)
+                        LOGINFO("Port HDMI0: Initialized MI Steering: %d", m_MISteering);
+                    else
+                        LOGINFO("Port HDMI0: Initialization MI Steering: %d failed. Port not available", m_MISteering);
+                }
+            }
+
+            // GraphicEQ
+            typedef dsError_t (*dsSetGEQ_ind_t)(intptr_t handle, int mode);
+            dsSetGEQ_ind_t dsSetGEQIndFunc = nullptr;
+            dsSetGEQIndFunc = (dsSetGEQ_ind_t) resolve(RDK_DSHAL_NAME, "dsSetGraphicEqualizerMode");
+            if (dsSetGEQIndFunc) {
+                std::string geqMode("0");
+                try {
+                    geqMode = device::HostPersistence::getInstance().getProperty("audio.GraphicEQ");
+                } catch(...) {
+                    try {
+                        LOGINFO("audio.GraphicEQ not found in persistence store. Try system default");
+                        geqMode = device::HostPersistence::getInstance().getDefaultProperty("audio.GraphicEQ");
+                    } catch(...) { geqMode = "0"; }
+                }
+                int m_GEQMode = atoi(geqMode.c_str());
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                    if (dsSetGEQIndFunc(handle, m_GEQMode) == dsERR_NONE)
+                        LOGINFO("Port SPEAKER0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
+                }
+                handle = 0;
+                if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
+                    if (dsSetGEQIndFunc(handle, m_GEQMode) == dsERR_NONE)
+                        LOGINFO("Port HDMI0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
+                }
+            }
+
         } catch (...) {
             LOGERR("Exception in initializeIndividualMS12Settings");
         }
