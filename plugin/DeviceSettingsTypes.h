@@ -472,8 +472,8 @@ namespace device {
                 /*Product having Flash Persistent*/
                 filePath = "/opt/persistent/ds/hostData";
             #else
-                filePath = "/opt/ds/hostData";
-                /*Default case*/
+                /*Product having Flash Persistent*/
+                filePath = "/opt/persistent/ds/hostData";
             #endif
             defaultFilePath = "/etc/hostDataDefault";
             // _isInitialized remains false — load() will be called lazily on first access
