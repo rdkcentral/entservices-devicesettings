@@ -5029,7 +5029,7 @@ private:
             bool hdmiAutoMode = false;
             
             try {
-                hdmiAudioModeAuto = device::HostPersistence::getInstance().getProperty("HDMI0.AudioMode.AUTO", hdmiAudioModeAuto);
+                hdmiAudioModeAuto = device::HostPersistence::getInstance().getProperty("HDMI0.AudioMode.AUTO");
             } catch(...) {
                 LOGINFO("HDMI0.AudioMode.AUTO not found in persistence store. Try system default");
                 try {
