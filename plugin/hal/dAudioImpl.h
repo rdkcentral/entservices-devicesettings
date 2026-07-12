@@ -3123,17 +3123,55 @@ public:
 
     uint32_t GetAudioMS12ProfileList(const int32_t handle, WPEFramework::Exchange::IDeviceSettingsAudio::IDeviceSettingsAudioMS12AudioProfileIterator*& ms12ProfileList) const override {
         ENTRY_LOG;
+        ms12ProfileList = nullptr;
         try {
-            dsMS12AudioProfileList_t profiles;
-            dsError_t dsResult = dsGetMS12AudioProfileList(static_cast<intptr_t>(handle), &profiles);
-            if (dsResult == dsERR_NONE) {
-                // Need to create iterator implementation - stub for now
-                ms12ProfileList = nullptr;
-                LOGINFO("GetAudioMS12ProfileList - Iterator creation not implemented");
-            } else {
-                LOGERR("dsGetMS12AudioProfileList failed with error: %d", dsResult);
+            // dsAudio.c: _dsGetMS12AudioProfileList resolves and calls dsGetMS12AudioProfileList
+            typedef dsError_t (*dsGetMS12AudioProfileList_t)(intptr_t handle, dsMS12AudioProfileList_t* profiles);
+            static dsGetMS12AudioProfileList_t dsGetMS12AudioProfileListFunc = 0;
+            if (dsGetMS12AudioProfileListFunc == 0) {
+                dsGetMS12AudioProfileListFunc = (dsGetMS12AudioProfileList_t)resolve(RDK_DSHAL_NAME, "dsGetMS12AudioProfileList");
+                if (dsGetMS12AudioProfileListFunc == 0) {
+                    LOGERR("GetAudioMS12ProfileList: dsGetMS12AudioProfileList is not defined");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+
+            dsMS12AudioProfileList_t pList;
+            memset(&pList, 0, sizeof(pList));
+            dsError_t dsResult = dsGetMS12AudioProfileListFunc(static_cast<intptr_t>(handle), &pList);
+            if (dsResult != dsERR_NONE) {
+                LOGERR("GetAudioMS12ProfileList: dsGetMS12AudioProfileList failed, error=%d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
+
+            LOGINFO("GetAudioMS12ProfileList: handle=%d, count=%d, profiles=%s",
+                    handle, pList.audioProfileCount, pList.audioProfileList);
+
+            // Parse the comma-separated audioProfileList string into MS12AudioProfile structs
+            // (matches dsAudio.c pattern: audioProfileList is comma-separated, audioProfileCount is count)
+            std::vector<WPEFramework::Exchange::IDeviceSettingsAudio::MS12AudioProfile> profileVec;
+            char profileBuffer[MAX_PROFILE_LIST_BUFFER_LEN];
+            strncpy(profileBuffer, pList.audioProfileList, MAX_PROFILE_LIST_BUFFER_LEN - 1);
+            profileBuffer[MAX_PROFILE_LIST_BUFFER_LEN - 1] = '\0';
+
+            char* token = strtok(profileBuffer, ",");
+            while (token != nullptr) {
+                // Skip leading/trailing whitespace
+                while (*token == ' ') token++;
+                if (*token != '\0') {
+                    WPEFramework::Exchange::IDeviceSettingsAudio::MS12AudioProfile profile;
+                    profile.audioProfile = std::string(token);
+                    profileVec.push_back(profile);
+                }
+                token = strtok(nullptr, ",");
+            }
+
+            LOGINFO("GetAudioMS12ProfileList: parsed %zu profiles", profileVec.size());
+
+            // Create the COM-RPC iterator
+            using MS12ProfileIterator = WPEFramework::RPC::IteratorType<IDeviceSettingsAudioMS12AudioProfileIterator>;
+            ms12ProfileList = WPEFramework::Core::Service<MS12ProfileIterator>::Create<IDeviceSettingsAudioMS12AudioProfileIterator>(profileVec);
+
         } catch (...) {
             LOGERR("Exception in GetAudioMS12ProfileList");
             return WPEFramework::Core::ERROR_GENERAL;
