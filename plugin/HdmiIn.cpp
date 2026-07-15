@@ -124,7 +124,6 @@ uint32_t HdmiIn::GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnection
 
     LOGINFO("GetHDMIInStatus");
     this->platform().GetHDMIInStatus(hdmiStatus, portConnectionStatus);
-    portConnectionStatus = nullptr;
     LOGINFO("GetHDMIInStatus: SUCCESS - platform call completed");
 
     return WPEFramework::Core::ERROR_NONE;
