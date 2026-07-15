@@ -34,6 +34,7 @@
 #include <plugins/plugins.h>
 
 #include <interfaces/IDeviceSettingsFPD.h>
+#include <interfaces/IDeviceSettings.h>
 
 #include "fpd.h"
 #include "DeviceSettingsTypes.h"
@@ -112,6 +113,12 @@ namespace Plugin {
         Core::hresult SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat);
         Core::hresult SetFPDMode(const FPDMode fpdMode);
         Core::hresult GetFrontPanelConfig(IFPDTextDisplayConfigIterator*& textDisplays, IFPDIndicatorConfigIterator*& indicators, IFPDColorConfigIterator*& colors, IFPDColorBindingIterator*& colorBindings);
+
+        // Fills IDeviceSettings consolidated config vectors from cached data
+        void getCachedConfigs(std::vector<Exchange::IDeviceSettings::FPDTextDisplayConfig>& textDisplays,
+                              std::vector<Exchange::IDeviceSettings::FPDIndicatorConfig>& indicators,
+                              std::vector<Exchange::IDeviceSettings::FPDColorConfig>& colors,
+                              std::vector<Exchange::IDeviceSettings::FPDColorBinding>& colorBindings) const;
 
         private:
             void InitializeFrontPanelConfigCache();

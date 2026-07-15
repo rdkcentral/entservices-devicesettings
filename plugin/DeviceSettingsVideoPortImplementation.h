@@ -32,6 +32,7 @@
 #include <plugins/plugins.h>
 
 #include <interfaces/IDeviceSettingsVideoPort.h>
+#include <interfaces/IDeviceSettings.h>
 #include "VideoPort.h"
 #include "DeviceSettingsTypes.h"
 
@@ -127,6 +128,11 @@ namespace Plugin {
         uint32_t GetPreferredColorDepth(const int32_t handle, DisplayColorDepth &colorDepth, const bool persist);
         uint32_t SetPreferredColorDepth(const int32_t handle, const DisplayColorDepth colorDepth, const bool persist);
 
+        // Fills IDeviceSettings consolidated config vectors from cached data
+        void getCachedConfigs(std::vector<Exchange::IDeviceSettings::VideoPortTypeConfig>& videoPortTypes,
+                              std::vector<Exchange::IDeviceSettings::VideoPortPortConfig>& videoPorts,
+                              std::vector<Exchange::IDeviceSettings::VideoPortResolutionConfig>& videoPortResolutions) const;
+
     private:
         void InitializeVideoPortConfigCache();
 
@@ -138,6 +144,7 @@ namespace Plugin {
 
         std::vector<VideoPortTypeConfig> _cachedVideoPortTypes;
         std::vector<VideoPortPortConfig> _cachedVideoPorts;
+        std::vector<VideoPortResolution> _cachedVideoPortResolutions;
 
         VideoPort _videoPort;
     };

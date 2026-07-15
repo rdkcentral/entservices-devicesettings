@@ -91,7 +91,8 @@ namespace Plugin {
 
         // IDeviceSettings interface implementation
         Core::hresult Configure(PluginHost::IShell* service) override;
-        
+        Core::hresult GetDeviceSettingConfigs(Exchange::IDeviceSettings::DeviceSettingConfigs& configs) override;
+
         // IDeviceSettingsFPD interface implementation - delegate to _fpdSettings interface
         Core::hresult Register(Exchange::IDeviceSettingsFPD::INotification* notification) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsFPD::INotification* notification) override;

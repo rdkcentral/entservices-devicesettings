@@ -45,15 +45,23 @@ namespace Plugin {
 
     void DeviceSettingsVideoPortImpl::InitializeVideoPortConfigCache()
     {
-        std::vector<VideoPortResolution> resolutionConfigs;
-
         _apiLock.Lock();
         DeviceSettingsHAL::PopulateVideoPortConfig(_cachedVideoPortTypes, _cachedVideoPorts);
-        DeviceSettingsHAL::DumpVideoPortConfig(_cachedVideoPortTypes, _cachedVideoPorts, resolutionConfigs);
+
+        // Populate resolution cache using the 0th video port type.
+        // If multiple types exist, resolutions for the first type are returned by
+        // GetDeviceSettingConfigs; callers needing resolutions for other types
+        // must use GetVideoPortResolutionConfig directly.
+        if (!_cachedVideoPortTypes.empty()) {
+            DeviceSettingsHAL::PopulateVideoPortResolutionConfig(
+                _cachedVideoPortTypes[0].typeId, _cachedVideoPortResolutions);
+        }
+
+        DeviceSettingsHAL::DumpVideoPortConfig(_cachedVideoPortTypes, _cachedVideoPorts, _cachedVideoPortResolutions);
         _apiLock.Unlock();
 
-        LOGINFO("InitializeVideoPortConfigCache: videoPortTypes=%zu videoPorts=%zu",
-            _cachedVideoPortTypes.size(), _cachedVideoPorts.size());
+        LOGINFO("InitializeVideoPortConfigCache: videoPortTypes=%zu videoPorts=%zu videoPortResolutions=%zu",
+            _cachedVideoPortTypes.size(), _cachedVideoPorts.size(), _cachedVideoPortResolutions.size());
     }
 
     template<typename Func, typename... Args>
@@ -669,6 +677,44 @@ namespace Plugin {
             LOGERR("GetHDCPCurrentProtocolVersionOnVideoPort failed: handle=%d, error=%u", handle, result);
         }
         return result;
+    }
+
+    void DeviceSettingsVideoPortImpl::getCachedConfigs(
+        std::vector<Exchange::IDeviceSettings::VideoPortTypeConfig>& videoPortTypes,
+        std::vector<Exchange::IDeviceSettings::VideoPortPortConfig>& videoPorts,
+        std::vector<Exchange::IDeviceSettings::VideoPortResolutionConfig>& videoPortResolutions) const
+    {
+        _apiLock.Lock();
+
+        videoPortTypes.reserve(_cachedVideoPortTypes.size());
+        for (const auto& src : _cachedVideoPortTypes) {
+            videoPortTypes.push_back({static_cast<int32_t>(src.typeId), src.name,
+                src.dtcpSupported, src.hdcpSupported,
+                src.restrictedResolution, src.supportedResolutionNames});
+        }
+
+        videoPorts.reserve(_cachedVideoPorts.size());
+        for (const auto& src : _cachedVideoPorts) {
+            videoPorts.push_back({static_cast<int32_t>(src.videoPortType), src.videoPortIndex,
+                src.connectedAudioPortType, src.connectedAudioPortIndex, src.defaultResolution});
+        }
+
+        // Resolution config is cached from the 0th video port type during init.
+        // Copy it whenever the cache is non-empty (i.e. at least one type exists).
+        if (!_cachedVideoPortResolutions.empty()) {
+            videoPortResolutions.reserve(_cachedVideoPortResolutions.size());
+            for (const auto& src : _cachedVideoPortResolutions) {
+                videoPortResolutions.push_back({
+                    src.name,
+                    static_cast<int32_t>(src.pixelResolution),
+                    static_cast<int32_t>(src.aspectRatio),
+                    static_cast<int32_t>(src.stereoScopicMode),
+                    static_cast<int32_t>(src.frameRate),
+                    src.interlaced});
+            }
+        }
+
+        _apiLock.Unlock();
     }
 
 } // namespace Plugin

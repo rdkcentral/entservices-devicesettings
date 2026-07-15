@@ -1104,5 +1104,34 @@ namespace Plugin {
         return _instance;
     }
 
+    // ============================================================================
+    // IDeviceSettings::GetDeviceSettingConfigs — single consolidated config call
+    // ============================================================================
+
+    Core::hresult DeviceSettingsImp::GetDeviceSettingConfigs(Exchange::IDeviceSettings::DeviceSettingConfigs& configs)
+    {
+        if (_audioSettings == nullptr || _fpdSettings == nullptr ||
+            _videoDeviceSettings == nullptr || _videoPortSettings == nullptr) {
+            LOGERR("GetDeviceSettingConfigs: one or more sub-settings components are unavailable");
+            return Core::ERROR_UNAVAILABLE;
+        }
+
+        _audioSettings->getCachedConfigs(configs.audioTypes, configs.audioPorts);
+        _fpdSettings->getCachedConfigs(configs.textDisplays, configs.indicators, configs.colors, configs.colorBindings);
+        _videoDeviceSettings->getCachedConfigs(configs.videoConfigs);
+        _videoPortSettings->getCachedConfigs(configs.videoPortTypes, configs.videoPorts, configs.videoPortResolutions);
+
+        LOGINFO("GetDeviceSettingConfigs: audioTypes=%zu audioPorts=%zu "
+                "textDisplays=%zu indicators=%zu colors=%zu colorBindings=%zu "
+                "videoConfigs=%zu videoPortTypes=%zu videoPorts=%zu videoPortResolutions=%zu",
+            configs.audioTypes.size(), configs.audioPorts.size(),
+            configs.textDisplays.size(), configs.indicators.size(),
+            configs.colors.size(), configs.colorBindings.size(),
+            configs.videoConfigs.size(), configs.videoPortTypes.size(), configs.videoPorts.size(),
+            configs.videoPortResolutions.size());
+
+        return Core::ERROR_NONE;
+    }
+
 } // namespace Plugin
 } // namespace WPEFramework

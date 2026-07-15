@@ -656,5 +656,26 @@ namespace Plugin {
         return result;
     }
 
+    void DeviceSettingsAudioImpl::getCachedConfigs(
+        std::vector<Exchange::IDeviceSettings::AudioTypeConfigInfo>& audioTypes,
+        std::vector<Exchange::IDeviceSettings::AudioPortConfigInfo>& audioPorts) const
+    {
+        _configLock.Lock();
+
+        audioTypes.reserve(_cachedAudioTypeConfigs.size());
+        for (const auto& src : _cachedAudioTypeConfigs) {
+            audioTypes.push_back({src.typeId, src.name,
+                src.supportedCompressionMask, src.supportedEncodingMask, src.supportedStereoModeMask});
+        }
+
+        audioPorts.reserve(_cachedAudioPortConfigs.size());
+        for (const auto& src : _cachedAudioPortConfigs) {
+            audioPorts.push_back({static_cast<int32_t>(src.audioPortType), src.audioPortIndex,
+                src.connectedVideoPortType, src.connectedVideoPortIndex});
+        }
+
+        _configLock.Unlock();
+    }
+
 } // namespace Plugin
 } // namespace WPEFramework

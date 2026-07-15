@@ -417,5 +417,39 @@ namespace Plugin {
         return Core::ERROR_NONE;
     }
 
+    void DeviceSettingsFPDImpl::getCachedConfigs(
+        std::vector<Exchange::IDeviceSettings::FPDTextDisplayConfig>& textDisplays,
+        std::vector<Exchange::IDeviceSettings::FPDIndicatorConfig>& indicators,
+        std::vector<Exchange::IDeviceSettings::FPDColorConfig>& colors,
+        std::vector<Exchange::IDeviceSettings::FPDColorBinding>& colorBindings) const
+    {
+        _apiLock.Lock();
+
+        textDisplays.reserve(_cachedTextDisplayConfigs.size());
+        for (const auto& src : _cachedTextDisplayConfigs) {
+            textDisplays.push_back({src.id, src.name, src.maxBrightness, src.maxCycleRate,
+                src.supportedCharacters, src.columns, src.rows,
+                src.maxHorizontalIterations, src.maxVerticalIterations, src.levels, src.colorMode});
+        }
+
+        indicators.reserve(_cachedIndicatorConfigs.size());
+        for (const auto& src : _cachedIndicatorConfigs) {
+            indicators.push_back({src.id, src.maxBrightness, src.maxCycleRate,
+                src.minBrightness, src.levels, src.colorMode});
+        }
+
+        colors.reserve(_cachedColorConfigs.size());
+        for (const auto& src : _cachedColorConfigs) {
+            colors.push_back({src.id, src.color});
+        }
+
+        colorBindings.reserve(_cachedColorBindingConfigs.size());
+        for (const auto& src : _cachedColorBindingConfigs) {
+            colorBindings.push_back({src.targetType, src.targetId, src.colorId});
+        }
+
+        _apiLock.Unlock();
+    }
+
 } // namespace Plugin
 } // namespace WPEFramework

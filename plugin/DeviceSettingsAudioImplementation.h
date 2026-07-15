@@ -35,6 +35,7 @@
 #include <plugins/plugins.h>
 
 #include <interfaces/IDeviceSettingsAudio.h>
+#include <interfaces/IDeviceSettings.h>
 
 #include "Audio.h"
 #include "DeviceSettingsTypes.h"
@@ -256,6 +257,10 @@ namespace Plugin {
         void OnAudioPortStateChanged(AudioPortState audioPortState) override;
         void OnAudioLevelChanged(int32_t audioLevel) override;
         void OnAudioModeEvent(AudioPortType audioPortType, AudioStereoMode audioMode) override;
+
+        // Fills IDeviceSettings consolidated config vectors from cached data
+        void getCachedConfigs(std::vector<Exchange::IDeviceSettings::AudioTypeConfigInfo>& audioTypes,
+                              std::vector<Exchange::IDeviceSettings::AudioPortConfigInfo>& audioPorts) const;
 
     private:
         void InitializeAudioConfigCache();

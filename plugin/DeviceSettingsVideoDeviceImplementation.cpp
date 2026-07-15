@@ -303,5 +303,19 @@ namespace Plugin {
         return Core::ERROR_NONE;
     }
 
+    void DeviceSettingsVideoDeviceImpl::getCachedConfigs(
+        std::vector<Exchange::IDeviceSettings::VideoDeviceConfigInfo>& videoConfigs) const
+    {
+        _apiLock.Lock();
+
+        videoConfigs.reserve(_cachedVideoDeviceConfigs.size());
+        for (const auto& src : _cachedVideoDeviceConfigs) {
+            videoConfigs.push_back({src.numSupportedDFCs, src.supportedDFCsMask,
+                static_cast<int32_t>(src.defaultDFC)});
+        }
+
+        _apiLock.Unlock();
+    }
+
 } // namespace Plugin
 } // namespace WPEFramework

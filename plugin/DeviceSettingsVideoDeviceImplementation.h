@@ -32,6 +32,7 @@
 #include <plugins/plugins.h>
 
 #include <interfaces/IDeviceSettingsVideoDevice.h>
+#include <interfaces/IDeviceSettings.h>
 #include "VideoDevice.h"
 #include "DeviceSettingsTypes.h"
 
@@ -91,6 +92,9 @@ namespace Plugin {
         uint32_t GetCurrentDisplayFrameRate(const int32_t handle, string &framerate);
         uint32_t SetDisplayFrameRate(const int32_t handle, const string framerate);
         Core::hresult GetVideoDeviceConfig(IVideoDeviceConfigIterator*& videoConfigs);
+
+        // Fills IDeviceSettings consolidated config vectors from cached data
+        void getCachedConfigs(std::vector<Exchange::IDeviceSettings::VideoDeviceConfigInfo>& videoConfigs) const;
 
     private:
         void InitializeVideoDeviceConfigCache();
