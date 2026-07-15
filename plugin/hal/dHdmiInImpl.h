@@ -832,6 +832,17 @@ public:
             hdmiStatus.activePort = static_cast<HDMIInPort>(status.activePort);
             hdmiStatus.isPresented = status.isPresented;
             LOGINFO("GetHDMIInStatus: activePort=%d, isPresented=%s", status.activePort, status.isPresented ? "true" : "false");
+
+            /* Build per-port connection status iterator from dsHdmiInStatus_t.isPortConnected[]. */
+            std::vector<DeviceSettingsHDMIIn::HDMIPortConnectionStatus> portStatuses;
+            for (int p = 0; p < dsHDMI_IN_PORT_MAX; p++) {
+                DeviceSettingsHDMIIn::HDMIPortConnectionStatus ps;
+                ps.isPortConnected = status.isPortConnected[p];
+                portStatuses.push_back(ps);
+                LOGINFO("GetHDMIInStatus: port[%d] isPortConnected=%s", p, ps.isPortConnected ? "true" : "false");
+            }
+            portConnectionStatus = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInPortConnectionStatusIterator>>::Create<IHDMIInPortConnectionStatusIterator>(portStatuses);
+
             retCode = WPEFramework::Core::ERROR_NONE;
         }
         return retCode;
