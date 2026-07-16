@@ -7,7 +7,7 @@
 #  WPEFrameworkHelpers::WPEFrameworkHelpers
 
 find_path(WPEFrameworkHelpers_INCLUDE_DIRS
-    NAMES DeviceSettingsClientHelper.h UtilsLogging.h
+    NAMES DeviceSettingsInterface.h UtilsLogging.h
     PATH_SUFFIXES wpeframework/helpers wpeframework/helpers)
 
 set(WPEFrameworkHelpers_INCLUDE_DIRS ${WPEFrameworkHelpers_INCLUDE_DIRS} CACHE PATH "Path to WPEFrameworkHelpers includes")
