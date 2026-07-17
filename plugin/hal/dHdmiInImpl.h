@@ -280,8 +280,11 @@ public:
                         device::HostPersistence::getInstance().persistHostProperty("HDMI2.edidversion", edidVer);
                         LOGINFO("Port %s: Persist EDID Version: %d", "HDMI2", iEdidVersion);
                         break;
-                    case dsHDMI_IN_PORT_NONE:
                     case dsHDMI_IN_PORT_3:
+                        device::HostPersistence::getInstance().persistHostProperty("HDMI3.edidversion", edidVer);
+                        LOGINFO("Port %s: Persist EDID Version: %d", "HDMI3", iEdidVersion);
+                        break;
+                    case dsHDMI_IN_PORT_NONE:
                     case dsHDMI_IN_PORT_4:
                     case dsHDMI_IN_PORT_MAX:
                         break;
@@ -558,6 +561,7 @@ public:
             m_edidallmsupport[dsHDMI_IN_PORT_0] = getHdmiInPortPersistValue("HDMI0.edidallmEnable", dsHDMI_IN_PORT_0);
             m_edidallmsupport[dsHDMI_IN_PORT_1] = getHdmiInPortPersistValue("HDMI1.edidallmEnable", dsHDMI_IN_PORT_1);
             m_edidallmsupport[dsHDMI_IN_PORT_2] = getHdmiInPortPersistValue("HDMI2.edidallmEnable", dsHDMI_IN_PORT_2);
+            m_edidallmsupport[dsHDMI_IN_PORT_3] = getHdmiInPortPersistValue("HDMI3.edidallmEnable", dsHDMI_IN_PORT_3);
 
             std::string _VRRSupport("TRUE");
             m_vrrsupport[dsHDMI_IN_PORT_0] = getHdmiInPortPersistValue("HDMI0.vrrEnable", dsHDMI_IN_PORT_0);

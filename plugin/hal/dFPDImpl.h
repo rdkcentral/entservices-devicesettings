@@ -46,8 +46,13 @@ typedef struct _dsFPDSettings_t_
 
 static _FPDSettings_t srvFPDSettings[dsFPD_INDICATOR_MAX];
 
-// Power brightness setting similar to RPC layer
+#ifndef dsFPD_BRIGHTNESS_DEFAULT
+#define dsFPD_BRIGHTNESS_DEFAULT dsFPD_BRIGHTNESS_MAX
+#endif
+
 static dsFPDBrightness_t _dsPowerBrightness = dsFPD_BRIGHTNESS_MAX;
+static dsFPDBrightness_t _dsTextBrightness  = dsFPD_BRIGHTNESS_MAX;
+static dsFPDColor_t      _dsPowerLedColor   = dsFPD_COLOR_BLUE;
 
 class dFPDImpl : public hal::dFPD::IPlatform {
 
@@ -92,6 +97,60 @@ public:
             }
             LOGINFO("InitialiseHAL: dsFPInit succeeded");
             fpd_isPlatInitialized = 1;
+
+            /* Load FPD persistence — mirrors dsFPDMgr_init() in dsFPD.c.
+             * Reads Power.brightness, Text.brightness and Power.Color so that
+             * _dsPowerBrightness/_dsPowerLedColor are correct before any
+             * SetFPDState call tries to use them. */
+            try {
+                int maxBrightness = dsFPD_BRIGHTNESS_DEFAULT;
+                std::string value;
+
+                try {
+                    value = device::HostPersistence::getInstance().getProperty("Power.brightness");
+                } catch (...) {
+                    value = std::to_string(maxBrightness);
+                    device::HostPersistence::getInstance().persistHostProperty("Power.brightness", value);
+                }
+                _dsPowerBrightness = static_cast<dsFPDBrightness_t>(atoi(value.c_str()));
+
+                try {
+                    value = device::HostPersistence::getInstance().getProperty("Text.brightness");
+                } catch (...) {
+                    value = std::to_string(maxBrightness);
+                    device::HostPersistence::getInstance().persistHostProperty("Text.brightness", value);
+                }
+                _dsTextBrightness = static_cast<dsFPDBrightness_t>(atoi(value.c_str()));
+
+#if (dsFPD_BRIGHTNESS_DEFAULT != dsFPD_BRIGHTNESS_MAX)
+                /* If a non-MAX default is set and the persisted value is still MAX,
+                 * update to the new default — matches dsFPD.c logic. */
+                if (_dsPowerBrightness == dsFPD_BRIGHTNESS_MAX) {
+                    _dsPowerBrightness = dsFPD_BRIGHTNESS_DEFAULT;
+                }
+                if (_dsTextBrightness == dsFPD_BRIGHTNESS_MAX) {
+                    _dsTextBrightness = dsFPD_BRIGHTNESS_DEFAULT;
+                }
+#endif
+
+                /* Load Power LED color from persistence */
+                std::string colorStr;
+                try {
+                    colorStr = device::HostPersistence::getInstance().getProperty("Power.Color");
+                } catch (...) {
+                    colorStr = "BLUE";
+                }
+                if      (colorStr == "GREEN")  _dsPowerLedColor = dsFPD_COLOR_GREEN;
+                else if (colorStr == "RED")    _dsPowerLedColor = dsFPD_COLOR_RED;
+                else if (colorStr == "YELLOW") _dsPowerLedColor = dsFPD_COLOR_YELLOW;
+                else if (colorStr == "ORANGE") _dsPowerLedColor = dsFPD_COLOR_ORANGE;
+                else                           _dsPowerLedColor = dsFPD_COLOR_BLUE;
+
+                LOGINFO("InitialiseHAL: Power.brightness=%d Text.brightness=%d Power.Color=%s",
+                        _dsPowerBrightness, _dsTextBrightness, colorStr.c_str());
+            } catch (...) {
+                LOGERR("InitialiseHAL: Error reading FPD persistence, using defaults");
+            }
         }
     }
 
@@ -150,7 +209,14 @@ public:
                     LOGINFO("SetFPDBrightness: Power Brightness From App is %d", brightNess);
                     if (persist) {
                         _dsPowerBrightness = brightNess;
-                        LOGINFO("SetFPDBrightness: Updated global _dsPowerBrightness to %d", _dsPowerBrightness);
+                        /* Mirror dsFPD.c _dsSetFPBrightness: persist Power.brightness */
+                        try {
+                            device::HostPersistence::getInstance().persistHostProperty(
+                                "Power.brightness", std::to_string(_dsPowerBrightness));
+                            LOGINFO("SetFPDBrightness: Persisted Power.brightness=%d", _dsPowerBrightness);
+                        } catch (...) {
+                            LOGERR("SetFPDBrightness: Error persisting Power.brightness");
+                        }
                     }
                 }
                 
@@ -277,7 +343,29 @@ public:
             dsError_t eError = dsSetFPColor(static_cast<dsFPDIndicator_t>(indicator), static_cast<dsFPDColor_t>(color));
             LOGINFO("SetFPDColor: dsSetFPColor returned %d", eError);
             if (eError == dsERR_NONE) {
-                srvFPDSettings[static_cast<int>(indicator)].color = static_cast<dsFPDColor_t>(color);
+                /* Mask to 24-bit RGB — mirrors _dsSetFPColor in dsFPD.c */
+                uint32_t maskedColor = color & 0x00FFFFFF;
+                srvFPDSettings[static_cast<int>(indicator)].color = static_cast<dsFPDColor_t>(maskedColor);
+
+                /* Persist Power.Color for POWER indicator
+                 * Mirrors dsFPD.c _dsSetFPColor + enumToColor helper. */
+                if (static_cast<int>(indicator) == dsFPD_INDICATOR_POWER) {
+                    _dsPowerLedColor = static_cast<dsFPDColor_t>(maskedColor);
+                    try {
+                        const char* colorStr = "BLUE";
+                        switch (_dsPowerLedColor) {
+                            case dsFPD_COLOR_GREEN:  colorStr = "GREEN";  break;
+                            case dsFPD_COLOR_RED:    colorStr = "RED";    break;
+                            case dsFPD_COLOR_YELLOW: colorStr = "YELLOW"; break;
+                            case dsFPD_COLOR_ORANGE: colorStr = "RED";    break; // dsFPD.c enumToColor maps ORANGE→RED
+                            default: break;
+                        }
+                        device::HostPersistence::getInstance().persistHostProperty("Power.Color", colorStr);
+                        LOGINFO("SetFPDColor: Persisted Power.Color=%s", colorStr);
+                    } catch (...) {
+                        LOGERR("SetFPDColor: Error persisting Power.Color");
+                    }
+                }
                 retCode = WPEFramework::Core::ERROR_NONE;
             } else {
                 LOGERR("SetFPDColor: dsSetFPColor failed with error %d", eError);

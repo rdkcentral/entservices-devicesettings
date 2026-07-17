@@ -49,6 +49,10 @@ static std::function<void(const AudioPortState)> g_AudioPortStateChangedCallback
 static std::function<void(const float)> g_AudioLevelChangedCallback;
 static std::function<void(const AudioPortType, const AudioStereoMode)> g_AudioModeChangedCallback;
 
+/* LE (Loudness Equivalent) enable state — mirrors m_LEEnabled in dsAudio.c.
+ * Loaded from persistence at init, updated on each EnableAudioLEConfig call. */
+static bool m_LEEnabled = false;
+
 using namespace WPEFramework::Exchange;
 
 class dAudioImpl : public hal::dAudio::IPlatform {
@@ -757,7 +761,27 @@ public:
             
             dsError_t ret = dsERR_GENERAL;
             if (0 != dsSetAudioLevelFunc) {
-                ret = dsSetAudioLevelFunc(dsHandle, audioLevel);
+                // dsAudio.c: for SPEAKER port, if ducking is in progress, apply
+                // ducking level instead of the requested level (or skip if ducking is active).
+                dsAudioPortType_t portType = getAudioPortType(dsHandle);
+                if (portType == dsAUDIOPORT_TYPE_SPEAKER) {
+                    float currentLevel = 0;
+                    dsGetAudioLevel(dsHandle, &currentLevel);
+                    if (_isDuckingInProgress && currentLevel != static_cast<float>(_volumeDuckingLevel)) {
+                        // Ducking active and current level diverged — re-apply ducking level
+                        LOGINFO("SetAudioLevel: ducking in progress, applying ducking level %d instead of %f",
+                                _volumeDuckingLevel, audioLevel);
+                        ret = dsSetAudioLevelFunc(dsHandle, static_cast<float>(_volumeDuckingLevel));
+                    } else if (_isDuckingInProgress) {
+                        // Already at ducking level — skip (dsAudio.c: returns SUCCESS without calling HAL)
+                        LOGINFO("SetAudioLevel: ducking in progress, skipping level change for SPEAKER");
+                        ret = dsERR_NONE;
+                    } else {
+                        ret = dsSetAudioLevelFunc(dsHandle, audioLevel);
+                    }
+                } else {
+                    ret = dsSetAudioLevelFunc(dsHandle, audioLevel);
+                }
             }
             
             if (ret == dsERR_NONE) {
@@ -929,7 +953,16 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
+
+            // dsAudio.c: when unmuting SPEAKER port, restore ducking level first
+            dsAudioPortType_t portType = getAudioPortType(dsHandle);
+            if (!mute && portType == dsAUDIOPORT_TYPE_SPEAKER) {
+                if (setAudioDuckingAudioLevel(dsHandle) != WPEFramework::Core::ERROR_NONE) {
+                    LOGERR("SetAudioMute: failed to restore audio ducking level for Speaker port");
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
+
             dsError_t ret = dsSetAudioMute(dsHandle, mute);
             if (ret == dsERR_NONE) {
                 _muteStatus = mute;
@@ -2130,14 +2163,19 @@ public:
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
-            dsError_t dsResult = dsEnableLEConfigFunc(static_cast<intptr_t>(handle), enable);
-            if (dsResult != dsERR_NONE) {
-                LOGERR("dsEnableLEConfig failed with error: %d", dsResult);
-                return WPEFramework::Core::ERROR_GENERAL;
-            }
+            /* Mirror dsAudio.c _dsEnableLEConfig: only call HAL and persist
+             * when the value actually changes — avoids redundant HAL calls. */
+            if (enable != m_LEEnabled) {
+                m_LEEnabled = enable;
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
-            device::HostPersistence::getInstance().persistHostProperty("audio.LEEnable", enable ? "TRUE" : "FALSE");
+                device::HostPersistence::getInstance().persistHostProperty("audio.LEEnable", enable ? "TRUE" : "FALSE");
 #endif
+                dsError_t dsResult = dsEnableLEConfigFunc(static_cast<intptr_t>(handle), enable);
+                if (dsResult != dsERR_NONE) {
+                    LOGERR("dsEnableLEConfig failed with error: %d", dsResult);
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            }
         } catch (...) {
             LOGERR("Exception in EnableAudioLEConfig");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -3794,6 +3832,7 @@ private:
                     
                     bool leEnabled = (leEnable == "TRUE");
                     dsEnableLEConfigFunc(handle, leEnabled);
+                    m_LEEnabled = leEnabled;  // sync static state with what was applied to HAL
                     LOGINFO("LE (Loudness Equivalence) initialized: %s", leEnabled ? "enabled" : "disabled");
                 } else {
                     LOGINFO("dsEnableLEConfig(int, bool) is not available in HAL");

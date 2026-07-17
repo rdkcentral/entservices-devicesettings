@@ -102,9 +102,9 @@ namespace Plugin {
         // Set the static instance for backward compatibility (if still needed)
         DeviceSettingsImp::_instance = this;
 
-        // Initialize profile type
+        // Initialize profile type only — Start() is deferred to Configure()
+        // to avoid blocking the WPEFramework plugin activation thread.
         profileType = searchRdkProfile();
-        _dsController->Start();  // Start the DSController after initialization
 
         LOGINFO("Initialized profileType: %d (0=STB, 1=TV)", profileType);
     }
@@ -167,6 +167,14 @@ namespace Plugin {
         if (service == nullptr) {
             LOGERR("Service parameter is null");
             return Core::ERROR_BAD_REQUEST;
+        }
+
+        if (_dsController != nullptr) {
+            LOGINFO("Starting DSController");
+            _dsController->Start();
+        } else {
+            LOGERR("DSController is null - cannot start");
+            return Core::ERROR_GENERAL;
         }
 
         // Initialize DSController power event listener with the service

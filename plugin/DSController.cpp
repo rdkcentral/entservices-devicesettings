@@ -205,20 +205,33 @@ namespace Plugin {
             fclose(fDSCtrptr);
         }
         
+        /* Check TuneReady state and signal the resolution thread if already set.
+         * Do NOT call SetVideoPortResolution() here — it involves a synchronous
+         * GetDisplayEdid() (HDMI DDC read, 2-3s) that would block the WPEFramework
+         * plugin activation thread, preventing dependent plugins from getting a
+         * PluginInitializerService slot.
+         *
+         * The resolution thread (ResolutionThreadFunc) is already running and will
+         * call SetVideoPortResolution() when it is woken by:
+         *   - TuneReady IARM event  (IARM_BUS_SYSMGR_SYSSTATE_TUNEREADY)
+         *   - HDMI hotplug          (OnDisplayHDMIHotPlug / EventHandler)
+         *
+         * If TuneReady is already set before we start, signal the resolution thread
+         * now so it picks it up immediately without waiting for an event. */
         IARM_Bus_SYSMgr_GetSystemStates_Param_t tuneReadyParam;
-        IARM_Bus_Call(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_API_GetSystemStates, 
+        memset(&tuneReadyParam, 0, sizeof(tuneReadyParam));
+        IARM_Bus_Call(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_API_GetSystemStates,
                      &tuneReadyParam, sizeof(tuneReadyParam));
-        
+
         if (1 == tuneReadyParam.TuneReadyStatus.state) {
+            LOGINFO("DSController::Start - TuneReady already set, signalling resolution thread");
             _tuneReady = 1;
+            pthread_mutex_lock(&_mutexLock);
+            _displayEventStatus = dsDISPLAY_EVENT_CONNECTED;
+            pthread_cond_signal(&_mutexCond);
+            pthread_mutex_unlock(&_mutexLock);
         }
-        
-        SetVideoPortResolution();
-        
-        if (!IsHDMIConnected()) {
-            SetVideoPortResolution();
-        }
-        
+
         return Core::ERROR_NONE;
     }
 

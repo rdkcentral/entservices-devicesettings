@@ -958,11 +958,19 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("SetForceDisable4K: handle=%d, disable=%s", handle, disable ? "true" : "false");
         
-        // Use correct DS HAL function: dsSetForceDisable4KSupport
         dsError_t eError = dsSetForceDisable4KSupport(handle, disable);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
             LOGINFO("SetForceDisable4K: SUCCESS");
+            /* Persist 4K disable state — matches dsVideoPort.c _dsSetForceDisable4K() */
+            try {
+                device::HostPersistence::getInstance().persistHostProperty(
+                    "VideoDevice.force4KDisabled", disable ? "true" : "false");
+                LOGINFO("SetForceDisable4K: persisted VideoDevice.force4KDisabled=%s",
+                        disable ? "true" : "false");
+            } catch (...) {
+                LOGERR("SetForceDisable4K: failed to persist force4KDisabled");
+            }
         } else {
             LOGERR("SetForceDisable4K: dsSetForceDisable4KSupport failed with error: %d", eError);
         }
@@ -1321,11 +1329,15 @@ public:
             _dsBBResolution = device::HostPersistence::getInstance().getProperty("Baseband0.resolution", defaultResolution);
             LOGINFO("Persistent BB resolution read: %s", _dsBBResolution.c_str());
             
-            // Read 4K disable setting
+            // Read 4K disable setting and apply to HAL — matches dsVideoPort.c getPersistenceValue()
             std::string force4KDisabled = "false";
             force4KDisabled = device::HostPersistence::getInstance().getProperty("VideoDevice.force4KDisabled", force4KDisabled);
             if (force4KDisabled.compare("true") == 0) {
-                LOGINFO("4K support is force disabled via persistence");
+                LOGINFO("4K support is force disabled via persistence — applying to HAL");
+                intptr_t hdmiHandle = 0;
+                if (dsGetVideoPort(dsVIDEOPORT_TYPE_HDMI, 0, &hdmiHandle) == dsERR_NONE) {
+                    dsSetForceDisable4KSupport(hdmiHandle, true);
+                }
             }
             
         } catch(...) {
@@ -1633,41 +1645,72 @@ private:
     VideoPortResolution convertVideoPortResolution(const dsVideoPortResolution_t& dsResolution)
     {
         VideoPortResolution resolution;
-        
+
+        /* Use the name filled in by dsGetResolution() — this is exactly what
+         * device::VideoOutputPort::getResolution().getName() returns in the
+         * DS_IARM path (e.g. "1080i", "1080p", "720p", "2160p30").
+         * Fall back to deriving the name from pixelResolution + interlaced only
+         * when the HAL left the name field empty. */
+        if (dsResolution.name[0] != '\0') {
+            resolution.name = std::string(dsResolution.name);
+        } else {
+            switch (dsResolution.pixelResolution) {
+                case dsVIDEO_PIXELRES_720x480:
+                    resolution.name = dsResolution.interlaced ? "480i" : "480p";
+                    break;
+                case dsVIDEO_PIXELRES_720x576:
+                    resolution.name = dsResolution.interlaced ? "576i50" : "576p50";
+                    break;
+                case dsVIDEO_PIXELRES_1280x720:
+                    resolution.name = "720p";
+                    break;
+                case dsVIDEO_PIXELRES_1366x768:
+                    resolution.name = "768p60";
+                    break;
+                case dsVIDEO_PIXELRES_1920x1080:
+                    resolution.name = dsResolution.interlaced ? "1080i" : "1080p";
+                    break;
+                case dsVIDEO_PIXELRES_3840x2160:
+                    resolution.name = "2160p60";
+                    break;
+                case dsVIDEO_PIXELRES_4096x2160:
+                    resolution.name = "4096x2160";
+                    break;
+                default:
+                    resolution.name = "1080p";
+                    break;
+            }
+        }
+
         // Map DS pixel resolution to interface VideoResolution enum
         switch (dsResolution.pixelResolution) {
             case dsVIDEO_PIXELRES_720x480:
                 resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_720X480;
-                resolution.name = "720x480";
                 break;
             case dsVIDEO_PIXELRES_720x576:
                 resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_720X576;
-                resolution.name = "720x576";
                 break;
             case dsVIDEO_PIXELRES_1280x720:
                 resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_1280X720;
-                resolution.name = "1280x720";
                 break;
             case dsVIDEO_PIXELRES_1920x1080:
                 resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_1920X1080;
-                resolution.name = "1920x1080";
                 break;
             case dsVIDEO_PIXELRES_3840x2160:
                 resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_3840X2160;
-                resolution.name = "3840x2160";
                 break;
             default:
                 resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_1920X1080;
-                resolution.name = "1920x1080";
                 break;
         }
-        
-        // Set default values for other fields - can be enhanced based on DS data available
+
         resolution.aspectRatio = VideoAspectRatio::DS_VIDEO_ASPECT_RATIO_16X9;
         resolution.stereoScopicMode = VideoStereoScopicMode::DS_VIDEO_SSMODE_2D;
         resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_60;
         resolution.interlaced = dsResolution.interlaced;
-        
+
+        LOGINFO("convertVideoPortResolution: name='%s', pixelRes=%d, interlaced=%d",
+                resolution.name.c_str(), static_cast<int>(resolution.pixelResolution), resolution.interlaced);
         return resolution;
     }
 
@@ -1809,10 +1852,7 @@ private:
         try {
             std::string resolutionName(resolution.name);
             
-            // Determine port type based on handle - simplified approach
-            dsVideoPortType_t portType = dsVIDEOPORT_TYPE_HDMI; // Default assumption
-            
-            // Try to get actual port type (this is a simplification - in real dsVideoPort.c it uses _GetVideoPortType)
+            dsVideoPortType_t portType = dsVIDEOPORT_TYPE_HDMI;
             intptr_t test_handle = 0;
             if (dsGetVideoPort(dsVIDEOPORT_TYPE_HDMI, 0, &test_handle) == dsERR_NONE && test_handle == handle) {
                 portType = dsVIDEOPORT_TYPE_HDMI;
@@ -1820,17 +1860,18 @@ private:
                 portType = dsVIDEOPORT_TYPE_COMPONENT;
             } else if (dsGetVideoPort(dsVIDEOPORT_TYPE_INTERNAL, 0, &test_handle) == dsERR_NONE && test_handle == handle) {
                 portType = dsVIDEOPORT_TYPE_INTERNAL;
+            } else if (dsGetVideoPort(dsVIDEOPORT_TYPE_BB, 0, &test_handle) == dsERR_NONE && test_handle == handle) {
+                portType = dsVIDEOPORT_TYPE_BB;
+            } else if (dsGetVideoPort(dsVIDEOPORT_TYPE_RF, 0, &test_handle) == dsERR_NONE && test_handle == handle) {
+                portType = dsVIDEOPORT_TYPE_RF;
             }
             
             if (portType == dsVIDEOPORT_TYPE_HDMI || portType == dsVIDEOPORT_TYPE_INTERNAL) {
-                // Persist HDMI resolution
                 device::HostPersistence::getInstance().persistHostProperty("HDMI0.resolution", resolutionName);
                 LOGINFO("Persisted HDMI resolution: %s", resolutionName.c_str());
                 _dsHDMIResolution = resolutionName;
                 
-                // Check compatibility with analog ports
                 if (forceCompatible) {
-                    // Simplified compatibility logic - in real implementation this would be more complex
                     std::string compatibleResolution = getCompatibleAnalogResolution(resolution);
                     if (!compatibleResolution.empty() && compatibleResolution != _dsCompResolution) {
                         #ifdef HAS_ONLY_COMPOSITE
@@ -1842,9 +1883,7 @@ private:
                         LOGINFO("Force compatible: Updated analog resolution to %s", compatibleResolution.c_str());
                     }
                 }
-            } 
-            else if (portType == dsVIDEOPORT_TYPE_COMPONENT) {
-                // Persist Component resolution
+            } else if (portType == dsVIDEOPORT_TYPE_COMPONENT) {
                 #ifdef HAS_ONLY_COMPOSITE
                     device::HostPersistence::getInstance().persistHostProperty("Baseband0.resolution", resolutionName);
                 #else
@@ -1853,7 +1892,6 @@ private:
                 LOGINFO("Persisted Component resolution: %s", resolutionName.c_str());
                 _dsCompResolution = resolutionName;
                 
-                // Check compatibility with HDMI port
                 if (forceCompatible) {
                     std::string compatibleResolution = getCompatibleHDMIResolution(resolution);
                     if (!compatibleResolution.empty() && compatibleResolution != _dsHDMIResolution) {
@@ -1862,6 +1900,16 @@ private:
                         LOGINFO("Force compatible: Updated HDMI resolution to %s", compatibleResolution.c_str());
                     }
                 }
+            } else if (portType == dsVIDEOPORT_TYPE_BB) {
+                /* dsVideoPort.c: _dsSetResolution BB case persists Baseband0.resolution */
+                device::HostPersistence::getInstance().persistHostProperty("Baseband0.resolution", resolutionName);
+                LOGINFO("Persisted Baseband resolution: %s", resolutionName.c_str());
+                _dsBBResolution = resolutionName;
+            } else if (portType == dsVIDEOPORT_TYPE_RF) {
+                /* dsVideoPort.c: _dsSetResolution RF case persists RF0.resolution */
+                device::HostPersistence::getInstance().persistHostProperty("RF0.resolution", resolutionName);
+                LOGINFO("Persisted RF resolution: %s", resolutionName.c_str());
+                _dsRFResolution = resolutionName;
             }
             
         } catch(...) {

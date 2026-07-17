@@ -46,12 +46,14 @@
 
 static int display_isInitialized = 0;
 static int display_isPlatInitialized = 0;
-// Suppress unused variable warnings for compatibility
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
-static bool isEdidCached __attribute__((unused)) = false;
-static bool isEdidBytesCached __attribute__((unused)) = false;
-#pragma GCC diagnostic pop
+/* EDID caches — mirrors isEdidCached / isEdidBytesCached in dsDisplay.c.
+ * Populated on first successful HAL read; reset to false on
+ * dsDISPLAY_EVENT_DISCONNECTED (matching dsDisplay.c _dsDisplayEventCallback). */
+static bool isEdidCached = false;
+static bool isEdidBytesCached = false;
+static dsDisplayEDID_t s_edidStructCache;          // cache for GetDisplayEdid
+static unsigned char   s_edidBytesCache[1024] = {0}; // cache for GetDisplayEdidBytes
+static int             s_edidBytesCacheLength = 0;
 static pthread_mutex_t dsDisplayLock = PTHREAD_MUTEX_INITIALIZER;
 
 // Static global callback functions for Display events
@@ -282,6 +284,15 @@ public:
             LOGERR("GetDisplayEdidBytes: FAILED - Invalid parameters");
             return retCode;
         }
+
+        /* Mirror dsDisplay.c _dsGetEDIDBytes: serve from cache if available
+         * (reset to false on dsDISPLAY_EVENT_DISCONNECTED). */
+        if (isEdidBytesCached && s_edidBytesCacheLength > 0 &&
+            s_edidBytesCacheLength <= static_cast<int>(edidLength)) {
+            memcpy(edIdBytes, s_edidBytesCache, s_edidBytesCacheLength);
+            LOGINFO("GetDisplayEdidBytes: returning cached EDID bytes, length=%d", s_edidBytesCacheLength);
+            return WPEFramework::Core::ERROR_NONE;
+        }
         
         pthread_mutex_lock(&dsDisplayLock);
         
@@ -295,9 +306,15 @@ public:
         if (func != 0) {
             int actualLength = 0;
             dsError_t eError = func(handle, edIdBytes, &actualLength);
-            if (eError == dsERR_NONE && actualLength <= edidLength) {
+            if (eError == dsERR_NONE && actualLength > 0 &&
+                actualLength <= static_cast<int>(edidLength) &&
+                actualLength <= static_cast<int>(sizeof(s_edidBytesCache))) {
+                /* Populate cache — mirrors dsDisplay.c isEdidBytesCached = true */
+                memcpy(s_edidBytesCache, edIdBytes, actualLength);
+                s_edidBytesCacheLength = actualLength;
+                isEdidBytesCached = true;
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetDisplayEdidBytes: SUCCESS - actualLength=%d", actualLength);
+                LOGINFO("GetDisplayEdidBytes: SUCCESS - actualLength=%d (cached)", actualLength);
             } else {
                 LOGERR("GetDisplayEdidBytes: FAILED - dsGetEDIDBytes error=%d, actualLength=%d", eError, actualLength);
             }
@@ -383,34 +400,73 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("GetDisplayEdid: handle=%d", handle);
+
+        /* Mirror dsDisplay.c _dsGetEDID: serve from cache when available.
+         * Cache is reset to false on dsDISPLAY_EVENT_DISCONNECTED. */
+        if (isEdidCached) {
+            edId.productCode            = s_edidStructCache.productCode;
+            edId.serialNumber           = s_edidStructCache.serialNumber;
+            edId.manufactureYear        = s_edidStructCache.manufactureYear;
+            edId.manufactureWeek        = s_edidStructCache.manufactureWeek;
+            edId.hdmiDeviceType         = s_edidStructCache.hdmiDeviceType;
+            edId.isRepeater             = s_edidStructCache.isRepeater;
+            edId.physicalAddressA       = s_edidStructCache.physicalAddressA;
+            edId.physicalAddressB       = s_edidStructCache.physicalAddressB;
+            edId.physicalAddressC       = s_edidStructCache.physicalAddressC;
+            edId.physicalAddressD       = s_edidStructCache.physicalAddressD;
+            edId.numOfSupportedResolution = s_edidStructCache.numOfSupportedResolution;
+            edId.monitorName            = std::string(s_edidStructCache.monitorName);
+            LOGINFO("GetDisplayEdid: returning cached EDID");
+            return WPEFramework::Core::ERROR_NONE;
+        }
         
         pthread_mutex_lock(&dsDisplayLock);
         
         // Use direct call for dsGetEDID (matches dsDisplay.c _dsGetEDID pattern)
         dsDisplayEDID_t halEdid;
+        memset(&halEdid, 0, sizeof(halEdid));
         dsError_t eError = dsGetEDID(handle, &halEdid);
-            if (eError == dsERR_NONE) {
-                // Convert DS HAL type to WPE Framework type
-                edId.productCode = halEdid.productCode;
-                edId.serialNumber = halEdid.serialNumber;
-                edId.manufactureYear = halEdid.manufactureYear;
-                edId.manufactureWeek = halEdid.manufactureWeek;
-                edId.hdmiDeviceType = halEdid.hdmiDeviceType;
-                edId.isRepeater = halEdid.isRepeater;
-                edId.physicalAddressA = halEdid.physicalAddressA;
-                edId.physicalAddressB = halEdid.physicalAddressB;
-                edId.physicalAddressC = halEdid.physicalAddressC;
-                edId.physicalAddressD = halEdid.physicalAddressD;
-                edId.numOfSupportedResolution = halEdid.numOfSupportedResolution;
-                edId.monitorName = std::string(halEdid.monitorName);
-                retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetDisplayEdid: SUCCESS");
-            } else {
-                LOGERR("GetDisplayEdid: FAILED - dsGetEDID error=%d", eError);
-            }
+        if (eError == dsERR_NONE) {
+            /* Populate cache and dump EDID info — mirrors dsDisplay.c pattern */
+            memcpy(&s_edidStructCache, &halEdid, sizeof(dsDisplayEDID_t));
+            isEdidCached = true;
+            dumpEDIDInformation(&halEdid);
+
+            // Convert DS HAL type to WPE Framework type
+            edId.productCode            = halEdid.productCode;
+            edId.serialNumber           = halEdid.serialNumber;
+            edId.manufactureYear        = halEdid.manufactureYear;
+            edId.manufactureWeek        = halEdid.manufactureWeek;
+            edId.hdmiDeviceType         = halEdid.hdmiDeviceType;
+            edId.isRepeater             = halEdid.isRepeater;
+            edId.physicalAddressA       = halEdid.physicalAddressA;
+            edId.physicalAddressB       = halEdid.physicalAddressB;
+            edId.physicalAddressC       = halEdid.physicalAddressC;
+            edId.physicalAddressD       = halEdid.physicalAddressD;
+            edId.numOfSupportedResolution = halEdid.numOfSupportedResolution;
+            edId.monitorName            = std::string(halEdid.monitorName);
+            retCode = WPEFramework::Core::ERROR_NONE;
+            LOGINFO("GetDisplayEdid: SUCCESS (cached for next call)");
+        } else {
+            LOGERR("GetDisplayEdid: FAILED - dsGetEDID error=%d", eError);
+        }
         
         pthread_mutex_unlock(&dsDisplayLock);
         return retCode;
+    }
+
+    /* Mirror dsDisplay.c dumpEDIDInformation — logs EDID product/serial/year/
+     * week/monitorName/deviceType/repeater, matching the IARM server output. */
+    static void dumpEDIDInformation(dsDisplayEDID_t *edid)
+    {
+        if (!edid) return;
+        LOGINFO("[DsMgr]dumpEDIDInformation values:%x,%x,%d,%d,%s,%s,%x",
+                edid->productCode, edid->serialNumber,
+                edid->manufactureYear, edid->manufactureWeek,
+                edid->monitorName,
+                edid->hdmiDeviceType ? "HDMI" : "DVI",
+                edid->isRepeater);
+        LOGINFO("[DsMgr]numOfSupportedResolution=%d", edid->numOfSupportedResolution);
     }
 
     uint32_t SetAllmEnabled(const int32_t handle, const bool enabled) override
@@ -624,6 +680,12 @@ private:
                 break;
                 
             case dsDISPLAY_EVENT_DISCONNECTED: // DS_DISPLAY_EVENT_DISCONNECTED equivalent
+                /* Mirror dsDisplay.c _dsDisplayEventCallback: reset EDID caches
+                 * so next GetDisplayEdid/GetDisplayEdidBytes re-reads from HAL. */
+                isEdidCached = false;
+                isEdidBytesCached = false;
+                s_edidBytesCacheLength = 0;
+                LOGINFO("dsDisplayEventCallbackImpl: DISCONNECTED — EDID caches invalidated");
                 if (g_DisplayHDMIHotPlugCallback) {
                     g_DisplayHDMIHotPlugCallback(port, false);
                 }
