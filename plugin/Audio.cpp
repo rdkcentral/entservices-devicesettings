@@ -523,22 +523,20 @@ uint32_t Audio::SetAudioAtmosOutputMode(const int32_t handle, const bool enable)
 // the same pattern. For brevity, I'm implementing the key ones that are commonly used
 // and that correspond to the notification handlers we saw in DeviceSettingsManager.h
 
-// Placeholder implementations for methods not yet fully developed
+// Missing Audio interface methods implementation
+
 uint32_t Audio::GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) {
-    LOGINFO("GetSupportedCompressions: handle=%d - STUB IMPLEMENTATION", handle);
-    uint32_t result = WPEFramework::Core::ERROR_GENERAL;
+    uint32_t result = (_platform != nullptr) ? _platform->GetSupportedCompressions(handle, compressions) : WPEFramework::Core::ERROR_UNAVAILABLE;
     return result;
 }
 
 uint32_t Audio::GetAudioCompression(const int32_t handle, AudioCompression &compression) {
-    LOGINFO("GetAudioCompression: handle=%d - STUB IMPLEMENTATION", handle);
-    uint32_t result = WPEFramework::Core::ERROR_GENERAL;
+    uint32_t result = (_platform != nullptr) ? _platform->GetAudioCompression(handle, compression) : WPEFramework::Core::ERROR_UNAVAILABLE;
     return result;
 }
 
 uint32_t Audio::SetAudioCompression(const int32_t handle, const AudioCompression compression) {
-    LOGINFO("SetAudioCompression: handle=%d, compression=%d - STUB IMPLEMENTATION", handle, compression);
-    uint32_t result = WPEFramework::Core::ERROR_GENERAL;
+    uint32_t result = (_platform != nullptr) ? _platform->SetAudioCompression(handle, compression) : WPEFramework::Core::ERROR_UNAVAILABLE;
     return result;
 }
 

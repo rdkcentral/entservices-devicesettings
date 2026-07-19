@@ -231,7 +231,7 @@ namespace Plugin {
         Core::hresult SetAudioMixerLevels(const int32_t handle, const AudioInput audioInput, const int32_t volume);
 
         // MS12 Settings Override
-        Core::hresult SetAudioMS12SettingsOverride(const int32_t handle, const std::string profileName, const std::string profileSettingsName, const std::string profileSettingValue, const std::string profileState);
+        Core::hresult SetAudioMS12SettingsOverride(const int32_t handle, const std::string& profileName, const std::string& profileSettingsName, const std::string& profileSettingValue, const AudioMS12ProfileState profileState);
 
         // Reset Functions
         Core::hresult ResetAudioDialogEnhancement(const int32_t handle);

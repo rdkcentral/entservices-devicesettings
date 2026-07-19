@@ -626,8 +626,11 @@ namespace Plugin {
         return result;
     }
     
-    Core::hresult DeviceSettingsAudioImpl::SetAudioMS12SettingsOverride(const int32_t handle, const string profileName, const string profileSettingsName, const string profileSettingValue, const string profileState) {
-        uint32_t result = _audio.SetAudioMS12SettingsOverride(handle, profileName, profileSettingsName, profileSettingValue, profileState);
+    Core::hresult DeviceSettingsAudioImpl::SetAudioMS12SettingsOverride(const int32_t handle, const string& profileName, const string& profileSettingsName, const string& profileSettingValue, const AudioMS12ProfileState profileState) {
+        /* Convert AudioMS12ProfileState enum to the string ("ADD"/"REMOVE") expected
+         * by the Audio layer and dAudioImpl.h platform layer. */
+        string stateStr = (profileState == AudioMS12ProfileState::AUDIO_MS12_PROFILE_STATE_ADD) ? "ADD" : "REMOVE";
+        uint32_t result = _audio.SetAudioMS12SettingsOverride(handle, profileName, profileSettingsName, profileSettingValue, stateStr);
         return result;
     }
     

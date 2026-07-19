@@ -682,8 +682,8 @@ namespace Plugin {
     }
     
     Core::hresult DeviceSettingsImp::SetAudioMS12SettingsOverride(const int32_t handle, const string& profileName, const string& profileSettingsName, const string& profileSettingValue, const AudioMS12ProfileState profileState) {
-        const string profileStateStr = (profileState == AudioMS12ProfileState::AUDIO_MS12_PROFILE_STATE_ADD) ? "ADD" : "REMOVE";
-        DELEGATE_TO_COMPONENT(_audioSettings, SetAudioMS12SettingsOverride, handle, profileName, profileSettingsName, profileSettingValue, profileStateStr)
+        // Pass the enum directly; DeviceSettingsAudioImpl converts it to "ADD"/"REMOVE" internally.
+        DELEGATE_TO_COMPONENT(_audioSettings, SetAudioMS12SettingsOverride, handle, profileName, profileSettingsName, profileSettingValue, profileState)
     }
     
     Core::hresult DeviceSettingsImp::ResetAudioDialogEnhancement(const int32_t handle) {

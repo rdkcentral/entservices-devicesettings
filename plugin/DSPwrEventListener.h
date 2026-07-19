@@ -162,8 +162,10 @@ private:
     Core::Sink<PowerManagerNotification> _pwrMgrNotification;
     PluginHost::IShell* _service;
     DeviceSettingsImp* _deviceSettings;
-    VideoPortConfigStore _videoPortConfig;
-    AudioConfigStore     _audioConfig;
+    /** Cached video port entries — populated by RefreshPortConfigurationCache() from GetDeviceSettingConfigs(). */
+    std::vector<VideoPortEntry> _videoPortEntries;
+    /** Cached audio port entries — populated by RefreshPortConfigurationCache() from GetDeviceSettingConfigs(). */
+    std::vector<AudioPortEntry> _audioPortEntries;
 };
 
 } // namespace Plugin
