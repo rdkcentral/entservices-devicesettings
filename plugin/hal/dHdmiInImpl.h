@@ -69,7 +69,7 @@ public:
     dHdmiInImpl()
     {
         LOGINFO("dHdmiInImpl Constructor");
-        InitialiseHAL();
+        // HAL init deferred to InitialiseHAL() — called from DeviceSettingsImp::Configure()
     }
 
     virtual ~dHdmiInImpl()

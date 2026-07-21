@@ -25,6 +25,8 @@
 #include "DeviceSettingsHostImplementation.h"
 
 #include <dlfcn.h>
+#include <chrono>
+#include <thread>
 
 // Definition of the shared global declared in DeviceSettingsTypes.h
 profile_t profileType = NOT_FOUND;
@@ -88,15 +90,15 @@ namespace Plugin {
     DeviceSettingsImp* DeviceSettingsImp::_instance = nullptr;
 
     DeviceSettingsImp::DeviceSettingsImp()
-        : _dsController(DSController::Create(this))  // Direct dependency injection in initializer list
-        , _fpdSettings(DeviceSettingsFPDImpl::Create())
-        , _hdmiInSettings(DeviceSettingsHdmiInImp::Create())
-        , _audioSettings(DeviceSettingsAudioImpl::Create())
-        , _videoPortSettings(DeviceSettingsVideoPortImpl::Create())
-        , _videoDeviceSettings(DeviceSettingsVideoDeviceImpl::Create())
-        , _hostSettings(DeviceSettingsHostImpl::Create())
-        , _displaySettings(DeviceSettingsDisplayImpl::Create())
-        , _compositeInSettings(DeviceSettingsCompositeInImpl::Create())
+        : _dsController(nullptr)
+        , _fpdSettings(nullptr)
+        , _hdmiInSettings(nullptr)
+        , _audioSettings(nullptr)
+        , _videoPortSettings(nullptr)
+        , _videoDeviceSettings(nullptr)
+        , _hostSettings(nullptr)
+        , _displaySettings(nullptr)
+        , _compositeInSettings(nullptr)
         , mConnectionId(0)
     {
         // Set the static instance for backward compatibility (if still needed)
@@ -105,8 +107,35 @@ namespace Plugin {
         // Initialize profile type only — Start() is deferred to Configure()
         // to avoid blocking the WPEFramework plugin activation thread.
         profileType = searchRdkProfile();
-
         LOGINFO("Initialized profileType: %d (0=STB, 1=TV)", profileType);
+
+        // ── Per-component creation timing ─────────────────────────────────────
+        using Clock = std::chrono::steady_clock;
+        using Ms    = std::chrono::milliseconds;
+        auto tTotal = Clock::now();
+        auto t0     = tTotal;
+
+#define DS_TIME_COMPONENT(label, expr) \
+        t0 = Clock::now(); \
+        expr; \
+        LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", label, \
+                (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count())
+
+        DS_TIME_COMPONENT("DSController::Create",         _dsController         = DSController::Create(this));
+        DS_TIME_COMPONENT("DeviceSettingsFPDImpl::Create", _fpdSettings          = DeviceSettingsFPDImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsHdmiInImp::Create",_hdmiInSettings       = DeviceSettingsHdmiInImp::Create());
+        DS_TIME_COMPONENT("DeviceSettingsAudioImpl::Create",_audioSettings        = DeviceSettingsAudioImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsVideoPortImpl::Create",_videoPortSettings = DeviceSettingsVideoPortImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsVideoDeviceImpl::Create",_videoDeviceSettings = DeviceSettingsVideoDeviceImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsHostImpl::Create",_hostSettings          = DeviceSettingsHostImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsDisplayImpl::Create",_displaySettings     = DeviceSettingsDisplayImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsCompositeInImpl::Create",_compositeInSettings = DeviceSettingsCompositeInImpl::Create());
+
+#undef DS_TIME_COMPONENT
+
+        LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms",
+                "DeviceSettingsImp ctor TOTAL",
+                (long long)std::chrono::duration_cast<Ms>(Clock::now() - tTotal).count());
     }
 
     DeviceSettingsImp::~DeviceSettingsImp() {
@@ -164,14 +193,21 @@ namespace Plugin {
     {
         LOGINFO("DeviceSettingsImp Configure called with service: %p", service);
 
+        using Clock = std::chrono::steady_clock;
+        using Ms    = std::chrono::milliseconds;
+        auto tCfg   = Clock::now();
+
         if (service == nullptr) {
             LOGERR("Service parameter is null");
             return Core::ERROR_BAD_REQUEST;
         }
 
         if (_dsController != nullptr) {
-            LOGINFO("Starting DSController");
+            LOGINFO("[DS-INIT-TIMING] DSController::Start — begin");
+            auto t0 = Clock::now();
             _dsController->Start();
+            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "DSController::Start",
+                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count());
         } else {
             LOGERR("DSController is null - cannot start");
             return Core::ERROR_GENERAL;
@@ -179,12 +215,42 @@ namespace Plugin {
 
         // Initialize DSController power event listener with the service
         if (_dsController != nullptr) {
-            LOGINFO("Initializing DSController power event listener");
+            LOGINFO("[DS-INIT-TIMING] InitializePowerEventListener — begin");
+            auto t0 = Clock::now();
             _dsController->InitializePowerEventListener(service);
+            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "InitializePowerEventListener",
+                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count());
         } else {
             LOGERR("DSController is null - cannot initialize power event listener");
         }
 
+        // ── Root cause fix #3: Parallel HAL InitialiseHAL() ──────────────────────────
+        // Old dsmgr pattern: dsXxxMgr_init() never calls dsXxx_Init() at startup;
+        // HAL init is deferred to the first client request (_dsXxxPortInit IARM handler).
+        // Here we run all 8 HAL inits in parallel so total time = max(t1..t8),
+        // not sum(t1..t8) as in the original sequential constructor approach.
+        {
+            LOGINFO("[DS-INIT-TIMING] Parallel HAL InitialiseHAL — begin");
+            auto tHAL = Clock::now();
+
+            std::thread tFPD    ([this]{ if (_fpdSettings)          _fpdSettings->InitialiseHAL(); });
+            std::thread tHdmiIn ([this]{ if (_hdmiInSettings)       _hdmiInSettings->InitialiseHAL(); });
+            std::thread tAudio  ([this]{ if (_audioSettings)        _audioSettings->InitialiseHAL(); });
+            std::thread tVPort  ([this]{ if (_videoPortSettings)    _videoPortSettings->InitialiseHAL(); });
+            std::thread tVDev   ([this]{ if (_videoDeviceSettings)  _videoDeviceSettings->InitialiseHAL(); });
+            std::thread tHost   ([this]{ if (_hostSettings)         _hostSettings->InitialiseHAL(); });
+            std::thread tDisplay([this]{ if (_displaySettings)      _displaySettings->InitialiseHAL(); });
+            std::thread tComp   ([this]{ if (_compositeInSettings)  _compositeInSettings->InitialiseHAL(); });
+
+            tFPD.join(); tHdmiIn.join(); tAudio.join(); tVPort.join();
+            tVDev.join(); tHost.join(); tDisplay.join(); tComp.join();
+
+            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Parallel HAL InitialiseHAL",
+                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - tHAL).count());
+        }
+
+        LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Configure TOTAL",
+                (long long)std::chrono::duration_cast<Ms>(Clock::now() - tCfg).count());
         LOGINFO("DeviceSettingsImp configured successfully");
         return Core::ERROR_NONE;
     }

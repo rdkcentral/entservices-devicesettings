@@ -60,6 +60,8 @@ public:
 public:
 
     void Platform_init();
+    /** Deferred HAL init — called from DeviceSettingsImp::Configure() */
+    void InitialiseHAL() { std::static_pointer_cast<DefaultImpl>(_platform)->InitialiseHAL(); }
 
     uint32_t SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds);
     uint32_t SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations);

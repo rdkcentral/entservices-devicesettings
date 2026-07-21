@@ -61,6 +61,8 @@ public:
 public:
 
     void Platform_init();
+    /** Deferred HAL init — called from DeviceSettingsImp::Configure() */
+    void InitialiseHAL() { std::static_pointer_cast<DefaultImpl>(_platform)->InitialiseHAL(); }
 
     uint32_t GetVideoDeviceHandle(const int32_t index, int32_t &handle);
     uint32_t SetVideoDeviceDFC(const int32_t handle, const VideoDeviceZoom zoomSetting);
