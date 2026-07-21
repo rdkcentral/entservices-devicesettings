@@ -112,7 +112,6 @@ namespace Plugin {
         Core::hresult GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat);
         Core::hresult SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat);
         Core::hresult SetFPDMode(const FPDMode fpdMode);
-        Core::hresult GetFrontPanelConfig(IFPDTextDisplayConfigIterator*& textDisplays, IFPDIndicatorConfigIterator*& indicators, IFPDColorConfigIterator*& colors, IFPDColorBindingIterator*& colorBindings);
 
         // Fills IDeviceSettings consolidated config vectors from cached data
         void getCachedConfigs(std::vector<Exchange::IDeviceSettings::FPDTextDisplayConfig>& textDisplays,

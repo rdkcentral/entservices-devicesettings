@@ -141,17 +141,12 @@ using FPDTimeFormat = DeviceSettingsFPD::FPDTimeFormat;
 using FPDIndicator = DeviceSettingsFPD::FPDIndicator;
 using FPDState = DeviceSettingsFPD::FPDState;
 using FPDTextDisplay = DeviceSettingsFPD::FPDTextDisplay;
-using FPDColorBindingTarget = DeviceSettingsFPD::FPDColorBindingTarget;
 using FPDMode = DeviceSettingsFPD::FPDMode;
 using FPDLEDState = DeviceSettingsFPD::FPDLEDState;
-using FPDColorConfig = DeviceSettingsFPD::FPDColorConfig;
-using FPDIndicatorConfig = DeviceSettingsFPD::FPDIndicatorConfig;
-using FPDColorBinding = DeviceSettingsFPD::FPDColorBinding;
-using FPDTextDisplayConfig = DeviceSettingsFPD::FPDTextDisplayConfig;
-using IFPDColorConfigIterator = DeviceSettingsFPD::IFPDColorConfigIterator;
-using IFPDIndicatorConfigIterator = DeviceSettingsFPD::IFPDIndicatorConfigIterator;
-using IFPDTextDisplayConfigIterator = DeviceSettingsFPD::IFPDTextDisplayConfigIterator;
-using IFPDColorBindingIterator = DeviceSettingsFPD::IFPDColorBindingIterator;
+using FPDColorConfig = DeviceSetting::FPDColorConfig;
+using FPDIndicatorConfig = DeviceSetting::FPDIndicatorConfig;
+using FPDColorBinding = DeviceSetting::FPDColorBinding;
+using FPDTextDisplayConfig = DeviceSetting::FPDTextDisplayConfig;
 
 // Audio type aliases for convenience
 using AudioPortType = DeviceSettingsAudio::AudioPortType;
@@ -175,14 +170,12 @@ using SurroundMode = DeviceSettingsAudio::SurroundMode;
 using MS12Feature = DeviceSettingsAudio::MS12Feature;
 using AudioMS12ProfileState = DeviceSettingsAudio::MS12ProfileState;
 using AudioARCStatus = DeviceSettingsAudio::AudioARCStatus;
-using AudioTypeConfigInfo = DeviceSettingsAudio::AudioTypeConfigInfo;
+using AudioTypeConfigInfo = DeviceSetting::AudioTypeConfigInfo;
 using AudioPortConfigInfo = DeviceSettingsAudio::AudioPortConfigInfo;
 using IDeviceSettingsAudioEncodingIterator = DeviceSettingsAudio::IDeviceSettingsAudioEncodingIterator;
 using IDeviceSettingsAudioCompressionIterator = DeviceSettingsAudio::IDeviceSettingsAudioCompressionIterator;
 using IDeviceSettingsStereoModeIterator = DeviceSettingsAudio::IDeviceSettingsStereoModeIterator;
 using IDeviceSettingsAudioMS12AudioProfileIterator = DeviceSettingsAudio::IDeviceSettingsAudioMS12AudioProfileIterator;
-using IAudioTypeConfigIterator = DeviceSettingsAudio::IAudioTypeConfigIterator;
-using IAudioPortConfigIterator = DeviceSettingsAudio::IAudioPortConfigIterator;
 
 // VideoPort type aliases for convenience
 using VideoPortType = DeviceSettingsVideoPort::VideoPort;
@@ -206,8 +199,6 @@ using VideoPortSurroundMode = DeviceSettingsVideoPort::VideoPortSurroundMode;
 using VideoScanMode = DeviceSettingsVideoPort::VideoScanMode;
 using VideoPortTypeConfig = DeviceSettingsVideoPort::VideoPortTypeConfig;
 using VideoPortPortConfig = DeviceSettingsVideoPort::VideoPortPortConfig;
-using IVideoPortTypeConfigIterator = DeviceSettingsVideoPort::IVideoPortTypeConfigIterator;
-using IVideoPortPortConfigIterator = DeviceSettingsVideoPort::IVideoPortPortConfigIterator;
 using IVideoPortResolutionIterator = DeviceSettingsVideoPort::IVideoPortResolutionIterator;
 
 // Display type aliases for convenience
@@ -238,7 +229,6 @@ using VideoDeviceCodecHEVCProfile = DeviceSettingsVideoDevice::VideoCodecHEVCPro
 using VideoDeviceCodecProfileSupport = DeviceSettingsVideoDevice::VideoCodecProfileSupport;
 using VideoDeviceConfigInfo = DeviceSettingsVideoDevice::VideoDeviceConfigInfo;
 using IDeviceSettingsVideoCodecProfileSupportIterator = DeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator;
-using IVideoDeviceConfigIterator = DeviceSettingsVideoDevice::IVideoDeviceConfigIterator;
 
 // Host type aliases for convenience
 using HostSleepMode = DeviceSettingsHost::SleepMode;

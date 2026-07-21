@@ -91,7 +91,6 @@ namespace Plugin {
         uint32_t GetFRFMode(const int32_t handle, int32_t &frfmode);
         uint32_t GetCurrentDisplayFrameRate(const int32_t handle, string &framerate);
         uint32_t SetDisplayFrameRate(const int32_t handle, const string framerate);
-        Core::hresult GetVideoDeviceConfig(IVideoDeviceConfigIterator*& videoConfigs);
 
         // Fills IDeviceSettings consolidated config vectors from cached data
         void getCachedConfigs(std::vector<Exchange::IDeviceSettings::VideoDeviceConfigInfo>& videoConfigs) const;

@@ -111,7 +111,6 @@ namespace Plugin {
         Core::hresult GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat) override;
         Core::hresult SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat) override;
         Core::hresult SetFPDMode(const FPDMode fpdMode) override;
-        Core::hresult GetFrontPanelConfig(IFPDTextDisplayConfigIterator*& textDisplays, IFPDIndicatorConfigIterator*& indicators, IFPDColorConfigIterator*& colors, IFPDColorBindingIterator*& colorBindings) override;
         
         // IDeviceSettingsHDMIIn interface implementation - delegate to _hdmiInSettings interface
         Core::hresult Register(Exchange::IDeviceSettingsHDMIIn::INotification* notification) override;
@@ -140,8 +139,6 @@ namespace Plugin {
         Core::hresult Register(Exchange::IDeviceSettingsAudio::INotification* notification) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsAudio::INotification* notification) override;
         Core::hresult GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) override;
-        Core::hresult GetAudioConfig(IAudioTypeConfigIterator*& audioTypes,
-                         IAudioPortConfigIterator*& audioPorts) override;
         // Removed GetAudioPorts and GetSupportedAudioPorts - iterator type doesn't exist
         Core::hresult GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig);
         Core::hresult SetAudioPortConfig(const AudioPortType audioPort, const AudioConfig audioConfig);
@@ -269,11 +266,10 @@ namespace Plugin {
         Core::hresult Register(Exchange::IDeviceSettingsVideoPort::INotification* notification) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsVideoPort::INotification* notification) override;
         Core::hresult GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle) override;
-        Core::hresult GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
-                         IVideoPortPortConfigIterator*& videoPorts) override;
+        Core::hresult IsVideoPortEnabled(const int32_t handle, bool &enabled) override;
+
         Core::hresult GetVideoPortResolutionConfig(VideoPortType videoPortType,
                          IVideoPortResolutionIterator*& videoPortResolutions) const override;
-        Core::hresult IsVideoPortEnabled(const int32_t handle, bool &enabled) override;
         Core::hresult EnableVideoPort(const int32_t handle, const bool enabled) override;
         Core::hresult IsVideoPortDisplayConnected(const int32_t handle, bool &connected) override;
         Core::hresult IsVideoPortActive(const int32_t handle, bool &active) override;
@@ -327,7 +323,6 @@ namespace Plugin {
         Core::hresult GetFRFMode(const int32_t handle , int32_t &frfmode /* @out */) override;
         Core::hresult GetCurrentDisplayFrameRate(const int32_t handle , string &framerate /* @out */) override;
         Core::hresult SetDisplayFrameRate(const int32_t handle , const string& framerate ) override;
-        Core::hresult GetVideoDeviceConfig(Exchange::IDeviceSettingsVideoDevice::IVideoDeviceConfigIterator*& videoConfigs /* @out */) override;
         
         //=========================================================================
         // IDeviceSettingsHost interface methods

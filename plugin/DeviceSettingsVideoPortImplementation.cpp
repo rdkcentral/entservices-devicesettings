@@ -179,29 +179,16 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceSettingsVideoPortImpl::GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
-                                                             IVideoPortPortConfigIterator*& videoPorts)
+    uint32_t DeviceSettingsVideoPortImpl::IsVideoPortEnabled(const int32_t handle, bool &enabled)
     {
-        std::vector<VideoPortTypeConfig> typeConfigs;
-        std::vector<VideoPortPortConfig> portConfigs;
-        std::vector<VideoPortResolution> resolutionConfigs;
-
-        _apiLock.Lock();
-        typeConfigs = _cachedVideoPortTypes;
-        portConfigs = _cachedVideoPorts;
-        _apiLock.Unlock();
-
-        DeviceSettingsHAL::DumpVideoPortConfig(typeConfigs, portConfigs, resolutionConfigs);
-
-        using VideoPortTypeIterator = RPC::IteratorType<IVideoPortTypeConfigIterator>;
-        using VideoPortPortIterator = RPC::IteratorType<IVideoPortPortConfigIterator>;
-
-        videoPortTypes = Core::Service<VideoPortTypeIterator>::Create<IVideoPortTypeConfigIterator>(typeConfigs);
-        videoPorts = Core::Service<VideoPortPortIterator>::Create<IVideoPortPortConfigIterator>(portConfigs);
-
-        LOGINFO("GetVideoPortConfig: returning cached config videoPortTypes=%zu videoPorts=%zu",
-            typeConfigs.size(), portConfigs.size());
-        return Core::ERROR_NONE;
+        uint32_t result = Core::ERROR_GENERAL;
+        result = _videoPort.IsVideoPortEnabled(handle, enabled);
+        if (result == Core::ERROR_NONE) {
+            LOGINFO("IsVideoPortEnabled succeeded for handle: %d, enabled: %s", handle, enabled ? "true" : "false");
+        } else {
+            LOGERR("IsVideoPortEnabled failed for handle: %d, error: %u", handle, result);
+        }
+        return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::GetVideoPortResolutionConfig(VideoPortType videoPortType,
@@ -217,18 +204,6 @@ namespace Plugin {
         LOGINFO("GetVideoPortResolutionConfig: videoPortType=%d resolutions=%zu",
             static_cast<int>(videoPortType), resolutionConfigs.size());
         return Core::ERROR_NONE;
-    }
-
-    uint32_t DeviceSettingsVideoPortImpl::IsVideoPortEnabled(const int32_t handle, bool &enabled)
-    {
-        uint32_t result = Core::ERROR_GENERAL;
-        result = _videoPort.IsVideoPortEnabled(handle, enabled);
-        if (result == Core::ERROR_NONE) {
-            LOGINFO("IsVideoPortEnabled succeeded for handle: %d, enabled: %s", handle, enabled ? "true" : "false");
-        } else {
-            LOGERR("IsVideoPortEnabled failed for handle: %d, error: %u", handle, result);
-        }
-        return result;
     }
 
     uint32_t DeviceSettingsVideoPortImpl::EnableVideoPort(const int32_t handle, const bool enabled)

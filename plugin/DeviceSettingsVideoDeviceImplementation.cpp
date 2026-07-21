@@ -281,28 +281,6 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult DeviceSettingsVideoDeviceImpl::GetVideoDeviceConfig(IVideoDeviceConfigIterator*& videoDeviceConfigs)
-    {
-        std::vector<VideoDeviceConfigInfo> videoConfigs;
-
-        _apiLock.Lock();
-        videoConfigs = _cachedVideoDeviceConfigs;
-        _apiLock.Unlock();
-
-        DeviceSettingsHAL::DumpVideoDeviceConfig(videoConfigs);
-
-        using VideoDeviceConfigIterator = RPC::IteratorType<IVideoDeviceConfigIterator>;
-        videoDeviceConfigs = Core::Service<VideoDeviceConfigIterator>::Create<IVideoDeviceConfigIterator>(videoConfigs);
-
-        if (videoDeviceConfigs == nullptr) {
-            LOGERR("GetVideoDeviceConfig: iterator allocation failed");
-            return Core::ERROR_UNAVAILABLE;
-        }
-
-        LOGINFO("GetVideoDeviceConfig: returning cached config entries=%zu", videoConfigs.size());
-        return Core::ERROR_NONE;
-    }
-
     void DeviceSettingsVideoDeviceImpl::getCachedConfigs(
         std::vector<Exchange::IDeviceSettings::VideoDeviceConfigInfo>& videoConfigs) const
     {

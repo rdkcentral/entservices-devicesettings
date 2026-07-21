@@ -269,10 +269,6 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_fpdSettings, SetFPDMode, fpdMode)
     }
 
-    Core::hresult DeviceSettingsImp::GetFrontPanelConfig(IFPDTextDisplayConfigIterator*& textDisplays, IFPDIndicatorConfigIterator*& indicators, IFPDColorConfigIterator*& colors, IFPDColorBindingIterator*& colorBindings) {
-        DELEGATE_TO_COMPONENT(_fpdSettings, GetFrontPanelConfig, textDisplays, indicators, colors, colorBindings)
-    }
-
     // ============================================================================
     // IDeviceSettingsHDMIIn interface implementation - delegate to _hdmiInSettings interface
     // ============================================================================
@@ -385,11 +381,6 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioPort, type, index, handle)
     }
 
-    Core::hresult DeviceSettingsImp::GetAudioConfig(IAudioTypeConfigIterator*& audioTypes,
-                                                    IAudioPortConfigIterator*& audioPorts) {
-        DELEGATE_TO_COMPONENT(_audioSettings, GetAudioConfig, audioTypes, audioPorts)
-    }
-    
     // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
 
     Core::hresult DeviceSettingsImp::GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) {
@@ -722,20 +713,15 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPort, videoPort, index, handle)
     }
 
-    Core::hresult DeviceSettingsImp::GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
-                                                        IVideoPortPortConfigIterator*& videoPorts) {
-        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortConfig, videoPortTypes, videoPorts)
+    Core::hresult DeviceSettingsImp::IsVideoPortEnabled(const int32_t handle, bool &enabled) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortEnabled, handle, enabled)
     }
 
     Core::hresult DeviceSettingsImp::GetVideoPortResolutionConfig(VideoPortType videoPortType,
                                                                   IVideoPortResolutionIterator*& videoPortResolutions) const {
         DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortResolutionConfig, videoPortType, videoPortResolutions)
     }
-    
-    Core::hresult DeviceSettingsImp::IsVideoPortEnabled(const int32_t handle, bool &enabled) {
-        DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortEnabled, handle, enabled)
-    }
-    
+
     Core::hresult DeviceSettingsImp::EnableVideoPort(const int32_t handle, const bool enabled) {
         DELEGATE_TO_COMPONENT(_videoPortSettings, EnableVideoPort, handle, enabled)
     }
@@ -956,10 +942,6 @@ namespace Plugin {
 
     Core::hresult DeviceSettingsImp::SetDisplayFrameRate(const int32_t handle, const string& framerate) {
         DELEGATE_TO_COMPONENT(_videoDeviceSettings, SetDisplayFrameRate, handle, framerate)
-    }
-
-    Core::hresult DeviceSettingsImp::GetVideoDeviceConfig(Exchange::IDeviceSettingsVideoDevice::IVideoDeviceConfigIterator*& videoDeviceConfigs) {
-        DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetVideoDeviceConfig, videoDeviceConfigs)
     }
 
     Core::hresult DeviceSettingsImp::GetCodecInfo(const int32_t handle, const Exchange::IDeviceSettingsVideoDevice::VideoCodec videoCodec, Exchange::IDeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator *&codecInfo) {

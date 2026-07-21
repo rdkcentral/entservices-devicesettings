@@ -196,29 +196,6 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult DeviceSettingsAudioImpl::GetAudioConfig(IAudioTypeConfigIterator*& audioTypes,
-                                  IAudioPortConfigIterator*& audioPorts) {
-        std::vector<AudioTypeConfigInfo> typeConfigs;
-        std::vector<AudioPortConfigInfo> portConfigs;
-
-        _configLock.Lock();
-        typeConfigs = _cachedAudioTypeConfigs;
-        portConfigs = _cachedAudioPortConfigs;
-        _configLock.Unlock();
-
-        DeviceSettingsHAL::DumpAudioConfig(typeConfigs, portConfigs);
-
-        using AudioTypeIterator = RPC::IteratorType<IAudioTypeConfigIterator>;
-        using AudioPortIterator = RPC::IteratorType<IAudioPortConfigIterator>;
-
-        audioTypes = Core::Service<AudioTypeIterator>::Create<IAudioTypeConfigIterator>(typeConfigs);
-        audioPorts = Core::Service<AudioPortIterator>::Create<IAudioPortConfigIterator>(portConfigs);
-
-        LOGINFO("GetAudioConfig: returning cached config audioTypes=%zu audioPorts=%zu",
-            typeConfigs.size(), portConfigs.size());
-        return Core::ERROR_NONE;
-    }
-
     // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) {
@@ -665,12 +642,10 @@ namespace Plugin {
     {
         _configLock.Lock();
 
-        audioTypes.reserve(_cachedAudioTypeConfigs.size());
-        for (const auto& src : _cachedAudioTypeConfigs) {
-            audioTypes.push_back({src.typeId, src.name,
-                src.supportedCompressionMask, src.supportedEncodingMask, src.supportedStereoModeMask});
-        }
+        // AudioTypeConfigInfo is identical in IDeviceSettings — direct assignment
+        audioTypes.assign(_cachedAudioTypeConfigs.begin(), _cachedAudioTypeConfigs.end());
 
+        // AudioPortConfigInfo still differs (AudioPortType enum → int32_t) — keep cast
         audioPorts.reserve(_cachedAudioPortConfigs.size());
         for (const auto& src : _cachedAudioPortConfigs) {
             audioPorts.push_back({static_cast<int32_t>(src.audioPortType), src.audioPortIndex,

@@ -387,67 +387,18 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult DeviceSettingsFPDImpl::GetFrontPanelConfig(IFPDTextDisplayConfigIterator*& textDisplays, IFPDIndicatorConfigIterator*& indicators, IFPDColorConfigIterator*& colors, IFPDColorBindingIterator*& colorBindings)
-    {
-        std::vector<FPDColorConfig> colorConfigs;
-        std::vector<FPDIndicatorConfig> indicatorConfigs;
-        std::vector<FPDTextDisplayConfig> textDisplayConfigs;
-        std::vector<FPDColorBinding> colorBindingConfigs;
-
-        _apiLock.Lock();
-        colorConfigs = _cachedColorConfigs;
-        indicatorConfigs = _cachedIndicatorConfigs;
-        textDisplayConfigs = _cachedTextDisplayConfigs;
-        colorBindingConfigs = _cachedColorBindingConfigs;
-        _apiLock.Unlock();
-
-        DeviceSettingsHAL::DumpFPDConfig(colorConfigs, indicatorConfigs, textDisplayConfigs, colorBindingConfigs);
-
-        using ColorIterator = RPC::IteratorType<IFPDColorConfigIterator>;
-        using IndicatorIterator = RPC::IteratorType<IFPDIndicatorConfigIterator>;
-        using TextDisplayIterator = RPC::IteratorType<IFPDTextDisplayConfigIterator>;
-        using ColorBindingIterator = RPC::IteratorType<IFPDColorBindingIterator>;
-
-        colors = Core::Service<ColorIterator>::Create<IFPDColorConfigIterator>(colorConfigs);
-        indicators = Core::Service<IndicatorIterator>::Create<IFPDIndicatorConfigIterator>(indicatorConfigs);
-        textDisplays = Core::Service<TextDisplayIterator>::Create<IFPDTextDisplayConfigIterator>(textDisplayConfigs);
-        colorBindings = Core::Service<ColorBindingIterator>::Create<IFPDColorBindingIterator>(colorBindingConfigs);
-
-        LOGINFO("GetFrontPanelConfig: returning cached config colors=%zu indicators=%zu textDisplays=%zu colorBindings=%zu", colorConfigs.size(), indicatorConfigs.size(), textDisplayConfigs.size(), colorBindingConfigs.size());
-        return Core::ERROR_NONE;
-    }
-
     void DeviceSettingsFPDImpl::getCachedConfigs(
         std::vector<Exchange::IDeviceSettings::FPDTextDisplayConfig>& textDisplays,
         std::vector<Exchange::IDeviceSettings::FPDIndicatorConfig>& indicators,
         std::vector<Exchange::IDeviceSettings::FPDColorConfig>& colors,
         std::vector<Exchange::IDeviceSettings::FPDColorBinding>& colorBindings) const
     {
+        // FPD types are identical in IDeviceSettings — direct assignment, no field-by-field copy
         _apiLock.Lock();
-
-        textDisplays.reserve(_cachedTextDisplayConfigs.size());
-        for (const auto& src : _cachedTextDisplayConfigs) {
-            textDisplays.push_back({src.id, src.name, src.maxBrightness, src.maxCycleRate,
-                src.supportedCharacters, src.columns, src.rows,
-                src.maxHorizontalIterations, src.maxVerticalIterations, src.levels, src.colorMode});
-        }
-
-        indicators.reserve(_cachedIndicatorConfigs.size());
-        for (const auto& src : _cachedIndicatorConfigs) {
-            indicators.push_back({src.id, src.maxBrightness, src.maxCycleRate,
-                src.minBrightness, src.levels, src.colorMode});
-        }
-
-        colors.reserve(_cachedColorConfigs.size());
-        for (const auto& src : _cachedColorConfigs) {
-            colors.push_back({src.id, src.color});
-        }
-
-        colorBindings.reserve(_cachedColorBindingConfigs.size());
-        for (const auto& src : _cachedColorBindingConfigs) {
-            colorBindings.push_back({src.targetType, src.targetId, src.colorId});
-        }
-
+        textDisplays.assign(_cachedTextDisplayConfigs.begin(), _cachedTextDisplayConfigs.end());
+        indicators.assign(_cachedIndicatorConfigs.begin(),    _cachedIndicatorConfigs.end());
+        colors.assign(_cachedColorConfigs.begin(),             _cachedColorConfigs.end());
+        colorBindings.assign(_cachedColorBindingConfigs.begin(), _cachedColorBindingConfigs.end());
         _apiLock.Unlock();
     }
 
