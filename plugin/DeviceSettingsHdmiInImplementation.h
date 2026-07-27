@@ -141,10 +141,6 @@ namespace Plugin {
         virtual void OnHDMIInVRRStatusNotification(const HDMIInPort port, const HDMIInVRRType vrrType) override;
 
         HdmiIn _hdmiIn;
-
-    public:
-        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
-        void InitialiseHAL() { _hdmiIn.InitialiseHAL(); }
     };
 } // namespace Plugin
 } // namespace WPEFramework

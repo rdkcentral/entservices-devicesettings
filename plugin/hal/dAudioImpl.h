@@ -313,38 +313,32 @@ private:
 public:
     dAudioImpl() : _isInitialized(false), _isDuckingInProgress(false), _volumeDuckingLevel(0), _muteStatus(false)
     {
-        // Initialize port state tracking ONLY. HAL init is deferred to InitialiseHAL()
-        // which is called from DeviceSettingsImp::Configure() — matching the old dsmgr
-        // pattern where dsAudioMgr_init() does NOT call dsAudio_Init() at daemon start;
-        // dsAudio_Init() only runs when the first client calls dsAudioPortInit().
+        ENTRY_LOG;
+
+        // Initialize port state tracking
         for (int i = 0; i < dsAUDIOPORT_TYPE_MAX; i++) {
             _audioPortEnabled[i] = false;
         }
-    }
-
-    /** Called from DeviceSettingsImp::Configure() — deferred HAL initialisation.
-     *  Mirrors old dsMgr pattern: load all persistence once, then init hardware. */
-    void InitialiseHAL()
-    {
-        if (_isInitialized) return;
-        ENTRY_LOG;
-        LOGINFO("InitialiseHAL <dsAudio>");
+        
+        // Initialize the DeviceSettings Audio subsystem
         try {
-            // Root cause fix #2: load ALL persistence into memory in ONE file read
-            // before audioConfigInit() makes 30-40 getProperty() calls.
-            // Mirrors dsMgr_init(): HostPersistence::getInstance().load() called once
-            // so all subsequent getProperty() are fast in-memory map lookups.
-            device::HostPersistence::getInstance().load();
-
             dsError_t ret = dsAudioPortInit();
             if (ret != dsERR_NONE) {
                 LOGERR("dsAudioPortInit failed with error: %d", ret);
             } else {
                 _isInitialized = true;
                 LOGINFO("Audio platform initialized successfully");
+                
+                // Initialize audio settings from persistence and platform configuration
                 initializeAudioSettings();
+                
+                // Initialize audio port configuration (from AudioConfigInit)
                 audioConfigInit();
+                
+                // Register HAL callbacks for events
                 registerHALCallbacks();
+                
+                // Notify about audio port state initialization (like dsAudio.c)
                 notifyAudioPortStateChanged(AudioPortState::AUDIO_PORT_STATE_INITIALIZED);
             }
         } catch (...) {

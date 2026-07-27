@@ -119,6 +119,9 @@ namespace Plugin {
                               std::vector<Exchange::IDeviceSettings::FPDColorConfig>& colors,
                               std::vector<Exchange::IDeviceSettings::FPDColorBinding>& colorBindings) const;
 
+        private:
+            void InitializeFrontPanelConfigCache();
+
         std::list<Exchange::IDeviceSettingsFPD::INotification*> _FPDNotifications;
 
         // lock to guard all apis of DeviceSettings
@@ -143,10 +146,6 @@ namespace Plugin {
         virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override;
 
         FPD _fpd;
-
-    public:
-        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
-        void InitialiseHAL() { _fpd.InitialiseHAL(); }
     };
 } // namespace Plugin
 } // namespace WPEFramework

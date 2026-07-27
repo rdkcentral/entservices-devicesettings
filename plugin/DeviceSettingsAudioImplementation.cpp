@@ -34,11 +34,23 @@ namespace Plugin {
         , _configLock()
         , _callbackLock()
     {
+        InitializeAudioConfigCache();
         LOGINFO("DeviceSettingsAudioImpl Constructor - Instance Address: %p", this);
     }
 
     DeviceSettingsAudioImpl::~DeviceSettingsAudioImpl() {
         LOGINFO("DeviceSettingsAudioImpl Destructor - Instance Address: %p", this);
+    }
+
+    void DeviceSettingsAudioImpl::InitializeAudioConfigCache()
+    {
+        _configLock.Lock();
+        DeviceSettingsHAL::PopulateAudioConfig(_cachedAudioTypeConfigs, _cachedAudioPortConfigs);
+        DeviceSettingsHAL::DumpAudioConfig(_cachedAudioTypeConfigs, _cachedAudioPortConfigs);
+        _configLock.Unlock();
+
+        LOGINFO("InitializeAudioConfigCache: audioTypes=%zu audioPorts=%zu",
+            _cachedAudioTypeConfigs.size(), _cachedAudioPortConfigs.size());
     }
 
     template<typename Func, typename... Args>

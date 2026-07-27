@@ -35,11 +35,23 @@ namespace Plugin {
         _callbackLock(),
         _videoDevice(VideoDevice::Create(*this))
     {
+        InitializeVideoDeviceConfigCache();
         LOGINFO("DeviceSettingsVideoDeviceImpl Constructor - Instance Address: %p", this);
     }
 
     DeviceSettingsVideoDeviceImpl::~DeviceSettingsVideoDeviceImpl() {
         LOGINFO("DeviceSettingsVideoDeviceImpl Destructor - Instance Address: %p", this);
+    }
+
+    void DeviceSettingsVideoDeviceImpl::InitializeVideoDeviceConfigCache()
+    {
+        _apiLock.Lock();
+        DeviceSettingsHAL::PopulateVideoDeviceConfig(_cachedVideoDeviceConfigs);
+        DeviceSettingsHAL::DumpVideoDeviceConfig(_cachedVideoDeviceConfigs);
+        _apiLock.Unlock();
+
+        LOGINFO("InitializeVideoDeviceConfigCache: videoDeviceConfigs=%zu",
+            _cachedVideoDeviceConfigs.size());
     }
 
     template<typename Func, typename... Args>

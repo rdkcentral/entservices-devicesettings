@@ -64,7 +64,7 @@ public:
     dFPDImpl()
     {
         LOGINFO("dFPDImpl Constructor");
-        // HAL init deferred to InitialiseHAL() — called from DeviceSettingsImp::Configure()
+        InitialiseHAL();
     }
 
     virtual ~dFPDImpl()

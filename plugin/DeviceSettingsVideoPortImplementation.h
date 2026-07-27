@@ -133,6 +133,8 @@ namespace Plugin {
                               std::vector<Exchange::IDeviceSettings::VideoPortResolutionConfig>& videoPortResolutions) const;
 
     private:
+        void InitializeVideoPortConfigCache();
+
         std::list<Exchange::IDeviceSettingsVideoPort::INotification*> _VideoPortNotifications;
 
         // Thread-safety locks
@@ -144,10 +146,6 @@ namespace Plugin {
         std::vector<VideoPortResolution> _cachedVideoPortResolutions;
 
         VideoPort _videoPort;
-
-    public:
-        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
-        void InitialiseHAL() { _videoPort.InitialiseHAL(); }
     };
 
 } // namespace Plugin

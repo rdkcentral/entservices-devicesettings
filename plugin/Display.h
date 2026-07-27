@@ -99,10 +99,6 @@ public:
     }
 
     void Platform_init();
-
-public:
-    /** Deferred HAL init — called from DeviceSettingsImp::Configure() */
-    void InitialiseHAL() { std::static_pointer_cast<DefaultImpl>(_platform)->InitialiseHAL(); }
     void RegisterDisplayEventCallback();
     void OnDisplayEvent(const int32_t handle, const DisplayEvent event, void *eventData);
 

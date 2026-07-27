@@ -61,8 +61,6 @@ public:
 
 public:
     void Platform_init();
-    /** Deferred HAL init — called from DeviceSettingsImp::Configure() */
-    void InitialiseHAL() { std::static_pointer_cast<DefaultImpl>(_platform)->InitialiseHAL(); }
 
     // CompositeIn HAL interface methods
     uint32_t GetNrOfCompositeInputs(int32_t &nrCompositeInputs);

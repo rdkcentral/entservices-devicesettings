@@ -394,11 +394,6 @@ namespace Plugin {
         
         uint32_t mConnectionId;
         static DeviceSettingsImp* _instance;
-
-        // Cached consolidated config — populated once on first GetDeviceSettingConfigs() call
-        Exchange::IDeviceSettings::DeviceSettingConfigs _cachedConfigs;
-        std::atomic<bool>  _configLoaded{false};
-        mutable std::mutex _configMutex;
     };
 } // namespace Plugin
 } // namespace WPEFramework
