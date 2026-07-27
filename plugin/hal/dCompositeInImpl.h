@@ -71,7 +71,7 @@ public:
     {
         LOGINFO("dCompositeInImpl Constructor");
         getInstance() = this; // Set static instance for callback access
-        InitialiseHAL();
+        // HAL init deferred to InitialiseHAL() — called from DeviceSettingsImp::Configure()
     }
 
     virtual ~dCompositeInImpl()

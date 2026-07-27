@@ -112,16 +112,12 @@ namespace Plugin {
         Core::hresult GetFPDTimeFormat(FPDTimeFormat &fpdTimeFormat);
         Core::hresult SetFPDTimeFormat(const FPDTimeFormat fpdTimeFormat);
         Core::hresult SetFPDMode(const FPDMode fpdMode);
-        Core::hresult GetFrontPanelConfig(IFPDTextDisplayConfigIterator*& textDisplays, IFPDIndicatorConfigIterator*& indicators, IFPDColorConfigIterator*& colors, IFPDColorBindingIterator*& colorBindings);
 
         // Fills IDeviceSettings consolidated config vectors from cached data
         void getCachedConfigs(std::vector<Exchange::IDeviceSettings::FPDTextDisplayConfig>& textDisplays,
                               std::vector<Exchange::IDeviceSettings::FPDIndicatorConfig>& indicators,
                               std::vector<Exchange::IDeviceSettings::FPDColorConfig>& colors,
                               std::vector<Exchange::IDeviceSettings::FPDColorBinding>& colorBindings) const;
-
-        private:
-            void InitializeFrontPanelConfigCache();
 
         std::list<Exchange::IDeviceSettingsFPD::INotification*> _FPDNotifications;
 
@@ -147,6 +143,10 @@ namespace Plugin {
         virtual void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override;
 
         FPD _fpd;
+
+    public:
+        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
+        void InitialiseHAL() { _fpd.InitialiseHAL(); }
     };
 } // namespace Plugin
 } // namespace WPEFramework

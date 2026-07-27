@@ -72,5 +72,9 @@ public:
 private:
     void Platform_init();
 
+public:
+    /** Deferred HAL init — called from DeviceSettingsImp::Configure() */
+    void InitialiseHAL() { std::static_pointer_cast<DefaultImpl>(_platform)->InitialiseHAL(); }
+
     INotification& _parent;
 };

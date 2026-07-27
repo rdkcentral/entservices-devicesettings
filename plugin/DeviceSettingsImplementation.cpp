@@ -23,8 +23,11 @@
 #include "DeviceSettingsHdmiInImplementation.h"
 #include "DeviceSettingsAudioImplementation.h"
 #include "DeviceSettingsHostImplementation.h"
+#include "DeviceSettingsHALConfig.h"
 
 #include <dlfcn.h>
+#include <chrono>
+#include <thread>
 
 // Definition of the shared global declared in DeviceSettingsTypes.h
 profile_t profileType = NOT_FOUND;
@@ -88,15 +91,15 @@ namespace Plugin {
     DeviceSettingsImp* DeviceSettingsImp::_instance = nullptr;
 
     DeviceSettingsImp::DeviceSettingsImp()
-        : _dsController(DSController::Create(this))  // Direct dependency injection in initializer list
-        , _fpdSettings(DeviceSettingsFPDImpl::Create())
-        , _hdmiInSettings(DeviceSettingsHdmiInImp::Create())
-        , _audioSettings(DeviceSettingsAudioImpl::Create())
-        , _videoPortSettings(DeviceSettingsVideoPortImpl::Create())
-        , _videoDeviceSettings(DeviceSettingsVideoDeviceImpl::Create())
-        , _hostSettings(DeviceSettingsHostImpl::Create())
-        , _displaySettings(DeviceSettingsDisplayImpl::Create())
-        , _compositeInSettings(DeviceSettingsCompositeInImpl::Create())
+        : _dsController(nullptr)
+        , _fpdSettings(nullptr)
+        , _hdmiInSettings(nullptr)
+        , _audioSettings(nullptr)
+        , _videoPortSettings(nullptr)
+        , _videoDeviceSettings(nullptr)
+        , _hostSettings(nullptr)
+        , _displaySettings(nullptr)
+        , _compositeInSettings(nullptr)
         , mConnectionId(0)
     {
         // Set the static instance for backward compatibility (if still needed)
@@ -105,8 +108,35 @@ namespace Plugin {
         // Initialize profile type only — Start() is deferred to Configure()
         // to avoid blocking the WPEFramework plugin activation thread.
         profileType = searchRdkProfile();
-
         LOGINFO("Initialized profileType: %d (0=STB, 1=TV)", profileType);
+
+        // ── Per-component creation timing ─────────────────────────────────────
+        using Clock = std::chrono::steady_clock;
+        using Ms    = std::chrono::milliseconds;
+        auto tTotal = Clock::now();
+        auto t0     = tTotal;
+
+#define DS_TIME_COMPONENT(label, expr) \
+        t0 = Clock::now(); \
+        expr; \
+        LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", label, \
+                (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count())
+
+        DS_TIME_COMPONENT("DSController::Create",         _dsController         = DSController::Create(this));
+        DS_TIME_COMPONENT("DeviceSettingsFPDImpl::Create", _fpdSettings          = DeviceSettingsFPDImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsHdmiInImp::Create",_hdmiInSettings       = DeviceSettingsHdmiInImp::Create());
+        DS_TIME_COMPONENT("DeviceSettingsAudioImpl::Create",_audioSettings        = DeviceSettingsAudioImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsVideoPortImpl::Create",_videoPortSettings = DeviceSettingsVideoPortImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsVideoDeviceImpl::Create",_videoDeviceSettings = DeviceSettingsVideoDeviceImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsHostImpl::Create",_hostSettings          = DeviceSettingsHostImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsDisplayImpl::Create",_displaySettings     = DeviceSettingsDisplayImpl::Create());
+        DS_TIME_COMPONENT("DeviceSettingsCompositeInImpl::Create",_compositeInSettings = DeviceSettingsCompositeInImpl::Create());
+
+#undef DS_TIME_COMPONENT
+
+        LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms",
+                "DeviceSettingsImp ctor TOTAL",
+                (long long)std::chrono::duration_cast<Ms>(Clock::now() - tTotal).count());
     }
 
     DeviceSettingsImp::~DeviceSettingsImp() {
@@ -164,14 +194,21 @@ namespace Plugin {
     {
         LOGINFO("DeviceSettingsImp Configure called with service: %p", service);
 
+        using Clock = std::chrono::steady_clock;
+        using Ms    = std::chrono::milliseconds;
+        auto tCfg   = Clock::now();
+
         if (service == nullptr) {
             LOGERR("Service parameter is null");
             return Core::ERROR_BAD_REQUEST;
         }
 
         if (_dsController != nullptr) {
-            LOGINFO("Starting DSController");
+            LOGINFO("[DS-INIT-TIMING] DSController::Start — begin");
+            auto t0 = Clock::now();
             _dsController->Start();
+            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "DSController::Start",
+                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count());
         } else {
             LOGERR("DSController is null - cannot start");
             return Core::ERROR_GENERAL;
@@ -179,12 +216,42 @@ namespace Plugin {
 
         // Initialize DSController power event listener with the service
         if (_dsController != nullptr) {
-            LOGINFO("Initializing DSController power event listener");
+            LOGINFO("[DS-INIT-TIMING] InitializePowerEventListener — begin");
+            auto t0 = Clock::now();
             _dsController->InitializePowerEventListener(service);
+            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "InitializePowerEventListener",
+                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count());
         } else {
             LOGERR("DSController is null - cannot initialize power event listener");
         }
 
+        // ── Root cause fix #3: Parallel HAL InitialiseHAL() ──────────────────────────
+        // Old dsmgr pattern: dsXxxMgr_init() never calls dsXxx_Init() at startup;
+        // HAL init is deferred to the first client request (_dsXxxPortInit IARM handler).
+        // Here we run all 8 HAL inits in parallel so total time = max(t1..t8),
+        // not sum(t1..t8) as in the original sequential constructor approach.
+        {
+            LOGINFO("[DS-INIT-TIMING] Parallel HAL InitialiseHAL — begin");
+            auto tHAL = Clock::now();
+
+            std::thread tFPD    ([this]{ if (_fpdSettings)          _fpdSettings->InitialiseHAL(); });
+            std::thread tHdmiIn ([this]{ if (_hdmiInSettings)       _hdmiInSettings->InitialiseHAL(); });
+            std::thread tAudio  ([this]{ if (_audioSettings)        _audioSettings->InitialiseHAL(); });
+            std::thread tVPort  ([this]{ if (_videoPortSettings)    _videoPortSettings->InitialiseHAL(); });
+            std::thread tVDev   ([this]{ if (_videoDeviceSettings)  _videoDeviceSettings->InitialiseHAL(); });
+            std::thread tHost   ([this]{ if (_hostSettings)         _hostSettings->InitialiseHAL(); });
+            std::thread tDisplay([this]{ if (_displaySettings)      _displaySettings->InitialiseHAL(); });
+            std::thread tComp   ([this]{ if (_compositeInSettings)  _compositeInSettings->InitialiseHAL(); });
+
+            tFPD.join(); tHdmiIn.join(); tAudio.join(); tVPort.join();
+            tVDev.join(); tHost.join(); tDisplay.join(); tComp.join();
+
+            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Parallel HAL InitialiseHAL",
+                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - tHAL).count());
+        }
+
+        LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Configure TOTAL",
+                (long long)std::chrono::duration_cast<Ms>(Clock::now() - tCfg).count());
         LOGINFO("DeviceSettingsImp configured successfully");
         return Core::ERROR_NONE;
     }
@@ -267,10 +334,6 @@ namespace Plugin {
     
     Core::hresult DeviceSettingsImp::SetFPDMode(const FPDMode fpdMode) {
         DELEGATE_TO_COMPONENT(_fpdSettings, SetFPDMode, fpdMode)
-    }
-
-    Core::hresult DeviceSettingsImp::GetFrontPanelConfig(IFPDTextDisplayConfigIterator*& textDisplays, IFPDIndicatorConfigIterator*& indicators, IFPDColorConfigIterator*& colors, IFPDColorBindingIterator*& colorBindings) {
-        DELEGATE_TO_COMPONENT(_fpdSettings, GetFrontPanelConfig, textDisplays, indicators, colors, colorBindings)
     }
 
     // ============================================================================
@@ -385,11 +448,6 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioPort, type, index, handle)
     }
 
-    Core::hresult DeviceSettingsImp::GetAudioConfig(IAudioTypeConfigIterator*& audioTypes,
-                                                    IAudioPortConfigIterator*& audioPorts) {
-        DELEGATE_TO_COMPONENT(_audioSettings, GetAudioConfig, audioTypes, audioPorts)
-    }
-    
     // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
 
     Core::hresult DeviceSettingsImp::GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) {
@@ -722,20 +780,15 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPort, videoPort, index, handle)
     }
 
-    Core::hresult DeviceSettingsImp::GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
-                                                        IVideoPortPortConfigIterator*& videoPorts) {
-        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortConfig, videoPortTypes, videoPorts)
+    Core::hresult DeviceSettingsImp::IsVideoPortEnabled(const int32_t handle, bool &enabled) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortEnabled, handle, enabled)
     }
 
     Core::hresult DeviceSettingsImp::GetVideoPortResolutionConfig(VideoPortType videoPortType,
                                                                   IVideoPortResolutionIterator*& videoPortResolutions) const {
         DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortResolutionConfig, videoPortType, videoPortResolutions)
     }
-    
-    Core::hresult DeviceSettingsImp::IsVideoPortEnabled(const int32_t handle, bool &enabled) {
-        DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortEnabled, handle, enabled)
-    }
-    
+
     Core::hresult DeviceSettingsImp::EnableVideoPort(const int32_t handle, const bool enabled) {
         DELEGATE_TO_COMPONENT(_videoPortSettings, EnableVideoPort, handle, enabled)
     }
@@ -958,10 +1011,6 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_videoDeviceSettings, SetDisplayFrameRate, handle, framerate)
     }
 
-    Core::hresult DeviceSettingsImp::GetVideoDeviceConfig(Exchange::IDeviceSettingsVideoDevice::IVideoDeviceConfigIterator*& videoDeviceConfigs) {
-        DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetVideoDeviceConfig, videoDeviceConfigs)
-    }
-
     Core::hresult DeviceSettingsImp::GetCodecInfo(const int32_t handle, const Exchange::IDeviceSettingsVideoDevice::VideoCodec videoCodec, Exchange::IDeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator *&codecInfo) {
         DELEGATE_TO_COMPONENT(_videoDeviceSettings, GetCodecInfo, handle, static_cast<VideoCodec>(videoCodec), codecInfo)
     }
@@ -1118,16 +1167,104 @@ namespace Plugin {
 
     Core::hresult DeviceSettingsImp::GetDeviceSettingConfigs(Exchange::IDeviceSettings::DeviceSettingConfigs& configs)
     {
-        if (_audioSettings == nullptr || _fpdSettings == nullptr ||
-            _videoDeviceSettings == nullptr || _videoPortSettings == nullptr) {
-            LOGERR("GetDeviceSettingConfigs: one or more sub-settings components are unavailable");
-            return Core::ERROR_UNAVAILABLE;
+        // Serve from cache on all calls after the first.
+        if (_configLoaded.load(std::memory_order_acquire)) {
+            std::lock_guard<std::mutex> lock(_configMutex);
+            configs = _cachedConfigs;
+            return Core::ERROR_NONE;
         }
 
-        _audioSettings->getCachedConfigs(configs.audioTypes, configs.audioPorts);
-        _fpdSettings->getCachedConfigs(configs.textDisplays, configs.indicators, configs.colors, configs.colorBindings);
-        _videoDeviceSettings->getCachedConfigs(configs.videoConfigs);
-        _videoPortSettings->getCachedConfigs(configs.videoPortTypes, configs.videoPorts, configs.videoPortResolutions);
+        // First call: load from HAL, cache result, then return.
+        // Config population is intentionally deferred here (not in constructors)
+        // so plugin activation is not delayed by HAL config loading.
+
+        // ── FPD config — IDeviceSettings types identical, direct population ──
+        DeviceSettingsHAL::PopulateFPDConfig(
+            configs.colors, configs.indicators, configs.textDisplays, configs.colorBindings);
+
+        // ── Audio config ─────────────────────────────────────────────────────
+        {
+            using AudioTypeCfg = Exchange::IDeviceSettings::AudioTypeConfigInfo;
+            using AudioPortCfg = Exchange::IDeviceSettingsAudio::AudioPortConfigInfo;
+            std::vector<AudioTypeCfg> audioTypes;
+            std::vector<AudioPortCfg> audioPorts;
+            DeviceSettingsHAL::PopulateAudioConfig(audioTypes, audioPorts);
+
+            // AudioTypeConfigInfo is identical in IDeviceSettings — direct copy
+            configs.audioTypes.assign(audioTypes.begin(), audioTypes.end());
+
+            // AudioPortConfigInfo still differs (AudioPortType enum → int32_t)
+            configs.audioPorts.reserve(audioPorts.size());
+            for (const auto& src : audioPorts) {
+                configs.audioPorts.push_back({
+                    static_cast<int32_t>(src.audioPortType),
+                    src.audioPortIndex,
+                    src.connectedVideoPortType,
+                    src.connectedVideoPortIndex});
+            }
+        }
+
+        // ── Video device config ───────────────────────────────────────────────
+        {
+            using VDevCfg = Exchange::IDeviceSettingsVideoDevice::VideoDeviceConfigInfo;
+            std::vector<VDevCfg> videoDeviceConfigs;
+            DeviceSettingsHAL::PopulateVideoDeviceConfig(videoDeviceConfigs);
+            configs.videoConfigs.reserve(videoDeviceConfigs.size());
+            for (const auto& src : videoDeviceConfigs) {
+                configs.videoConfigs.push_back({
+                    src.numSupportedDFCs,
+                    src.supportedDFCsMask,
+                    static_cast<int32_t>(src.defaultDFC)});
+            }
+        }
+
+        // ── Video port config ─────────────────────────────────────────────────
+        {
+            using VPortTypeCfg = Exchange::IDeviceSettingsVideoPort::VideoPortTypeConfig;
+            using VPortPortCfg = Exchange::IDeviceSettingsVideoPort::VideoPortPortConfig;
+            using VPortRes     = Exchange::IDeviceSettingsVideoPort::VideoPortResolution;
+            std::vector<VPortTypeCfg> videoPortTypes;
+            std::vector<VPortPortCfg> videoPorts;
+            DeviceSettingsHAL::PopulateVideoPortConfig(videoPortTypes, videoPorts);
+
+            configs.videoPortTypes.reserve(videoPortTypes.size());
+            for (const auto& src : videoPortTypes) {
+                configs.videoPortTypes.push_back({
+                    static_cast<int32_t>(src.typeId),
+                    src.name,
+                    src.dtcpSupported,
+                    src.hdcpSupported,
+                    src.restrictedResolution,
+                    src.supportedResolutionNames});
+            }
+
+            configs.videoPorts.reserve(videoPorts.size());
+            for (const auto& src : videoPorts) {
+                configs.videoPorts.push_back({
+                    static_cast<int32_t>(src.videoPortType),
+                    src.videoPortIndex,
+                    src.connectedAudioPortType,
+                    src.connectedAudioPortIndex,
+                    src.defaultResolution});
+            }
+
+            // Resolution config for the 0th video port type
+            if (!videoPortTypes.empty()) {
+                std::vector<VPortRes> resolutions;
+                DeviceSettingsHAL::PopulateVideoPortResolutionConfig(
+                    videoPortTypes[0].typeId, resolutions);
+                configs.videoPortResolutions.reserve(resolutions.size());
+                for (const auto& src : resolutions) {
+                    configs.videoPortResolutions.push_back({
+                        src.name,
+                        static_cast<int32_t>(src.pixelResolution),
+                        static_cast<int32_t>(src.aspectRatio),
+                        static_cast<int32_t>(src.stereoScopicMode),
+                        static_cast<int32_t>(src.frameRate),
+                        src.interlaced});
+                }
+            }
+        }
 
         LOGINFO("GetDeviceSettingConfigs: audioTypes=%zu audioPorts=%zu "
                 "textDisplays=%zu indicators=%zu colors=%zu colorBindings=%zu "
@@ -1137,6 +1274,13 @@ namespace Plugin {
             configs.colors.size(), configs.colorBindings.size(),
             configs.videoConfigs.size(), configs.videoPortTypes.size(), configs.videoPorts.size(),
             configs.videoPortResolutions.size());
+
+        // Store in cache for subsequent calls
+        {
+            std::lock_guard<std::mutex> lock(_configMutex);
+            _cachedConfigs = configs;
+        }
+        _configLoaded.store(true, std::memory_order_release);
 
         return Core::ERROR_NONE;
     }

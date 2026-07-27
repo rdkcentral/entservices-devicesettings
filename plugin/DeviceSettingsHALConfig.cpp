@@ -386,7 +386,7 @@ void PopulateFPDConfig(
                 for (int colorIndex = 0; colorIndex < colorCount; ++colorIndex) {
                     const dsFPDColorConfig_t& colorCfg = halConfig.pKFPDIndicatorColors[colorIndex];
                     FPDColorBinding mapEntry;
-                    mapEntry.targetType = DeviceSettingsFPD::DS_FPD_COLOR_TARGET_INDICATOR;
+                    mapEntry.targetType = 0; // DS_FPD_COLOR_TARGET_INDICATOR
                     mapEntry.targetId   = cfg.id;
                     mapEntry.colorId    = colorCfg.id;
                     colorBindings.push_back(mapEntry);
@@ -416,7 +416,7 @@ void PopulateFPDConfig(
                 for (int colorIndex = 0; colorIndex < colorCount; ++colorIndex) {
                     const dsFPDColorConfig_t& colorCfg = halConfig.pKFPDIndicatorColors[colorIndex];
                     FPDColorBinding mapEntry;
-                    mapEntry.targetType = DeviceSettingsFPD::DS_FPD_COLOR_TARGET_TEXTDISPLAY;
+                    mapEntry.targetType = 1; // DS_FPD_COLOR_TARGET_TEXTDISPLAY
                     mapEntry.targetId   = cfg.id;
                     mapEntry.colorId    = colorCfg.id;
                     colorBindings.push_back(mapEntry);

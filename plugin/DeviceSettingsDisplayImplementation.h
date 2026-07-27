@@ -104,6 +104,10 @@ namespace Plugin {
         mutable Core::CriticalSection _callbackLock;
 
         Display _display;
+
+    public:
+        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
+        void InitialiseHAL() { _display.InitialiseHAL(); }
     };
 
 } // namespace Plugin

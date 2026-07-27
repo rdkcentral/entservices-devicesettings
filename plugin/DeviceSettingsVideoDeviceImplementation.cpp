@@ -35,23 +35,11 @@ namespace Plugin {
         _callbackLock(),
         _videoDevice(VideoDevice::Create(*this))
     {
-        InitializeVideoDeviceConfigCache();
         LOGINFO("DeviceSettingsVideoDeviceImpl Constructor - Instance Address: %p", this);
     }
 
     DeviceSettingsVideoDeviceImpl::~DeviceSettingsVideoDeviceImpl() {
         LOGINFO("DeviceSettingsVideoDeviceImpl Destructor - Instance Address: %p", this);
-    }
-
-    void DeviceSettingsVideoDeviceImpl::InitializeVideoDeviceConfigCache()
-    {
-        _apiLock.Lock();
-        DeviceSettingsHAL::PopulateVideoDeviceConfig(_cachedVideoDeviceConfigs);
-        DeviceSettingsHAL::DumpVideoDeviceConfig(_cachedVideoDeviceConfigs);
-        _apiLock.Unlock();
-
-        LOGINFO("InitializeVideoDeviceConfigCache: videoDeviceConfigs=%zu",
-            _cachedVideoDeviceConfigs.size());
     }
 
     template<typename Func, typename... Args>
@@ -279,28 +267,6 @@ namespace Plugin {
             LOGERR("SetDisplayFrameRate failed for handle: %d, framerate: %s, error: %u", handle, framerate.c_str(), result);
         }
         return result;
-    }
-
-    Core::hresult DeviceSettingsVideoDeviceImpl::GetVideoDeviceConfig(IVideoDeviceConfigIterator*& videoDeviceConfigs)
-    {
-        std::vector<VideoDeviceConfigInfo> videoConfigs;
-
-        _apiLock.Lock();
-        videoConfigs = _cachedVideoDeviceConfigs;
-        _apiLock.Unlock();
-
-        DeviceSettingsHAL::DumpVideoDeviceConfig(videoConfigs);
-
-        using VideoDeviceConfigIterator = RPC::IteratorType<IVideoDeviceConfigIterator>;
-        videoDeviceConfigs = Core::Service<VideoDeviceConfigIterator>::Create<IVideoDeviceConfigIterator>(videoConfigs);
-
-        if (videoDeviceConfigs == nullptr) {
-            LOGERR("GetVideoDeviceConfig: iterator allocation failed");
-            return Core::ERROR_UNAVAILABLE;
-        }
-
-        LOGINFO("GetVideoDeviceConfig: returning cached config entries=%zu", videoConfigs.size());
-        return Core::ERROR_NONE;
     }
 
     void DeviceSettingsVideoDeviceImpl::getCachedConfigs(

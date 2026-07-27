@@ -63,7 +63,7 @@ public:
     dVideoDeviceImpl()
     {
         LOGINFO("dVideoDeviceImpl Constructor");
-        InitialiseHAL();
+        // HAL init deferred to InitialiseHAL() — called from DeviceSettingsImp::Configure()
     }
 
     virtual ~dVideoDeviceImpl()

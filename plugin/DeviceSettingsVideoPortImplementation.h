@@ -84,11 +84,10 @@ namespace Plugin {
 
         // VideoPort interface method implementations called by DeviceSettingsImp 
         uint32_t GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle);
-        uint32_t GetVideoPortConfig(IVideoPortTypeConfigIterator*& videoPortTypes,
-                        IVideoPortPortConfigIterator*& videoPorts);
+        uint32_t IsVideoPortEnabled(const int32_t handle, bool &enabled);
+
         uint32_t GetVideoPortResolutionConfig(VideoPortType videoPortType,
                         IVideoPortResolutionIterator*& resolutions) const;
-        uint32_t IsVideoPortEnabled(const int32_t handle, bool &enabled);
         uint32_t EnableVideoPort(const int32_t handle, const bool enabled);
         uint32_t IsVideoPortDisplayConnected(const int32_t handle, bool &connected);
         uint32_t IsVideoPortActive(const int32_t handle, bool &active);
@@ -134,8 +133,6 @@ namespace Plugin {
                               std::vector<Exchange::IDeviceSettings::VideoPortResolutionConfig>& videoPortResolutions) const;
 
     private:
-        void InitializeVideoPortConfigCache();
-
         std::list<Exchange::IDeviceSettingsVideoPort::INotification*> _VideoPortNotifications;
 
         // Thread-safety locks
@@ -147,6 +144,10 @@ namespace Plugin {
         std::vector<VideoPortResolution> _cachedVideoPortResolutions;
 
         VideoPort _videoPort;
+
+    public:
+        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
+        void InitialiseHAL() { _videoPort.InitialiseHAL(); }
     };
 
 } // namespace Plugin

@@ -100,8 +100,6 @@ namespace Plugin {
         // Audio Port Management
         Core::hresult GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle);
         // Removed GetAudioPorts and GetSupportedAudioPorts - iterator type doesn't exist
-        Core::hresult GetAudioConfig(IAudioTypeConfigIterator*& audioTypes,
-                         IAudioPortConfigIterator*& audioPorts);
         Core::hresult GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig);
         Core::hresult GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
         Core::hresult GetAudioCapabilities(const int32_t handle, int32_t &capabilities);
@@ -263,8 +261,6 @@ namespace Plugin {
                               std::vector<Exchange::IDeviceSettings::AudioPortConfigInfo>& audioPorts) const;
 
     private:
-        void InitializeAudioConfigCache();
-
         template<typename Func, typename... Args>
         void dispatchAudioEvent(Func notifyFunc, Args&&... args);
 
@@ -275,6 +271,10 @@ namespace Plugin {
         Core::hresult Unregister(std::list<T*>& list, const T* notification);
 
         Audio _audio;
+
+    public:
+        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
+        void InitialiseHAL() { _audio.InitialiseHAL(); }
         std::list<DeviceSettingsAudio::INotification*> _AudioNotifications;
         mutable Core::CriticalSection _configLock;
         mutable Core::CriticalSection _callbackLock;
