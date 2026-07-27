@@ -96,8 +96,6 @@ namespace Plugin {
         void getCachedConfigs(std::vector<Exchange::IDeviceSettings::VideoDeviceConfigInfo>& videoConfigs) const;
 
     private:
-        void InitializeVideoDeviceConfigCache();
-
         std::list<Exchange::IDeviceSettingsVideoDevice::INotification*> _VideoDeviceNotifications;
 
         // Thread-safety locks
@@ -107,6 +105,10 @@ namespace Plugin {
         std::vector<VideoDeviceConfigInfo> _cachedVideoDeviceConfigs;
 
         VideoDevice _videoDevice;
+
+    public:
+        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
+        void InitialiseHAL() { _videoDevice.InitialiseHAL(); }
     };
 
 } // namespace Plugin

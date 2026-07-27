@@ -92,6 +92,10 @@ namespace Plugin {
         mutable Core::CriticalSection _callbackLock;
 
         Host _host;
+
+    public:
+        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
+        void InitialiseHAL() { _host.InitialiseHAL(); }
     };
 
 } // namespace Plugin

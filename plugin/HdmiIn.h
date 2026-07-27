@@ -55,6 +55,8 @@ public:
     };
 
     void Platform_init();
+    /** Deferred HAL init — called from DeviceSettingsImp::Configure() */
+    void InitialiseHAL() { std::static_pointer_cast<DefaultImpl>(_platform)->InitialiseHAL(); }
 
     uint32_t GetHDMIInNumberOfInputs(int32_t &count);
     uint32_t GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus);

@@ -72,6 +72,8 @@ private:
 public:
 
     void Platform_init();
+    /** Deferred HAL init — called from DeviceSettingsImp::Configure() */
+    void InitialiseHAL() { std::static_pointer_cast<DefaultImpl>(_platform)->InitialiseHAL(); }
 
     // Audio Port Management
     uint32_t GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle);
