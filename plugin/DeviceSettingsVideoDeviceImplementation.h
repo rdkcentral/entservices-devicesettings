@@ -108,10 +108,6 @@ namespace Plugin {
         std::vector<VideoDeviceConfigInfo> _cachedVideoDeviceConfigs;
 
         VideoDevice _videoDevice;
-
-    public:
-        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
-        void InitialiseHAL() { _videoDevice.InitialiseHAL(); }
     };
 
 } // namespace Plugin

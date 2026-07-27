@@ -28,7 +28,6 @@
 
 #include "DeviceSettings.h"
 #include <interfaces/IConfiguration.h>
-#include <chrono>
 
 namespace WPEFramework {
 
@@ -93,11 +92,6 @@ namespace Plugin
     const string DeviceSettings::Initialize(PluginHost::IShell * service)
     {
         string message = "";
-        using Clock = std::chrono::steady_clock;
-        using Ms    = std::chrono::milliseconds;
-        auto tInit  = Clock::now();
-        LOGINFO("[DS-INIT-TIMING] DeviceSettings::Initialize — begin");
-
         ASSERT(service != nullptr);
         ASSERT(mService == nullptr);
         ASSERT(mConnectionId == 0);
@@ -117,12 +111,7 @@ namespace Plugin
 #ifdef USE_LEGACY_INTERFACE
         // Get IDeviceSettingsFPD interface.
         // Get the unified interface that provides both FPD and HDMI functionality
-        {
-            auto t0 = Clock::now();
-            _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
-            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "service->Root (DeviceSettingsImp)",
-                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count());
-        }
+        _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
 
         if (_mDeviceSettings == nullptr) {
             LOGERR("DeviceSettings::Initialize: Failed to initialise DeviceSettings plugin");
@@ -138,7 +127,6 @@ namespace Plugin
                 message = _T("DeviceSettings configuration failed");
             } else {
                 // Initialize individual interface pointers for external COM-RPC access
-                auto tQI = Clock::now();
                 _mDeviceSettingsFPD = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsFPD>();
                 if (_mDeviceSettingsFPD == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsFPD interface for external access");
@@ -174,8 +162,6 @@ namespace Plugin
                 if (_mDeviceSettingsDisplay == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsDisplay interface for external access");
                 }
-                LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "QueryInterface x8 [legacy]",
-                        (long long)std::chrono::duration_cast<Ms>(Clock::now() - tQI).count());
 
                 LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p, CompositeIn: %p, Display: %p", 
                        _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost, _mDeviceSettingsCompositeIn, _mDeviceSettingsDisplay);
@@ -219,12 +205,7 @@ namespace Plugin
         }
 #else
         // Get the unified interface that provides both FPD and HDMI functionality
-        {
-            auto t0 = Clock::now();
-            _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
-            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "service->Root (DeviceSettingsImp)",
-                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count());
-        }
+        _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
 
         if (_mDeviceSettings == nullptr) {
             LOGERR("DeviceSettings::Initialize: Failed to initialise DeviceSettings plugin");
@@ -234,16 +215,12 @@ namespace Plugin
             LOGINFO("DeviceSettingsImp initialized successfully");
             
             // Call Configure method on DeviceSettingsImp with the service
-            auto tCfg = Clock::now();
             Core::hresult result = _mDeviceSettings->Configure(service);
-            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Configure(service)",
-                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - tCfg).count());
             if (result != Core::ERROR_NONE) {
                 LOGERR("Failed to configure DeviceSettings: %d", result);
                 message = _T("DeviceSettings configuration failed");
             } else {
                 // Initialize individual interface pointers for external COM-RPC access
-                auto tQI = Clock::now();
                 _mDeviceSettingsFPD = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsFPD>();
                 if (_mDeviceSettingsFPD == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsFPD interface for external access");
@@ -278,8 +255,6 @@ namespace Plugin
                 if (_mDeviceSettingsDisplay == nullptr) {
                     LOGERR("Failed to get IDeviceSettingsDisplay interface for external access");
                 }
-                LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "QueryInterface x8",
-                        (long long)std::chrono::duration_cast<Ms>(Clock::now() - tQI).count());
 
                 LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, CompositeIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p, Display: %p", 
                        _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsCompositeIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost, _mDeviceSettingsDisplay);
@@ -326,8 +301,6 @@ namespace Plugin
             Deinitialize(service);
         }
 
-        LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "DeviceSettings::Initialize TOTAL",
-                (long long)std::chrono::duration_cast<Ms>(Clock::now() - tInit).count());
         // On success return empty, to indicate there is no error text.
         return (message);
     }

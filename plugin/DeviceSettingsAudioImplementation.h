@@ -275,10 +275,6 @@ namespace Plugin {
         Core::hresult Unregister(std::list<T*>& list, const T* notification);
 
         Audio _audio;
-
-    public:
-        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
-        void InitialiseHAL() { _audio.InitialiseHAL(); }
         std::list<DeviceSettingsAudio::INotification*> _AudioNotifications;
         mutable Core::CriticalSection _configLock;
         mutable Core::CriticalSection _callbackLock;

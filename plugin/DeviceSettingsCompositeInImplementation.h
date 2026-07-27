@@ -97,10 +97,6 @@ namespace Plugin {
         mutable Core::CriticalSection _callbackLock;
 
         CompositeIn _compositeIn;
-
-    public:
-        /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
-        void InitialiseHAL() { _compositeIn.InitialiseHAL(); }
     };
 
 } // namespace Plugin
