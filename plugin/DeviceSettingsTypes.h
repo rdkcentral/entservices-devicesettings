@@ -153,7 +153,6 @@ using AudioPortType = DeviceSettingsAudio::AudioPortType;
 using AudioPortState = DeviceSettingsAudio::AudioPortState;
 using AudioFormat = DeviceSettingsAudio::AudioFormat;
 using AudioEncoding = DeviceSettingsAudio::AudioEncoding;
-using AudioConfig = DeviceSettingsAudio::AudioConfig;
 using AudioStereoMode = DeviceSettingsAudio::StereoMode;
 using AudioDuckingType = DeviceSettingsAudio::AudioDuckingType;
 using AudioDuckingAction = DeviceSettingsAudio::AudioDuckingAction;

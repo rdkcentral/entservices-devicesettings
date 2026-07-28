@@ -440,44 +440,6 @@ public:
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
-    uint32_t GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) override {
-        ENTRY_LOG;
-        if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
-            return WPEFramework::Core::ERROR_GENERAL;
-        }
-
-        // Port name lookup — plugin-local, no lib32-devicesettings dependency.
-        struct PortNameEntry { dsAudioPortType_t type; const char* name; };
-        static const PortNameEntry kPortNames[] = {
-            { dsAUDIOPORT_TYPE_ID_LR,    "LR"        },
-            { dsAUDIOPORT_TYPE_HDMI,     "HDMI0"     },
-            { dsAUDIOPORT_TYPE_SPDIF,    "SPDIF0"    },
-            { dsAUDIOPORT_TYPE_SPEAKER,  "SPEAKER0"  },
-            { dsAUDIOPORT_TYPE_HDMI_ARC, "HDMI_ARC0" },
-            { dsAUDIOPORT_TYPE_HEADPHONE,"HEADPHONE0"},
-        };
-        try {
-            dsAudioPortType_t dsType = convertToDS(audioPort);
-            audioConfig.typeId = static_cast<int32_t>(dsType);
-            audioConfig.name   = "UNKNOWN";
-            for (const auto& entry : kPortNames) {
-                if (entry.type == dsType) {
-                    audioConfig.name = entry.name;
-                    break;
-                }
-            }
-            LOGINFO("GetAudioPortConfig success: typeId=%d, name=%s",
-                    audioConfig.typeId, audioConfig.name.c_str());
-        } catch (...) {
-            LOGERR("Exception in GetAudioPortConfig");
-            return WPEFramework::Core::ERROR_GENERAL;
-        }
-        EXIT_LOG;
-        return WPEFramework::Core::ERROR_NONE;
-    }
-
     uint32_t GetAudioCapabilities(const int32_t handle, int32_t &capabilities) override {
         ENTRY_LOG;
         if (!_isInitialized) {

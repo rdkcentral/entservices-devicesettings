@@ -159,28 +159,6 @@ uint32_t Audio::GetAudioPort(const AudioPortType type, const int32_t index, int3
     return result;
 }
 
-// GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist in interface
-
-uint32_t Audio::GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) {
-    LOGINFO("GetAudioPortConfig: audioPort=%d", audioPort);
-    uint32_t result = WPEFramework::Core::ERROR_GENERAL;
-    if (_platform) {
-        // First get the audio port handle
-        int32_t handle = -1;
-        int32_t index = 0;
-        result = this->platform().GetAudioPort(audioPort, index, handle);
-        if (result == WPEFramework::Core::ERROR_NONE) {
-            result = this->platform().GetAudioPortConfig(audioPort, audioConfig);
-        }
-    }
-    if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioPortConfig: SUCCESS - audioPort=%d", audioPort);
-    } else {
-        LOGERR("GetAudioPortConfig: FAILED - result=%u", result);
-    }
-    return result;
-}
-
 uint32_t Audio::GetAudioCapabilities(const int32_t handle, int32_t &capabilities) {
     LOGINFO("GetAudioCapabilities: handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;

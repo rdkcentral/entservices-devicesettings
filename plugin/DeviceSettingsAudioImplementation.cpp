@@ -184,14 +184,6 @@ namespace Plugin {
         return result;
     }
 
-    // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
-
-    Core::hresult DeviceSettingsAudioImpl::GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) {
-        LOGINFO("GetAudioPortConfig: audioPort=%d", audioPort);
-        uint32_t result = _audio.GetAudioPortConfig(audioPort, audioConfig);
-        return result;
-    }
-
     // Audio capabilities
     Core::hresult DeviceSettingsAudioImpl::GetAudioCapabilities(const int32_t handle, int32_t &capabilities) {
         LOGINFO("GetAudioCapabilities: handle=%d", handle);

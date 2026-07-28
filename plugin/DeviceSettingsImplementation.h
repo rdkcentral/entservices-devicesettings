@@ -139,9 +139,6 @@ namespace Plugin {
         Core::hresult Register(Exchange::IDeviceSettingsAudio::INotification* notification) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsAudio::INotification* notification) override;
         Core::hresult GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) override;
-        // Removed GetAudioPorts and GetSupportedAudioPorts - iterator type doesn't exist
-        Core::hresult GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig);
-        Core::hresult SetAudioPortConfig(const AudioPortType audioPort, const AudioConfig audioConfig);
         Core::hresult GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
         Core::hresult GetAudioCapabilities(const int32_t handle, int32_t &capabilities);
         Core::hresult GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities);

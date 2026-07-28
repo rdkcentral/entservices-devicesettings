@@ -99,8 +99,6 @@ namespace Plugin {
 
         // Audio Port Management
         Core::hresult GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle);
-        // Removed GetAudioPorts and GetSupportedAudioPorts - iterator type doesn't exist
-        Core::hresult GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig);
         Core::hresult GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
         Core::hresult GetAudioCapabilities(const int32_t handle, int32_t &capabilities);
         Core::hresult GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities);
@@ -151,7 +149,6 @@ namespace Plugin {
         Core::hresult SetAudioAtmosOutputMode(const int32_t handle, const bool enable);
 
         // Additional Audio Port Methods
-        Core::hresult SetAudioPortConfig(const AudioPortType audioPort, const AudioConfig audioConfig);
         Core::hresult IsAudioPortEnabled(const int32_t handle, bool &enabled);
         Core::hresult EnableAudioPort(const int32_t handle, const bool enable);
         Core::hresult GetSupportedARCTypes(const int32_t handle, int32_t &types);

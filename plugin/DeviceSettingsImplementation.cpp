@@ -451,21 +451,7 @@ namespace Plugin {
     Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsAudio::INotification* notification) {
         DELEGATE_TO_COMPONENT(_audioSettings, Unregister, notification)
     }
-    
-    Core::hresult DeviceSettingsImp::GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) {
-        DELEGATE_TO_COMPONENT(_audioSettings, GetAudioPort, type, index, handle)
-    }
 
-    // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
-
-    Core::hresult DeviceSettingsImp::GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig) {
-        DELEGATE_TO_COMPONENT(_audioSettings, GetAudioPortConfig, audioPort, audioConfig)
-    }
-
-    Core::hresult DeviceSettingsImp::SetAudioPortConfig(const AudioPortType audioPort, const AudioConfig audioConfig) {
-        DELEGATE_TO_COMPONENT(_audioSettings, SetAudioPortConfig, audioPort, audioConfig)
-    }
-    
     Core::hresult DeviceSettingsImp::GetAudioCapabilities(const int32_t handle, int32_t &capabilities) {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioCapabilities, handle, capabilities)
     }

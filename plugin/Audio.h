@@ -77,10 +77,6 @@ public:
 
     // Audio Port Management
     uint32_t GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle);
-    // GetAudioPorts and GetSupportedAudioPorts methods removed - iterator type doesn't exist
-    // uint32_t GetAudioPorts(IDeviceSettingsAudioPortsIterator*& audioPortsIterator);
-    // uint32_t GetSupportedAudioPorts(IDeviceSettingsAudioPortsIterator*& audioPortsIterator);
-    uint32_t GetAudioPortConfig(const AudioPortType audioPort, AudioConfig &audioConfig);
     uint32_t GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
     uint32_t GetAudioCapabilities(const int32_t handle, int32_t &capabilities);
     uint32_t GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities);
@@ -131,7 +127,6 @@ public:
     uint32_t SetAudioAtmosOutputMode(const int32_t handle, const bool enable);
 
     // Additional Audio Port Methods
-    uint32_t SetAudioPortConfig(const AudioPortType audioPort, const AudioConfig audioConfig);
     uint32_t IsAudioPortEnabled(const int32_t handle, bool &enabled);
     uint32_t EnableAudioPort(const int32_t handle, const bool enable);
     uint32_t GetSupportedARCTypes(const int32_t handle, int32_t &types);
