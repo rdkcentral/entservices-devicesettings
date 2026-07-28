@@ -35,33 +35,11 @@ namespace Plugin {
         _callbackLock(),
         _videoPort(VideoPort::Create(*this))
     {
-        InitializeVideoPortConfigCache();
         LOGINFO("DeviceSettingsVideoPortImpl Constructor - Instance Address: %p", this);
     }
 
     DeviceSettingsVideoPortImpl::~DeviceSettingsVideoPortImpl() {
         LOGINFO("DeviceSettingsVideoPortImpl Destructor - Instance Address: %p", this);
-    }
-
-    void DeviceSettingsVideoPortImpl::InitializeVideoPortConfigCache()
-    {
-        _apiLock.Lock();
-        DeviceSettingsHAL::PopulateVideoPortConfig(_cachedVideoPortTypes, _cachedVideoPorts);
-
-        // Populate resolution cache using the 0th video port type.
-        // If multiple types exist, resolutions for the first type are returned by
-        // GetDeviceSettingConfigs; callers needing resolutions for other types
-        // must use GetVideoPortResolutionConfig directly.
-        if (!_cachedVideoPortTypes.empty()) {
-            DeviceSettingsHAL::PopulateVideoPortResolutionConfig(
-                _cachedVideoPortTypes[0].typeId, _cachedVideoPortResolutions);
-        }
-
-        DeviceSettingsHAL::DumpVideoPortConfig(_cachedVideoPortTypes, _cachedVideoPorts, _cachedVideoPortResolutions);
-        _apiLock.Unlock();
-
-        LOGINFO("InitializeVideoPortConfigCache: videoPortTypes=%zu videoPorts=%zu videoPortResolutions=%zu",
-            _cachedVideoPortTypes.size(), _cachedVideoPorts.size(), _cachedVideoPortResolutions.size());
     }
 
     template<typename Func, typename... Args>

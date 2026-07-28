@@ -32,25 +32,12 @@ namespace Plugin {
     DeviceSettingsFPDImpl::DeviceSettingsFPDImpl()
         : _fpd(FPD::Create(*this))
     {
-        InitializeFrontPanelConfigCache();
         LOGINFO("DeviceSettingsFPDImpl Constructor - Instance Address: %p", this);
     }
 
     DeviceSettingsFPDImpl::~DeviceSettingsFPDImpl() {
         LOGINFO("DeviceSettingsFPDImpl Destructor - Instance Address: %p", this);
     }
-
-    void DeviceSettingsFPDImpl::InitializeFrontPanelConfigCache()
-    {
-        _apiLock.Lock();
-        DeviceSettingsHAL::PopulateFPDConfig(_cachedColorConfigs, _cachedIndicatorConfigs, _cachedTextDisplayConfigs, _cachedColorBindingConfigs);
-        DeviceSettingsHAL::DumpFPDConfig(_cachedColorConfigs, _cachedIndicatorConfigs, _cachedTextDisplayConfigs, _cachedColorBindingConfigs);
-        _apiLock.Unlock();
-
-        LOGINFO("InitializeFrontPanelConfigCache: colors=%zu indicators=%zu textDisplays=%zu colorBindings=%zu",
-            _cachedColorConfigs.size(), _cachedIndicatorConfigs.size(), _cachedTextDisplayConfigs.size(), _cachedColorBindingConfigs.size());
-    }
-
 
     template<typename Func, typename... Args>
     void DeviceSettingsFPDImpl::dispatchFPDEvent(Func notifyFunc, Args&&... args) {
