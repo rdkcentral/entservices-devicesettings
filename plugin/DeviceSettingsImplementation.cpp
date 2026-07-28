@@ -122,17 +122,46 @@ namespace Plugin {
         LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", label, \
                 (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count())
 
-        DS_TIME_COMPONENT("DSController::Create",         _dsController         = DSController::Create(this));
-        DS_TIME_COMPONENT("DeviceSettingsFPDImpl::Create", _fpdSettings          = DeviceSettingsFPDImpl::Create());
-        DS_TIME_COMPONENT("DeviceSettingsHdmiInImp::Create",_hdmiInSettings       = DeviceSettingsHdmiInImp::Create());
-        DS_TIME_COMPONENT("DeviceSettingsAudioImpl::Create",_audioSettings        = DeviceSettingsAudioImpl::Create());
-        DS_TIME_COMPONENT("DeviceSettingsVideoPortImpl::Create",_videoPortSettings = DeviceSettingsVideoPortImpl::Create());
-        DS_TIME_COMPONENT("DeviceSettingsVideoDeviceImpl::Create",_videoDeviceSettings = DeviceSettingsVideoDeviceImpl::Create());
-        DS_TIME_COMPONENT("DeviceSettingsHostImpl::Create",_hostSettings          = DeviceSettingsHostImpl::Create());
-        DS_TIME_COMPONENT("DeviceSettingsDisplayImpl::Create",_displaySettings     = DeviceSettingsDisplayImpl::Create());
-        DS_TIME_COMPONENT("DeviceSettingsCompositeInImpl::Create",_compositeInSettings = DeviceSettingsCompositeInImpl::Create());
+        // DSController must be created first — it provides system infrastructure.
+        DS_TIME_COMPONENT("DSController::Create", _dsController = DSController::Create(this));
 
 #undef DS_TIME_COMPONENT
+
+        // ── Two-stage parallel component creation ─────────────────────────────
+        // HAL is now initialised inside each HAL impl constructor (e.g. dVideoPortImpl).
+        // We must preserve the VO-wrapper dependency: VideoDevice/Display/Host must
+        // complete their HAL init (dsVideoDeviceInit / dsDisplayInit / dsHostInit)
+        // BEFORE VideoPort is created, because dsVideoPortInit shares the same
+        // underlying VO wrapper and will fail if run concurrently.
+        //
+        // Stage 1 (parallel): VideoDevice + Display + Host
+        // Stage 2 (parallel): VideoPort + Audio + FPD + HdmiIn + CompositeIn
+
+        // Stage 1
+        {
+            auto tS1 = Clock::now();
+            LOGINFO("[DS-INIT-TIMING] Stage1 Create (VDev+Display+Host) — begin");
+            std::thread tVDev   ([this]{ _videoDeviceSettings  = DeviceSettingsVideoDeviceImpl::Create(); });
+            std::thread tDisplay([this]{ _displaySettings      = DeviceSettingsDisplayImpl::Create(); });
+            std::thread tHost   ([this]{ _hostSettings         = DeviceSettingsHostImpl::Create(); });
+            tVDev.join(); tDisplay.join(); tHost.join();
+            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Stage1 Create (VDev+Display+Host)",
+                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - tS1).count());
+        }
+
+        // Stage 2
+        {
+            auto tS2 = Clock::now();
+            LOGINFO("[DS-INIT-TIMING] Stage2 Create (VPort+Audio+FPD+HdmiIn+Comp) — begin");
+            std::thread tVPort ([this]{ _videoPortSettings     = DeviceSettingsVideoPortImpl::Create(); });
+            std::thread tAudio ([this]{ _audioSettings         = DeviceSettingsAudioImpl::Create(); });
+            std::thread tFPD   ([this]{ _fpdSettings           = DeviceSettingsFPDImpl::Create(); });
+            std::thread tHdmi  ([this]{ _hdmiInSettings        = DeviceSettingsHdmiInImp::Create(); });
+            std::thread tComp  ([this]{ _compositeInSettings   = DeviceSettingsCompositeInImpl::Create(); });
+            tVPort.join(); tAudio.join(); tFPD.join(); tHdmi.join(); tComp.join();
+            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Stage2 Create (VPort+others)",
+                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - tS2).count());
+        }
 
         LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms",
                 "DeviceSettingsImp ctor TOTAL",
@@ -225,45 +254,9 @@ namespace Plugin {
             LOGERR("DSController is null - cannot initialize power event listener");
         }
 
-        // ── Root cause fix #3: Two-stage Parallel HAL InitialiseHAL() ───────────────
-        // Old dsmgr pattern: dsXxxMgr_init() never calls dsXxx_Init() at startup;
-        // HAL init is deferred to the first client request (_dsXxxPortInit IARM handler).
-        //
-        // Two-stage approach to handle shared VO (video output) wrapper dependency:
-        //   Stage 1: VideoDevice + Display + Host — these initialise the shared VO wrapper.
-        //   Stage 2: VideoPort + Audio + FPD + HdmiIn + CompositeIn — run after Stage 1.
-        //
-        // Running dsVideoDeviceInit and dsVideoPortInit in parallel causes
-        // "Failed to vo wrap init...." because both call into the same underlying
-        // VO platform wrapper. Stage 1 must complete before VideoPort starts.
-        {
-            LOGINFO("[DS-INIT-TIMING] Parallel HAL InitialiseHAL — begin");
-            auto tHAL = Clock::now();
-
-            // Stage 1: initialise the shared VO wrapper components first
-            LOGINFO("[DS-INIT-TIMING] HAL Stage1 (VDev+Display+Host) — begin");
-            std::thread tVDev   ([this]{ if (_videoDeviceSettings)  _videoDeviceSettings->InitialiseHAL(); });
-            std::thread tDisplay([this]{ if (_displaySettings)      _displaySettings->InitialiseHAL(); });
-            std::thread tHost   ([this]{ if (_hostSettings)         _hostSettings->InitialiseHAL(); });
-            tVDev.join(); tDisplay.join(); tHost.join();
-            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "HAL Stage1 (VDev+Display+Host)",
-                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - tHAL).count());
-
-            // Stage 2: VideoPort and remaining components — safe now that VO wrapper is up
-            LOGINFO("[DS-INIT-TIMING] HAL Stage2 (VPort+Audio+FPD+HdmiIn+Comp) — begin");
-            auto tStage2 = Clock::now();
-            std::thread tVPort  ([this]{ if (_videoPortSettings)    _videoPortSettings->InitialiseHAL(); });
-            std::thread tAudio  ([this]{ if (_audioSettings)        _audioSettings->InitialiseHAL(); });
-            std::thread tFPD    ([this]{ if (_fpdSettings)          _fpdSettings->InitialiseHAL(); });
-            std::thread tHdmiIn ([this]{ if (_hdmiInSettings)       _hdmiInSettings->InitialiseHAL(); });
-            std::thread tComp   ([this]{ if (_compositeInSettings)  _compositeInSettings->InitialiseHAL(); });
-            tVPort.join(); tAudio.join(); tFPD.join(); tHdmiIn.join(); tComp.join();
-            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "HAL Stage2 (VPort+others)",
-                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - tStage2).count());
-
-            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Parallel HAL InitialiseHAL",
-                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - tHAL).count());
-        }
+        // HAL initialisation is now done inside each HAL impl constructor as part of
+        // the two-stage parallel component Create() calls in DeviceSettingsImp().
+        // No separate InitialiseHAL() pass is needed here.
 
         LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Configure TOTAL",
                 (long long)std::chrono::duration_cast<Ms>(Clock::now() - tCfg).count());

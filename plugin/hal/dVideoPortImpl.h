@@ -64,7 +64,7 @@ public:
     {
         LOGINFO("dVideoPortImpl Constructor");
         getInstance() = this; // Set static instance for callback access
-        // HAL init deferred to InitialiseHAL() — called from DeviceSettingsImp::Configure()
+        InitialiseHAL();
     }
 
     virtual ~dVideoPortImpl()

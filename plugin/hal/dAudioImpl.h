@@ -313,13 +313,10 @@ private:
 public:
     dAudioImpl() : _isInitialized(false), _isDuckingInProgress(false), _volumeDuckingLevel(0), _muteStatus(false)
     {
-        // Initialize port state tracking ONLY. HAL init is deferred to InitialiseHAL()
-        // which is called from DeviceSettingsImp::Configure() — matching the old dsmgr
-        // pattern where dsAudioMgr_init() does NOT call dsAudio_Init() at daemon start;
-        // dsAudio_Init() only runs when the first client calls dsAudioPortInit().
         for (int i = 0; i < dsAUDIOPORT_TYPE_MAX; i++) {
             _audioPortEnabled[i] = false;
         }
+        InitialiseHAL();
     }
 
     /** Called from DeviceSettingsImp::Configure() — deferred HAL initialisation.
