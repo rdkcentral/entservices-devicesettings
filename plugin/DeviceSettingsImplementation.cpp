@@ -463,7 +463,11 @@ namespace Plugin {
     Core::hresult DeviceSettingsImp::GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities) {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioMS12Capabilities, handle, capabilities)
     }
-    
+
+    Core::hresult DeviceSettingsImp::GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) {
+        DELEGATE_TO_COMPONENT(_audioSettings, GetMS12Capabilities, handle, compressions)
+    }
+
     Core::hresult DeviceSettingsImp::GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) {
         DELEGATE_TO_COMPONENT(_audioSettings, GetAudioFormat, handle, audioFormat)
     }
