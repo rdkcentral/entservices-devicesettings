@@ -34,14 +34,20 @@
 #include <WPEFramework/interfaces/IDeviceSettingsVideoPort.h>
 #include "DeviceSettingsTypes.h"
 
+// Resolution defaults — matches dsVideoPort.c naming
+#define DS_VP_DEFAULT_RESOLUTION       "720p"
+#define DS_VP_DEFAULT_RESOLUTION_1080P  "1080p"
+#define DS_VP_DEFAULT_RESOLUTION_2160P  "2160p"
+
 static int videoPort_isInitialized = 0;
 static int videoPort_isPlatInitialized = 0;
 
-// Persistent resolution settings - following dsVideoPort.c pattern
-static std::string _dsHDMIResolution = "1080p";
-static std::string _dsCompResolution = "1080p";
-static std::string _dsRFResolution = "1080p";
-static std::string _dsBBResolution = "1080p";
+// Persistent resolution settings — initialised in getPersistenceValue() based on profileType.
+// TV profile (profileType=1) defaults to DS_VP_DEFAULT_RESOLUTION_2160P; STB defaults to DS_VP_DEFAULT_RESOLUTION_1080P.
+static std::string _dsHDMIResolution = DS_VP_DEFAULT_RESOLUTION_1080P;
+static std::string _dsCompResolution = DS_VP_DEFAULT_RESOLUTION_1080P;
+static std::string _dsRFResolution   = DS_VP_DEFAULT_RESOLUTION_1080P;
+static std::string _dsBBResolution   = DS_VP_DEFAULT_RESOLUTION_1080P;
 
 // Color depth settings - following dsVideoPort.c pattern
 static const dsDisplayColorDepth_t DEFAULT_COLOR_DEPTH = dsDISPLAY_COLORDEPTH_AUTO;
@@ -1310,8 +1316,8 @@ public:
         LOGINFO("VideoPort::getPersistenceValue - Loading persistence settings");
         
         try {
-            // Read persistent resolution settings - following dsVideoPort.c pattern
-            std::string defaultResolution = "1080p";
+            // Match dsVideoPort.c pattern: TV profile (profileType=1) defaults to 2160p, STB to 1080p
+            std::string defaultResolution = (profileType == 1) ? DS_VP_DEFAULT_RESOLUTION_2160P : DS_VP_DEFAULT_RESOLUTION_1080P;
             
             _dsHDMIResolution = device::HostPersistence::getInstance().getProperty("HDMI0.resolution", defaultResolution);
             LOGINFO("Persistent HDMI resolution read: %s", _dsHDMIResolution.c_str());
