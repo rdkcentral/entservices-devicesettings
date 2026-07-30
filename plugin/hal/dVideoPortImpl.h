@@ -1728,33 +1728,25 @@ private:
 
     dsVideoPortResolution_t convertVideoPortResolution(const VideoPortResolution& resolution)
     {
-        dsVideoPortResolution_t dsResolution;
-        
-        // Map interface VideoResolution enum to DS pixel resolution
+        dsVideoPortResolution_t dsResolution = {};
+
+        strncpy(dsResolution.name, resolution.name.c_str(), sizeof(dsResolution.name) - 1);
+
         switch (resolution.pixelResolution) {
-            case VideoResolution::DS_VIDEO_PIXELRES_720X480:
-                dsResolution.pixelResolution = dsVIDEO_PIXELRES_720x480;
-                break;
-            case VideoResolution::DS_VIDEO_PIXELRES_720X576:
-                dsResolution.pixelResolution = dsVIDEO_PIXELRES_720x576;
-                break;
-            case VideoResolution::DS_VIDEO_PIXELRES_1280X720:
-                dsResolution.pixelResolution = dsVIDEO_PIXELRES_1280x720;
-                break;
-            case VideoResolution::DS_VIDEO_PIXELRES_1920X1080:
-                dsResolution.pixelResolution = dsVIDEO_PIXELRES_1920x1080;
-                break;
-            case VideoResolution::DS_VIDEO_PIXELRES_3840X2160:
-                dsResolution.pixelResolution = dsVIDEO_PIXELRES_3840x2160;
-                break;
-            default:
-                dsResolution.pixelResolution = dsVIDEO_PIXELRES_1920x1080;
-                break;
+            case VideoResolution::DS_VIDEO_PIXELRES_720X480:   dsResolution.pixelResolution = dsVIDEO_PIXELRES_720x480;   break;
+            case VideoResolution::DS_VIDEO_PIXELRES_720X576:   dsResolution.pixelResolution = dsVIDEO_PIXELRES_720x576;   break;
+            case VideoResolution::DS_VIDEO_PIXELRES_1280X720:  dsResolution.pixelResolution = dsVIDEO_PIXELRES_1280x720;  break;
+            case VideoResolution::DS_VIDEO_PIXELRES_1920X1080: dsResolution.pixelResolution = dsVIDEO_PIXELRES_1920x1080; break;
+            case VideoResolution::DS_VIDEO_PIXELRES_3840X2160: dsResolution.pixelResolution = dsVIDEO_PIXELRES_3840x2160; break;
+            default:                                            dsResolution.pixelResolution = dsVIDEO_PIXELRES_1920x1080; break;
         }
-        
-        dsResolution.interlaced = resolution.interlaced;
-        // Note: frameRate and aspectRatio conversions would need additional DS API support
-        
+
+        // enum ordinals match between interface and DS HAL for these types
+        dsResolution.aspectRatio      = static_cast<dsVideoAspectRatio_t>(resolution.aspectRatio);
+        dsResolution.stereoScopicMode = static_cast<dsVideoStereoScopicMode_t>(resolution.stereoScopicMode);
+        dsResolution.frameRate        = static_cast<dsVideoFrameRate_t>(resolution.frameRate);
+        dsResolution.interlaced       = resolution.interlaced;
+
         return dsResolution;
     }
 
