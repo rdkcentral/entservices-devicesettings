@@ -359,8 +359,11 @@ public:
             retCode = WPEFramework::Core::ERROR_NONE;
             LOGINFO("GetDisplay: SUCCESS - handle=%d", handle);
         } else {
-            LOGERR("GetDisplay: FAILED - dsGetDisplay error=%d", eError);
-            handle = -1;  // Ensure handle is set to safe value on error
+            if (eError == dsERR_OPERATION_NOT_SUPPORTED)
+                LOGWARN("GetDisplay: not supported for portType=%d (error=%d)", type, eError);
+            else
+                LOGERR("GetDisplay: FAILED - dsGetDisplay error=%d", eError);
+            handle = -1;
         }
         
         int unlock_result = pthread_mutex_unlock(&dsDisplayLock);

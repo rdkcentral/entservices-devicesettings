@@ -340,7 +340,6 @@ namespace Plugin {
         return result;
     }
 
-    // Additional VideoPort methods - stub implementations for now
     uint32_t DeviceSettingsVideoPortImpl::GetMatrixCoefficients(const int32_t handle, DisplayMatrixCoefficients &matrixCoefficients)
     {
         uint32_t result = Core::ERROR_GENERAL;

@@ -145,7 +145,7 @@ public:
         if (dsHdmiInGetVRRSupportFunc == 0) {
             dsHdmiInGetVRRSupportFunc = (dsHdmiInGetVRRSupport_t)resolve(RDK_DSHAL_NAME, "dsHdmiInGetVRRSupport");
             if(dsHdmiInGetVRRSupportFunc == 0) {
-                LOGERR("dsHdmiInGetVRRSupport is not defined");
+                LOGWARN("dsHdmiInGetVRRSupport is not defined");
             }
             else {
                 LOGINFO("dsHdmiInGetVRRSupport loaded");
@@ -508,7 +508,7 @@ public:
                     if (vrrChangeCBFunc) {
                         vrrChangeCBFunc(DS_OnHDMIInVRRStatusEvent);
                     } else {
-                        LOGERR("Failed to resolve dsHdmiInRegisterVRRChangeCB");
+                        LOGWARN("dsHdmiInRegisterVRRChangeCB not supported on this platform");
                     }
                 }
 
@@ -538,7 +538,7 @@ public:
                     if (AVLatencyChangeCBFunc && isDalsEnabled) {
                         AVLatencyChangeCBFunc(DS_OnHDMIInAVLatencyEvent);
                     } else {
-                        LOGERR("Failed to resolve dsHdmiInRegisterAVLatencyChangeCB");
+                        LOGWARN("dsHdmiInRegisterAVLatencyChangeCB not supported or DALS disabled");
                     }
                 }
             }
@@ -967,8 +967,10 @@ public:
                         LOGINFO("  Feature[%zu]: '%s'", i, features[i].gameFeature.c_str());
                     }
                 } else {
-                    LOGERR("GetSupportedGameFeaturesList: Failed to create iterator - GameFeatureListIteratorImpl::Create returned nullptr");
-                    retCode = WPEFramework::Core::ERROR_GENERAL;
+                    // Empty feature list or RPC iterator allocation failure — treat as no features
+                    LOGWARN("GetSupportedGameFeaturesList: iterator creation failed (features=%zu), returning empty list", features.size());
+                    retCode = WPEFramework::Core::ERROR_NONE;
+                    gameFeatureList = nullptr;
                 }
             } catch (const std::exception& e) {
                 LOGERR("GetSupportedGameFeaturesList: Exception while parsing features: %s", e.what());

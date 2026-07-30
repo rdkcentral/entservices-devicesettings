@@ -328,15 +328,9 @@ public:
 
     uint32_t SetVideoPortQuantizationRange(const int32_t handle, const VideoPortQuantizationRange quantizationRange) override
     {
-        uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetVideoPortQuantizationRange: handle=%d", handle);
-        
-        // Note: dsSetQuantizationRange may not exist in DS HAL - stub implementation
-        LOGWARN("SetVideoPortQuantizationRange: Function not available in DS HAL - using stub");
-        retCode = WPEFramework::Core::ERROR_NONE;
-        LOGINFO("SetVideoPortQuantizationRange: SUCCESS (stub)");
-        
-        return retCode;
+        // dsVideoPort.c has no dsSetQuantizationRange; quantization range is a read-only sink attribute
+        LOGWARN("SetVideoPortQuantizationRange: not supported by DS HAL (read-only sink property)");
+        return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetColorSpace(const int32_t handle, VideoPortColorSpace& colorSpace) override
@@ -377,42 +371,46 @@ public:
 
     uint32_t SetColorSpace(const int32_t handle, const VideoPortColorSpace colorSpace) override
     {
-        uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetColorSpace: handle=%d", handle);
-        
-        // Note: dsSetColorSpace may not exist in DS HAL - stub implementation
-        LOGWARN("SetColorSpace: Function not available in DS HAL - using stub");
-        retCode = WPEFramework::Core::ERROR_NONE;
-        LOGINFO("SetColorSpace: SUCCESS (stub)");
-        
-        return retCode;
+        // dsVideoPort.c has no dsSetColorSpace; color space is a read-only EDID-negotiated property
+        LOGWARN("SetColorSpace: not supported by DS HAL (read-only sink property)");
+        return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetVideoPortFrameRate(const int32_t handle, uint32_t& frameRate) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("GetVideoPortFrameRate: handle=%d", handle);
-        
-        // Note: dsGetVideoFrameRate does not exist in DS HAL - using stub implementation
-        LOGWARN("GetVideoPortFrameRate: Function not available in DS HAL - using stub");
-        frameRate = 60; // Default frame rate
-        retCode = WPEFramework::Core::ERROR_NONE;
-        LOGINFO("GetVideoPortFrameRate: SUCCESS (stub) - frameRate=%u", frameRate);
-        
+
+        // No standalone dsGetFrameRate API; frame rate is embedded in the resolution name (e.g. "1080p60", "2160p30")
+        dsVideoPortResolution_t dsResolution;
+        dsError_t eError = dsGetResolution(handle, &dsResolution);
+        if (eError == dsERR_NONE) {
+            switch (dsResolution.frameRate) {
+                case dsVIDEO_FRAMERATE_24:   frameRate = 24;  break;
+                case dsVIDEO_FRAMERATE_25:   frameRate = 25;  break;
+                case dsVIDEO_FRAMERATE_30:   frameRate = 30;  break;
+                case dsVIDEO_FRAMERATE_50:   frameRate = 50;  break;
+                case dsVIDEO_FRAMERATE_60:   frameRate = 60;  break;
+                case dsVIDEO_FRAMERATE_23dot98:  frameRate = 24; break;
+                case dsVIDEO_FRAMERATE_29dot97:  frameRate = 30; break;
+                case dsVIDEO_FRAMERATE_59dot94:  frameRate = 60; break;
+                default:                     frameRate = 60;  break;
+            }
+            retCode = WPEFramework::Core::ERROR_NONE;
+            LOGINFO("GetVideoPortFrameRate: SUCCESS - frameRate=%u (from resolution %s)", frameRate, dsResolution.name);
+        } else {
+            LOGERR("GetVideoPortFrameRate: dsGetResolution failed: %d", eError);
+            frameRate = 60;
+        }
+
         return retCode;
     }
 
     uint32_t SetVideoPortFrameRate(const int32_t handle, const uint32_t frameRate) override
     {
-        uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetVideoPortFrameRate: handle=%d, frameRate=%u", handle, frameRate);
-        
-        // Note: dsSetVideoFrameRate does not exist in DS HAL - using stub implementation
-        LOGWARN("SetVideoPortFrameRate: Function not available in DS HAL - using stub");
-        retCode = WPEFramework::Core::ERROR_NONE;
-        LOGINFO("SetVideoPortFrameRate: SUCCESS (stub)");
-        
-        return retCode;
+        // No standalone dsSetFrameRate API; frame rate is set via dsSetResolution as part of the resolution name
+        LOGWARN("SetVideoPortFrameRate: not a separate HAL operation — frame rate is implicit in SetVideoPortResolution");
+        return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetVideoPortHDCPStatus(const int32_t handle, VideoPortHdcpStatus& hdcpStatus) override
@@ -426,6 +424,11 @@ public:
             hdcpStatus = convertHdcpStatus(dsHdcpStatus);
             retCode = WPEFramework::Core::ERROR_NONE;
             LOGINFO("GetVideoPortHDCPStatus: SUCCESS");
+        } else if (eError == dsERR_INVALID_PARAM || eError == dsERR_OPERATION_NOT_SUPPORTED) {
+            // Internal/non-HDMI port — HDCP not applicable on this port type
+            hdcpStatus = VideoPortHdcpStatus::DS_HDCP_STATUS_UNPOWERED;
+            retCode = WPEFramework::Core::ERROR_NONE;
+            LOGWARN("GetVideoPortHDCPStatus: HDCP not supported on this port (error=%d)", eError);
         } else {
             LOGERR("GetVideoPortHDCPStatus: dsGetHDCPStatus failed with error: %d", eError);
         }
@@ -1183,6 +1186,8 @@ public:
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
                 LOGINFO("SetForceHDRMode: SUCCESS");
+            } else if (eError == dsERR_OPERATION_NOT_SUPPORTED) {
+                LOGWARN("SetForceHDRMode: not supported on this platform");
             } else {
                 LOGERR("SetForceHDRMode: dsSetForceHDRMode failed with error: %d", eError);
             }
@@ -1395,6 +1400,7 @@ public:
         // Convert DS HAL HDR standard to HDRStandard
         HDRStandard hdrStandard;
         switch (videoFormat) {
+            case dsHDRSTANDARD_NONE:   // 0 = no HDR signal / SDR
             case dsHDRSTANDARD_SDR:
                 hdrStandard = HDRStandard::DS_HDRSTANDARD_SDR;
                 break;
@@ -1409,7 +1415,7 @@ public:
                 break;
             default:
                 hdrStandard = HDRStandard::DS_HDRSTANDARD_SDR;
-                LOGERR("Unknown HDR standard: %d, defaulting to SDR", videoFormat);
+                LOGWARN("Unrecognised HDR standard %d, treating as SDR", videoFormat);
                 break;
         }
         

@@ -32,6 +32,7 @@ find_package(WPEFrameworkHelpers REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 find_library(PROCPS_LIBRARIES NAMES procps)
+find_library(OEMHAL_LIBRARIES NAMES ds-hal)
 
 add_library(${MODULE_NAME} SHARED
     Module.cpp

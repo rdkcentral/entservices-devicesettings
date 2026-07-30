@@ -338,41 +338,39 @@ namespace Plugin {
         return result;
     }
 
-    // Stub implementations for compression methods
     Core::hresult DeviceSettingsAudioImpl::GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) {
-        LOGINFO("GetSupportedCompressions: handle=%d - STUB IMPLEMENTATION", handle);
+        LOGINFO("GetSupportedCompressions: handle=%d", handle);
         uint32_t result = _audio.GetSupportedCompressions(handle, compressions);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioCompression(const int32_t handle, AudioCompression &compression) {
-        LOGINFO("GetAudioCompression: handle=%d - STUB IMPLEMENTATION", handle);
+        LOGINFO("GetAudioCompression: handle=%d", handle);
         uint32_t result = _audio.GetAudioCompression(handle, compression);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::SetAudioCompression(const int32_t handle, const AudioCompression compression) {
-        LOGINFO("SetAudioCompression: handle=%d, compression=%d - STUB IMPLEMENTATION", handle, compression);
+        LOGINFO("SetAudioCompression: handle=%d, compression=%d", handle, compression);
         uint32_t result = _audio.SetAudioCompression(handle, compression);
         return result;
     }
 
-    // Additional stub implementations for other methods would go here
     Core::hresult DeviceSettingsAudioImpl::GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) {
-        LOGINFO("GetMS12Capabilities: handle=%d - STUB IMPLEMENTATION", handle);
-        uint32_t result = WPEFramework::Core::ERROR_GENERAL;
+        LOGINFO("GetMS12Capabilities: handle=%d", handle);
+        uint32_t result = _audio.GetMS12Capabilities(handle, compressions);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetStereoAuto(const int32_t handle, int32_t &mode) {
-        LOGINFO("GetStereoAuto: handle=%d - STUB IMPLEMENTATION", handle);
-        uint32_t result = WPEFramework::Core::ERROR_GENERAL;
+        LOGINFO("GetStereoAuto: handle=%d", handle);
+        uint32_t result = _audio.GetStereoAuto(handle, mode);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::SetStereoAuto(const int32_t handle, const int32_t mode, const bool persist) {
-        LOGINFO("SetStereoAuto: handle=%d, mode=%d, persist=%s - STUB IMPLEMENTATION", handle, mode, persist ? "true" : "false");
-        uint32_t result = WPEFramework::Core::ERROR_GENERAL;
+        LOGINFO("SetStereoAuto: handle=%d, mode=%d, persist=%s", handle, mode, persist ? "true" : "false");
+        uint32_t result = _audio.SetStereoAuto(handle, mode, persist);
         return result;
     }
 

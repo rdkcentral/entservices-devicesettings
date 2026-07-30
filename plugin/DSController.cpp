@@ -345,7 +345,8 @@ namespace Plugin {
             VideoPortType vpType = static_cast<VideoPortType>(port);
             uint32_t result = _deviceSettings->GetVideoPort(vpType, 0, handle);
             if (result != Core::ERROR_NONE) {
-                LOGERR("GetVideoPortHandle: Failed to get handle for port type %d", port);
+                // INVALID_PARAM for unconfigured ports (e.g. COMPONENT on TV) is expected
+                LOGWARN("GetVideoPortHandle: port type %d not available (result=%u)", port, result);
                 handle = 0;
             }
         } else {

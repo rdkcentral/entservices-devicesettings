@@ -261,7 +261,10 @@ private:
                 LOGINFO("Audio delay set successfully: handle=%ld, delay=%u", (long)handle, audioDelay);
                 return true;
             } else {
-                LOGERR("dsSetAudioDelay failed with error: %d", ret);
+                if (ret == dsERR_OPERATION_NOT_SUPPORTED)
+                    LOGWARN("dsSetAudioDelay not supported for this port (error=%d)", ret);
+                else
+                    LOGERR("dsSetAudioDelay failed with error: %d", ret);
                 return false;
             }
         } catch (...) {
@@ -410,7 +413,6 @@ public:
         }
     }
 
-    // Audio Platform interface implementations - stub implementations
     // IPlatform interface implementation
     uint32_t GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) override {
         ENTRY_LOG;
@@ -429,7 +431,10 @@ public:
                 handle = static_cast<int32_t>(dsHandle);
                 LOGINFO("GetAudioPort success: type=%d, index=%d, handle=%d", type, index, handle);
             } else {
-                LOGERR("dsGetAudioPort failed with error: %d", ret);
+                if (ret == dsERR_OPERATION_NOT_SUPPORTED)
+                    LOGWARN("GetAudioPort: port type=%d not supported on this platform (error=%d)", type, ret);
+                else
+                    LOGERR("dsGetAudioPort failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
@@ -558,10 +563,33 @@ public:
         }
 
         try {
-            // Stub implementation - dsGetAudioEncoding function does not exist in HAL
-            LOGINFO("GetAudioEncoding - Stub implementation for handle=%d", handle);
-            encoding = AudioEncoding::AUDIO_ENCODING_PCM; // Default to PCM encoding
-            LOGINFO("GetAudioEncoding success: handle=%d, encoding=%d", handle, static_cast<int>(encoding));
+            // No dsGetAudioEncoding HAL API exists; encoding is derived from stereo mode (mirrors dsAudio.c _dsGetEncoding)
+            dsAudioStereoMode_t stereoMode = dsAUDIO_STEREO_UNKNOWN;
+            dsError_t ret = dsGetStereoMode(static_cast<intptr_t>(handle), &stereoMode);
+            if (ret != dsERR_NONE) {
+                LOGERR("GetAudioEncoding: dsGetStereoMode failed: %d", ret);
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            switch (stereoMode) {
+                case dsAUDIO_STEREO_STEREO:
+                    encoding = AudioEncoding::AUDIO_ENCODING_PCM;
+                    break;
+                case dsAUDIO_STEREO_DD:
+                    encoding = AudioEncoding::AUDIO_ENCODING_AC3;
+                    break;
+                case dsAUDIO_STEREO_DDPLUS:
+                    encoding = AudioEncoding::AUDIO_ENCODING_EAC3;
+                    break;
+                case dsAUDIO_STEREO_SURROUND:
+                case dsAUDIO_STEREO_PASSTHRU:
+                    encoding = AudioEncoding::AUDIO_ENCODING_DISPLAY;
+                    break;
+                case dsAUDIO_STEREO_UNKNOWN:
+                default:
+                    encoding = AudioEncoding::AUDIO_ENCODING_NONE;
+                    break;
+            }
+            LOGINFO("GetAudioEncoding: handle=%d stereoMode=%d encoding=%d", handle, stereoMode, static_cast<int>(encoding));
         } catch (...) {
             LOGERR("Exception in GetAudioEncoding");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -1215,7 +1243,10 @@ public:
                 // Notify about audio mode change
                 notifyAudioModeChanged(portType, mode);
             } else {
-                LOGERR("dsSetStereoMode failed with error: %d", ret);
+                if (ret == dsERR_OPERATION_NOT_SUPPORTED)
+                    LOGWARN("dsSetStereoMode not supported on this port (error=%d)", ret);
+                else
+                    LOGERR("dsSetStereoMode failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {

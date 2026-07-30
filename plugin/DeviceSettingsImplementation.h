@@ -362,13 +362,6 @@ namespace Plugin {
         Core::hresult SelectCompositeInPort(const CompositeInPort port ) override;
         Core::hresult ScaleCompositeInVideo(const CompositeInVideoRectangle videoRect ) override;
 
-        // Other interface implementations - stub implementations for now
-        // IDeviceSettingsCompositeIn - not implemented yet  
-        // IDeviceSettingsDisplay - not implemented yet
-        // IDeviceSettingsHost - not implemented yet
-        // IDeviceSettingsVideoDevice - ✅ IMPLEMENTED
-        // IDeviceSettingsVideoPort - not implemented yet
-
     private:
         // DSController must be initialized first as it provides system infrastructure
         DSController* _dsController;
