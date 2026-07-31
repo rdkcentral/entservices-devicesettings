@@ -235,7 +235,22 @@ namespace Plugin {
     uint32_t DeviceSettingsVideoPortImpl::SetVideoPortResolution(const int32_t handle, const VideoPortResolution resolution, const bool persist, const bool forceCompatibility)
     {
         uint32_t result = Core::ERROR_GENERAL;
-        result = _videoPort.SetVideoPortResolution(handle, resolution, persist, forceCompatibility);
+
+        // Callers (e.g. DisplaySettings) may supply only the name with other fields uninitialised.
+        // Look up the full params from the HAL-populated cache before passing to the HAL layer.
+        VideoPortResolution resolvedResolution = resolution;
+        if (!resolution.name.empty()) {
+            _apiLock.Lock();
+            for (const auto& cached : _cachedVideoPortResolutions) {
+                if (cached.name == resolution.name) {
+                    resolvedResolution = cached;
+                    break;
+                }
+            }
+            _apiLock.Unlock();
+        }
+
+        result = _videoPort.SetVideoPortResolution(handle, resolvedResolution, persist, forceCompatibility);
         if (result == Core::ERROR_NONE) {
             LOGINFO("SetVideoPortResolution succeeded for handle: %d, persist: %s, forceCompatibility: %s", handle, persist ? "true" : "false", forceCompatibility ? "true" : "false");
         } else {

@@ -831,12 +831,12 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("SetVideoPortResolution: handle=%d, persist=%s, forceCompatibility=%s", handle, persist ? "true" : "false", forceCompatibility ? "true" : "false");
-        
+
         dsVideoPortResolution_t dsResolution = convertVideoPortResolution(resolution);
-        
+
         // Trigger resolution pre-change callback
         VideoPortPreResolutionChange(&dsResolution);
-        
+
         dsError_t eError = dsSetResolution(handle, &dsResolution);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
@@ -1366,6 +1366,9 @@ public:
         // Convert DS HAL HDCP status to VideoPortHdcpStatus
         VideoPortHdcpStatus hdcpStatus;
         switch (status) {
+            case dsHDCP_STATUS_UNPOWERED:
+                hdcpStatus = VideoPortHdcpStatus::DS_HDCP_STATUS_UNPOWERED;
+                break;
             case dsHDCP_STATUS_UNAUTHENTICATED:
                 hdcpStatus = VideoPortHdcpStatus::DS_HDCP_STATUS_UNAUTHENTICATED;
                 break;
@@ -1383,7 +1386,7 @@ public:
                 break;
             default:
                 hdcpStatus = VideoPortHdcpStatus::DS_HDCP_STATUS_UNAUTHENTICATED;
-                LOGERR("Unknown HDCP status: %d, defaulting to unauthenticated", status);
+                LOGWARN("VideoPortHDCPStatusCallback: unknown HDCP status %d, defaulting to unauthenticated", status);
                 break;
         }
         

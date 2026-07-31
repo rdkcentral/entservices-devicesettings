@@ -306,7 +306,6 @@ void DSPwrEventListener::InitializePowerManager()
     if (Core::ERROR_NONE == retStatus) {
         _curState = pwrStateCur;
         LOGINFO("InitializePowerManager - Current power state: %d", _curState);
-        PwrControllerFetchNinitStateValues();
     } else {
         LOGERR("InitializePowerManager - Failed to get power state");
     }
@@ -362,11 +361,17 @@ void DSPwrEventListener::PwrCtrlEstablishConnection()
 void DSPwrEventListener::PwrControllerFetchNinitStateValues()
 {
     LOGINFO("DSPwrEventListener::PwrControllerFetchNinitStateValues");
-    
+
     PowerState powerStateBeforeReboot = PowerState::POWER_STATE_STANDBY;
+    if (_powerManagerPlugin) {
+        Core::hresult retStatus = _powerManagerPlugin->GetPowerStateBeforeReboot(powerStateBeforeReboot);
+        if (Core::ERROR_NONE != retStatus) {
+            LOGERR("GetPowerStateBeforeReboot failed, defaulting to STANDBY");
+        }
+    }
 
     // Note: _curState is already set in InitializePowerManager from GetPowerState
-    LOGINFO("Current Power State: %d", _curState);
+    LOGINFO("Current Power State: %d, Power State Before Reboot: %d", _curState, powerStateBeforeReboot);
 
     if (nullptr != ux) {
         ux->ApplyPostRebootConfig(_curState, powerStateBeforeReboot);
