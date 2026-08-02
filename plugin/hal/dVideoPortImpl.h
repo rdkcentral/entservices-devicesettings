@@ -1717,13 +1717,19 @@ private:
                 break;
         }
 
-        resolution.aspectRatio = VideoAspectRatio::DS_VIDEO_ASPECT_RATIO_16X9;
-        resolution.stereoScopicMode = VideoStereoScopicMode::DS_VIDEO_SSMODE_2D;
-        resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_60;
+        // aspectRatio, stereoScopicMode, frameRate enums align between DS HAL and WPE interface
+        resolution.aspectRatio      = static_cast<VideoAspectRatio>(dsResolution.aspectRatio);
+        resolution.stereoScopicMode = static_cast<VideoStereoScopicMode>(dsResolution.stereoScopicMode);
+        // DS HAL may have extra frameRate values (59fps=15, 23fps=16) beyond WPE MAX=15; clamp to UNKNOWN
+        resolution.frameRate = (dsResolution.frameRate < dsVIDEO_FRAMERATE_MAX &&
+                                static_cast<int>(dsResolution.frameRate) < static_cast<int>(VideoFrameRate::DS_VIDEO_FRAMERATE_MAX))
+                               ? static_cast<VideoFrameRate>(dsResolution.frameRate)
+                               : VideoFrameRate::DS_VIDEO_FRAMERATE_UNKNOWN;
         resolution.interlaced = dsResolution.interlaced;
 
-        LOGINFO("convertVideoPortResolution: name='%s', pixelRes=%d, interlaced=%d",
-                resolution.name.c_str(), static_cast<int>(resolution.pixelResolution), resolution.interlaced);
+        LOGINFO("convertVideoPortResolution: name='%s', pixelRes=%d, frameRate=%d, interlaced=%d",
+                resolution.name.c_str(), static_cast<int>(resolution.pixelResolution),
+                static_cast<int>(resolution.frameRate), resolution.interlaced);
         return resolution;
     }
 
