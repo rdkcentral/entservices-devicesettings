@@ -20,6 +20,7 @@
 #include "DeviceSettingsVideoPortImplementation.h"
 
 #include <syscall.h>
+#include <set>
 #include <vector>
 
 using namespace std;
@@ -241,6 +242,22 @@ namespace Plugin {
         VideoPortResolution resolvedResolution = resolution;
         if (!resolution.name.empty()) {
             _apiLock.Lock();
+            // Lazy one-time population to avoid cost at plugin activation.
+            if (_cachedVideoPortResolutions.empty()) {
+                std::set<std::string> seen;
+                for (int t = static_cast<int>(VideoPortType::DS_VIDEO_PORT_TYPE_RF);
+                     t < static_cast<int>(VideoPortType::DS_VIDEO_PORT_TYPE_MAX); ++t) {
+                    std::vector<VideoPortResolution> tmp;
+                    DeviceSettingsHAL::PopulateVideoPortResolutionConfig(
+                        static_cast<VideoPortType>(t), tmp);
+                    for (const auto& r : tmp) {
+                        if (seen.insert(r.name).second)
+                            _cachedVideoPortResolutions.push_back(r);
+                    }
+                }
+                LOGINFO("SetVideoPortResolution: lazily cached %zu resolutions from HAL",
+                        _cachedVideoPortResolutions.size());
+            }
             for (const auto& cached : _cachedVideoPortResolutions) {
                 if (cached.name == resolution.name) {
                     resolvedResolution = cached;

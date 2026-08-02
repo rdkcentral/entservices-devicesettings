@@ -1526,10 +1526,9 @@ public:
             LOGERR("VideoPortPostResolutionChange: Invalid resolution parameter");
             return;
         }
-        
+
         LOGINFO("VideoPortPostResolutionChange: pixelResolution=%d", resolution->pixelResolution);
-        
-        // Convert dsVideoPortResolution_t to ResolutionChange structure - based on dsVideoPort.c
+
         ResolutionChange resolutionChange;
         switch(resolution->pixelResolution) {
             case dsVIDEO_PIXELRES_720x480:
@@ -1566,14 +1565,13 @@ public:
                 LOGERR("Unknown pixel resolution: %d, defaulting to 720p", resolution->pixelResolution);
                 break;
         }
-        
+
         // Call the stored global callback if available
         if (g_VideoPortResolutionPostChangeCallback) {
             g_VideoPortResolutionPostChangeCallback(resolutionChange);
         }
     }
 
-    // Helper function to convert DS resolution to ResolutionChange structure
     static void convertDSResolutionToResolutionChange(dsVideoPortResolution_t* dsResolution, ResolutionChange& resolutionChange)
     {
         // Convert pixel resolution to width/height based on dsVideoPort.c pattern
