@@ -21,6 +21,8 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <mutex>
+#include <unistd.h>
 #include "dFPD.h"
 #include "dsHdmiIn.h"
 #include "dsError.h"
@@ -35,6 +37,7 @@
 
 static int fpd_isInitialized = 0;
 static int fpd_isPlatInitialized = 0;
+static std::mutex fpd_initMutex;
 
 /** Structure that defines internal data base for the FP */
 typedef struct _dsFPDSettings_t_
@@ -87,82 +90,91 @@ public:
             fpd_isInitialized = 1;
 
         }
-
-        if (!fpd_isPlatInitialized) {
-            LOGINFO("InitialiseHAL <dsFPD>");
-            dsError_t eError = dsFPInit();
-            if (dsERR_NONE != eError) {
-                LOGERR("InitialiseHAL: dsFPInit failed with error: %d", eError);
-                return;
-            }
-            LOGINFO("InitialiseHAL: dsFPInit succeeded");
-            fpd_isPlatInitialized = 1;
-
-            /* Load FPD persistence — mirrors dsFPDMgr_init() in dsFPD.c.
-             * Reads Power.brightness, Text.brightness and Power.Color so that
-             * _dsPowerBrightness/_dsPowerLedColor are correct before any
-             * SetFPDState call tries to use them. */
-            try {
-                int maxBrightness = dsFPD_BRIGHTNESS_DEFAULT;
-                std::string value;
-
-                try {
-                    value = device::HostPersistence::getInstance().getProperty("Power.brightness");
-                } catch (...) {
-                    value = std::to_string(maxBrightness);
-                    device::HostPersistence::getInstance().persistHostProperty("Power.brightness", value);
-                }
-                _dsPowerBrightness = static_cast<dsFPDBrightness_t>(atoi(value.c_str()));
-
-                try {
-                    value = device::HostPersistence::getInstance().getProperty("Text.brightness");
-                } catch (...) {
-                    value = std::to_string(maxBrightness);
-                    device::HostPersistence::getInstance().persistHostProperty("Text.brightness", value);
-                }
-                _dsTextBrightness = static_cast<dsFPDBrightness_t>(atoi(value.c_str()));
-
-#if (dsFPD_BRIGHTNESS_DEFAULT != dsFPD_BRIGHTNESS_MAX)
-                /* If a non-MAX default is set and the persisted value is still MAX,
-                 * update to the new default — matches dsFPD.c logic. */
-                if (_dsPowerBrightness == dsFPD_BRIGHTNESS_MAX) {
-                    _dsPowerBrightness = dsFPD_BRIGHTNESS_DEFAULT;
-                }
-                if (_dsTextBrightness == dsFPD_BRIGHTNESS_MAX) {
-                    _dsTextBrightness = dsFPD_BRIGHTNESS_DEFAULT;
-                }
-#endif
-
-                /* Load Power LED color from persistence */
-                std::string colorStr;
-                try {
-                    colorStr = device::HostPersistence::getInstance().getProperty("Power.Color");
-                } catch (...) {
-                    colorStr = "BLUE";
-                }
-                if      (colorStr == "GREEN")  _dsPowerLedColor = dsFPD_COLOR_GREEN;
-                else if (colorStr == "RED")    _dsPowerLedColor = dsFPD_COLOR_RED;
-                else if (colorStr == "YELLOW") _dsPowerLedColor = dsFPD_COLOR_YELLOW;
-                else if (colorStr == "ORANGE") _dsPowerLedColor = dsFPD_COLOR_ORANGE;
-                else                           _dsPowerLedColor = dsFPD_COLOR_BLUE;
-
-                LOGINFO("InitialiseHAL: Power.brightness=%d Text.brightness=%d Power.Color=%s",
-                        _dsPowerBrightness, _dsTextBrightness, colorStr.c_str());
-            } catch (...) {
-                LOGERR("InitialiseHAL: Error reading FPD persistence, using defaults");
-            }
-        }
+        // HAL dsFPInit() is deferred to first use via EnsurePlatInit()
     }
 
     void DeInitialiseHAL()
     {
         LOGINFO("DeInitialiseHAL");
+        std::lock_guard<std::mutex> lock(fpd_initMutex);
         if (fpd_isPlatInitialized)
         {
             dsFPTerm();
             fpd_isPlatInitialized = 0;
         }
         fpd_isInitialized = 0;
+    }
+
+    // Mirrors FrontPanelConfig::getInstance(): retry dsFPInit() up to 20 times on first HAL use.
+    bool EnsurePlatInit()
+    {
+        std::lock_guard<std::mutex> lock(fpd_initMutex);
+        if (fpd_isPlatInitialized)
+            return true;
+
+        dsError_t errorCode = dsERR_NONE;
+        unsigned int retryCount = 1;
+        do {
+            errorCode = dsFPInit();
+            if (dsERR_NONE == errorCode) {
+                fpd_isPlatInitialized = 1;
+                LOGINFO("EnsurePlatInit: dsFPInit succeeded");
+            } else {
+                LOGERR("EnsurePlatInit: dsFPInit failed with error[%d]. Retrying... (%d/20)", errorCode, retryCount);
+                usleep(50000);
+            }
+        } while ((!fpd_isPlatInitialized) && (retryCount++ < 20));
+
+        if (!fpd_isPlatInitialized) {
+            LOGERR("EnsurePlatInit: dsFPInit failed after 20 retries");
+            return false;
+        }
+
+        try {
+            int maxBrightness = dsFPD_BRIGHTNESS_DEFAULT;
+            std::string value;
+
+            try {
+                value = device::HostPersistence::getInstance().getProperty("Power.brightness");
+            } catch (...) {
+                value = std::to_string(maxBrightness);
+                device::HostPersistence::getInstance().persistHostProperty("Power.brightness", value);
+            }
+            _dsPowerBrightness = static_cast<dsFPDBrightness_t>(atoi(value.c_str()));
+
+            try {
+                value = device::HostPersistence::getInstance().getProperty("Text.brightness");
+            } catch (...) {
+                value = std::to_string(maxBrightness);
+                device::HostPersistence::getInstance().persistHostProperty("Text.brightness", value);
+            }
+            _dsTextBrightness = static_cast<dsFPDBrightness_t>(atoi(value.c_str()));
+
+#if (dsFPD_BRIGHTNESS_DEFAULT != dsFPD_BRIGHTNESS_MAX)
+            if (_dsPowerBrightness == dsFPD_BRIGHTNESS_MAX)
+                _dsPowerBrightness = dsFPD_BRIGHTNESS_DEFAULT;
+            if (_dsTextBrightness == dsFPD_BRIGHTNESS_MAX)
+                _dsTextBrightness = dsFPD_BRIGHTNESS_DEFAULT;
+#endif
+
+            std::string colorStr;
+            try {
+                colorStr = device::HostPersistence::getInstance().getProperty("Power.Color");
+            } catch (...) {
+                colorStr = "BLUE";
+            }
+            if      (colorStr == "GREEN")  _dsPowerLedColor = dsFPD_COLOR_GREEN;
+            else if (colorStr == "RED")    _dsPowerLedColor = dsFPD_COLOR_RED;
+            else if (colorStr == "YELLOW") _dsPowerLedColor = dsFPD_COLOR_YELLOW;
+            else if (colorStr == "ORANGE") _dsPowerLedColor = dsFPD_COLOR_ORANGE;
+            else                           _dsPowerLedColor = dsFPD_COLOR_BLUE;
+
+            LOGINFO("EnsurePlatInit: Power.brightness=%d Text.brightness=%d Power.Color=%s",
+                    _dsPowerBrightness, _dsTextBrightness, colorStr.c_str());
+        } catch (...) {
+            LOGERR("EnsurePlatInit: Error reading FPD persistence, using defaults");
+        }
+        return true;
     }
 
     // Implementation of all FPD Platform interface methods
@@ -197,6 +209,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("SetFPDBrightness: indicator %d, brightNess %d, persist %d", static_cast<int>(indicator), brightNess, persist);
+        if (!EnsurePlatInit()) {
+            LOGERR("SetFPDBrightness: FPD HAL not initialised");
+            return retCode;
+        }
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX && brightNess <= dsFPD_BRIGHTNESS_MAX) {
             dsError_t eError = dsSetFPBrightness(static_cast<dsFPDIndicator_t>(indicator), static_cast<dsFPDBrightness_t>(brightNess));
@@ -234,6 +250,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("GetFPDBrightness: indicator %d", static_cast<int>(indicator));
+        if (!EnsurePlatInit()) {
+            LOGERR("GetFPDBrightness: FPD HAL not initialised");
+            return retCode;
+        }
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX) {
             dsFPDBrightness_t halBrightness = 0;
@@ -260,6 +280,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("SetFPDState: indicator %d, state %d", static_cast<int>(indicator), static_cast<int>(state));
+        if (!EnsurePlatInit()) {
+            LOGERR("SetFPDState: FPD HAL not initialised");
+            return retCode;
+        }
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX) {
             dsError_t eError = dsERR_NONE;
@@ -295,6 +319,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("GetFPDState: indicator %d", static_cast<int>(indicator));
+        if (!EnsurePlatInit()) {
+            LOGERR("GetFPDState: FPD HAL not initialised");
+            return retCode;
+        }
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX) {
             // Match RPC layer approach - read from internal cache instead of hardware call
@@ -311,6 +339,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("GetFPDColor: indicator %d", static_cast<int>(indicator));
+        if (!EnsurePlatInit()) {
+            LOGERR("GetFPDColor: FPD HAL not initialised");
+            return retCode;
+        }
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX) {
             dsFPDColor_t halColor = 0;
@@ -338,6 +370,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("SetFPDColor: indicator %d, color %d", static_cast<int>(indicator), color);
+        if (!EnsurePlatInit()) {
+            LOGERR("SetFPDColor: FPD HAL not initialised");
+            return retCode;
+        }
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX && dsFPDColor_isValid(color)) {
             dsError_t eError = dsSetFPColor(static_cast<dsFPDIndicator_t>(indicator), static_cast<dsFPDColor_t>(color));
