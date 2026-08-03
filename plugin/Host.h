@@ -40,32 +40,17 @@ class Host {
     std::shared_ptr<IPlatform> _platform;
 
 public:
+    Host(std::shared_ptr<IPlatform> platform = nullptr);
 
-    struct INotification {
-        virtual ~INotification() {}
-        virtual void OnSleepModeChanged(const HostSleepMode sleepMode) = 0;
-    };
+    static Host Create();
 
-    Host(INotification& parent, std::shared_ptr<IPlatform> platform = nullptr);
-
-    static Host Create(INotification& parent);
-
-    // Allow copying and moving to match VideoPort pattern
     Host(const Host&) = default;
     Host& operator=(const Host&) = default;
     Host(Host&&) = default;
     Host& operator=(Host&&) = default;
 
-    uint32_t GetPreferredSleepMode(HostSleepMode &mode);
-    uint32_t SetPreferredSleepMode(const HostSleepMode mode);
-    uint32_t GetCPUTemperature(float &temperature);
-    uint32_t GetHALVersion(uint32_t &versionNo);
-    uint32_t GetSoCID(string &socID);
     uint32_t GetEDID(uint8_t edId[], const uint16_t edIdLength);
     uint32_t GetMS12ConfigType(string &ms12Config);
-
-    // Host event handlers - called by DS HAL to forward events to parent
-    void OnSleepModeChanged(const HostSleepMode sleepMode);
 
     IPlatform& platform() { return *_platform; }
 
@@ -73,8 +58,5 @@ private:
     void Platform_init();
 
 public:
-    /** Deferred HAL init — called from DeviceSettingsImp::Configure() */
     void InitialiseHAL() { std::static_pointer_cast<DefaultImpl>(_platform)->InitialiseHAL(); }
-
-    INotification& _parent;
 };

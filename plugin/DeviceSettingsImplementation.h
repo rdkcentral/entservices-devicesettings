@@ -324,14 +324,6 @@ namespace Plugin {
         //=========================================================================
         // IDeviceSettingsHost interface methods
         //=========================================================================
-        Core::hresult Register(Exchange::IDeviceSettingsHost::INotification* notification ) override;
-        Core::hresult Unregister(Exchange::IDeviceSettingsHost::INotification* notification ) override;
-        
-        Core::hresult GetPreferredSleepMode(Exchange::IDeviceSettingsHost::SleepMode &mode /* @out */) override;
-        Core::hresult SetPreferredSleepMode(const Exchange::IDeviceSettingsHost::SleepMode mode ) override;
-        Core::hresult GetCPUTemperature(float &temperature /* @out */) override;
-        Core::hresult GetHALVersion(uint32_t &versionNo /* @out */) override;
-        Core::hresult GetSOCID(string &socID /* @out */) override;
         Core::hresult GetEDID(uint8_t edId[] /* @out @length:edIdLength @maxlength:edIdLength */, const uint16_t edIdLength ) override;
         Core::hresult GetMS12ConfigType(string &ms12Config /* @out */) override;
         

@@ -43,12 +43,7 @@ namespace dHost {
         virtual void setAllCallbacks(const CallbackBundle& bundle) = 0;
         virtual void getPersistenceValue() = 0;
 
-        // Host Platform interface methods - all pure virtual
-        virtual uint32_t GetPreferredSleepMode(HostSleepMode &mode) = 0;
-        virtual uint32_t SetPreferredSleepMode(const HostSleepMode mode) = 0;
-        virtual uint32_t GetCPUTemperature(float &temperature) = 0;
-        virtual uint32_t GetHALVersion(uint32_t &versionNo) = 0;
-        virtual uint32_t GetSoCID(string &socID) = 0;
+        // Host Platform interface methods - only what remains in IDeviceSettingsHost
         virtual uint32_t GetEDID(uint8_t edId[], const uint16_t edIdLength) = 0;
         virtual uint32_t GetMS12ConfigType(string &ms12Config) = 0;
 

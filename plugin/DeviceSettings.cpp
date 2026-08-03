@@ -198,12 +198,6 @@ namespace Plugin
                     LOGINFO("Registered for VideoDevice event notifications");
                 }
                 
-                // Register for Host event notifications
-                if (_mDeviceSettingsHost != nullptr) {
-                    _mDeviceSettingsHost->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHost::INotification>());
-                    LOGINFO("Registered for Host event notifications");
-                }
-                
                 // Register for CompositeIn event notifications
                 if (_mDeviceSettingsCompositeIn != nullptr) {
                     _mDeviceSettingsCompositeIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
@@ -302,12 +296,6 @@ namespace Plugin
                     LOGINFO("Registered for VideoDevice event notifications");
                 }
                 
-                // Register for Host event notifications
-                if (_mDeviceSettingsHost != nullptr) {
-                    _mDeviceSettingsHost->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHost::INotification>());
-                    LOGINFO("Registered for Host event notifications");
-                }
-                
                 // Register for CompositeIn event notifications
                 if (_mDeviceSettingsCompositeIn != nullptr) {
                     _mDeviceSettingsCompositeIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
@@ -353,11 +341,6 @@ namespace Plugin
             if (_mDeviceSettingsVideoDevice != nullptr) {
                 _mDeviceSettingsVideoDevice->Unregister(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
                 LOGINFO("Unregistered from VideoDevice event notifications");
-            }
-            
-            if (_mDeviceSettingsHost != nullptr) {
-                _mDeviceSettingsHost->Unregister(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHost::INotification>());
-                LOGINFO("Unregistered from Host event notifications");
             }
             
             if (_mDeviceSettingsCompositeIn != nullptr) {

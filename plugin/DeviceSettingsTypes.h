@@ -229,19 +229,6 @@ using VideoDeviceCodecProfileSupport = DeviceSettingsVideoDevice::VideoCodecProf
 using VideoDeviceConfigInfo = DeviceSettingsVideoDevice::VideoDeviceConfigInfo;
 using IDeviceSettingsVideoCodecProfileSupportIterator = DeviceSettingsVideoDevice::IDeviceSettingsVideoCodecProfileSupportIterator;
 
-// Host type aliases for convenience
-using HostSleepMode = DeviceSettingsHost::SleepMode;
-
-// Local copy of the legacy DS RPC sleep mode enum used by the host HAL.
-typedef enum _dsSleepMode_t {
-    dsHOST_SLEEP_MODE_LIGHT,
-    dsHOST_SLEEP_MODE_DEEP,
-    dsHOST_SLEEP_MODE_MAX,
-} dsSleepMode_t;
-
-// Backward-compatible alias used by existing plugin code.
-typedef dsSleepMode_t SleepMode;
-
 // Legacy DSMGR/RPC compatibility definitions used by DSController and DSPwrEventListener.
 #ifndef DSMGR_MAX_VIDEO_PORT_NAME_LENGTH
 #define DSMGR_MAX_VIDEO_PORT_NAME_LENGTH 16
@@ -646,10 +633,7 @@ struct CallbackBundle {
     std::function<void(const VideoDeviceZoom)> OnZoomSettingsChanged;
     std::function<void(const std::string&)> OnDisplayFrameratePreChange;
     std::function<void(const std::string&)> OnDisplayFrameratePostChange;
-    
-    // Host callbacks
-    std::function<void(const HostSleepMode)> OnSleepModeChanged;
-    
+
     // Audio callbacks
     std::function<void(AudioPortType, uint32_t, bool)> OnAudioOutHotPlug;
     std::function<void(AudioFormat)> OnAudioFormatUpdate;

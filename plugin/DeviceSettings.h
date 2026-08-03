@@ -50,7 +50,6 @@ namespace Plugin {
                                   , public DeviceSettingsFPD::INotification
                                   , public DeviceSettingsDisplay::INotification
                                   , public DeviceSettingsHDMIIn::INotification
-                                  , public DeviceSettingsHost::INotification
                                   , public DeviceSettingsVideoPort::INotification
                                   , public DeviceSettingsVideoDevice::INotification
             {
@@ -83,7 +82,6 @@ namespace Plugin {
             INTERFACE_ENTRY(DeviceSettingsFPD::INotification)
             INTERFACE_ENTRY(DeviceSettingsDisplay::INotification)
             INTERFACE_ENTRY(DeviceSettingsHDMIIn::INotification)
-            INTERFACE_ENTRY(DeviceSettingsHost::INotification)
             INTERFACE_ENTRY(DeviceSettingsVideoPort::INotification)
             INTERFACE_ENTRY(DeviceSettingsVideoDevice::INotification)
             INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
@@ -262,12 +260,6 @@ namespace Plugin {
             void OnDisplayFrameratePostChange(const string& frameRate) override
             {
                 LOGINFO("OnDisplayFrameratePostChange: frameRate=%s", frameRate.c_str());
-            }
-
-            // Host notification handlers
-            void OnSleepModeChanged(const Exchange::IDeviceSettingsHost::SleepMode sleepMode) override
-            {
-                LOGINFO("OnSleepModeChanged: sleepMode=%d", static_cast<int>(sleepMode));
             }
 
         private:

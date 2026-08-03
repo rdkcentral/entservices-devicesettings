@@ -1036,39 +1036,6 @@ namespace Plugin {
     // ============================================================================
     // IDeviceSettingsHost interface implementation - delegate to _hostSettings interface
     // ============================================================================
-    
-    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsHost::INotification* notification) {
-        DELEGATE_TO_COMPONENT(_hostSettings, Register, notification)
-    }
-
-    Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsHost::INotification* notification) {
-        DELEGATE_TO_COMPONENT(_hostSettings, Unregister, notification)
-    }
-
-    Core::hresult DeviceSettingsImp::GetPreferredSleepMode(Exchange::IDeviceSettingsHost::SleepMode &mode) {
-        HostSleepMode internalMode;
-        Core::hresult result = _hostSettings ? _hostSettings->GetPreferredSleepMode(internalMode) : Core::ERROR_GENERAL;
-        if (result == Core::ERROR_NONE) {
-            mode = static_cast<Exchange::IDeviceSettingsHost::SleepMode>(internalMode);
-        }
-        return result;
-    }
-
-    Core::hresult DeviceSettingsImp::SetPreferredSleepMode(const Exchange::IDeviceSettingsHost::SleepMode mode) {
-        return _hostSettings ? _hostSettings->SetPreferredSleepMode(static_cast<HostSleepMode>(mode)) : Core::ERROR_GENERAL;
-    }
-
-    Core::hresult DeviceSettingsImp::GetCPUTemperature(float &temperature) {
-        DELEGATE_TO_COMPONENT(_hostSettings, GetCPUTemperature, temperature)
-    }
-
-    Core::hresult DeviceSettingsImp::GetHALVersion(uint32_t &versionNo) {
-        DELEGATE_TO_COMPONENT(_hostSettings, GetHALVersion, versionNo)
-    }
-
-    Core::hresult DeviceSettingsImp::GetSOCID(string &socID) {
-        DELEGATE_TO_COMPONENT(_hostSettings, GetSoCID, socID)
-    }
 
     Core::hresult DeviceSettingsImp::GetEDID(uint8_t edId[], const uint16_t edIdLength) {
         DELEGATE_TO_COMPONENT(_hostSettings, GetEDID, edId, edIdLength)
