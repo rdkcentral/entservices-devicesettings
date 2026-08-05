@@ -378,7 +378,7 @@ void DSPwrEventListener::PwrControllerFetchNinitStateValues()
     }
 
     if (nullptr == ux) {
-#ifndef DISABLE_LED_SYNC_IN_BOOTUP
+#ifdef ENABLE_LED_SYNC_IN_BOOTUP
         SetLEDStatus(_curState);
 #endif
         SetAVPortsPowerState(_curState);
@@ -393,7 +393,7 @@ void DSPwrEventListener::HandlePwrEventData(const PowerState currentState,
     if (nullptr != ux) {
         ux->ApplyPowerStateChangeConfig(newState, currentState);
     } else {
-#ifndef DISABLE_LED_SYNC_IN_BOOTUP
+#ifdef ENABLE_LED_SYNC_IN_BOOTUP
         SetLEDStatus(newState);
 #endif
         SetAVPortsPowerState(newState);

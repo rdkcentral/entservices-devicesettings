@@ -140,7 +140,7 @@ void UXController::InitializeSafeDefaults()
         _ledEnabledInOnState = true;
     } else {
         _ledEnabledInStandby = true;
-        _ledEnabledInOnState = true;
+        _ledEnabledInOnState = false;
     }
 }
 
@@ -431,12 +431,14 @@ bool UXControllerStbEu::ApplyPostRebootConfig(PowerState targetState,
     bool ret = true;
     
     if ((WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == lastKnownState) && (WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY == targetState)) {
-#ifndef DISABLE_LED_SYNC_IN_BOOTUP
+/* Sync bootup LEDs is disabling the bootup LED pattern.
+Now the LED pattern is set by IUI after bootup we modifying this behavior based on conditions */
+#ifdef ENABLE_LED_SYNC_IN_BOOTUP
         SyncPowerLedWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
 #endif
         SyncDisplayPortsWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
     } else {
-#ifndef DISABLE_LED_SYNC_IN_BOOTUP
+#ifdef ENABLE_LED_SYNC_IN_BOOTUP
         SyncPowerLedWithPowerState(targetState);
 #endif
         SyncDisplayPortsWithPowerState(targetState);
