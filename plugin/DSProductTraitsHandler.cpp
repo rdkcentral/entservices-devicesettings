@@ -494,8 +494,9 @@ bool UXControllerTv::ApplyPostRebootConfig(PowerState targetState,
                                           PowerState lastKnownState)
 {
     bool ret = true;
+#ifdef ENABLE_LED_SYNC_IN_BOOTUP
     SyncPowerLedWithPowerState(targetState);
-
+#endif
     if ((WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == lastKnownState) && (WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY == targetState)) {
         if (true == DoForceDisplayOnPostReboot()) {
             SyncDisplayPortsWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
