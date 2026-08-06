@@ -257,19 +257,13 @@ public:
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX) {
             dsFPDBrightness_t halBrightness = 0;
-            dsError_t eError = dsGetFPBrightness(static_cast<dsFPDIndicator_t>(indicator), &halBrightness);
-            LOGINFO("GetFPDBrightness: dsGetFPBrightness returned %d", eError);
-            if (eError == dsERR_NONE) {
-                brightNess = static_cast<uint32_t>(halBrightness);
-                srvFPDSettings[static_cast<int>(indicator)].brightness = brightNess;
-                LOGINFO("GetFPDBrightness: indicator %d brightness %d", static_cast<int>(indicator), brightNess);
-                retCode = WPEFramework::Core::ERROR_NONE;
-            } else {
-                LOGERR("GetFPDBrightness: dsGetFPBrightness failed with error %d", eError);
-                // Fallback to cached value
-                brightNess = srvFPDSettings[static_cast<int>(indicator)].brightness;
-                retCode = WPEFramework::Core::ERROR_NONE;
-            }
+            dsGetFPBrightness(static_cast<dsFPDIndicator_t>(indicator), &halBrightness);
+
+            brightNess = static_cast<uint32_t>(_dsPowerBrightness);
+            LOGINFO("GetFPDBrightness: indicator %d brightness %d (hal=%d _dsPowerBrightness=%d)",
+                    static_cast<int>(indicator), brightNess,
+                    static_cast<int>(halBrightness), static_cast<int>(_dsPowerBrightness));
+            retCode = WPEFramework::Core::ERROR_NONE;
         } else {
             LOGERR("GetFPDBrightness: Invalid indicator %d", static_cast<int>(indicator));
         }
