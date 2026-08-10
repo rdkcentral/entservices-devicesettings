@@ -18,6 +18,7 @@
  */
 
 #include "DSProductTraitsHandler.h"
+#include "DSPwrEventListener.h"
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsImplementation.h"
 
@@ -244,56 +245,12 @@ void UXController::SyncPowerLedWithPowerState(PowerState power_state) const
 void UXController::SyncDisplayPortsWithPowerState(PowerState power_state) const
 {
     LOGINFO("SyncDisplayPortsWithPowerState: %d", static_cast<int>(power_state));
-    
-    if (_deviceSettings) {
-        try {
-            // Replicate _SetAVPortsPowerState functionality using DeviceSettings API
-            
-            // Set HDMI video port power state
-            int32_t hdmiHandle = 0;
-            VideoPortType vpType = VideoPortType::DS_VIDEO_PORT_TYPE_HDMI;
-            uint32_t result = _deviceSettings->GetVideoPort(vpType, 0, hdmiHandle);
-            
-            if (result == WPEFramework::Core::ERROR_NONE && hdmiHandle != 0) {
-                bool enable = (power_state == PowerState::POWER_STATE_ON);
-                result = _deviceSettings->EnableVideoPort(hdmiHandle, enable);
-                if (result == WPEFramework::Core::ERROR_NONE) {
-                    LOGINFO("Successfully set HDMI port power state to %s", enable ? "ON" : "OFF");
-                } else {
-                    LOGERR("EnableVideoPort failed with error: %d", result);
-                }
-            } else {
-                LOGINFO("HDMI video port not available, trying other ports");
-            }
-            
-            // Set Component video port if available
-            int32_t componentHandle = 0;
-            vpType = VideoPortType::DS_VIDEO_PORT_TYPE_COMPONENT;
-            result = _deviceSettings->GetVideoPort(vpType, 0, componentHandle);
-            
-            if (result == WPEFramework::Core::ERROR_NONE && componentHandle != 0) {
-                bool enable = (power_state == PowerState::POWER_STATE_ON);
-                result = _deviceSettings->EnableVideoPort(componentHandle, enable);
-                if (result == WPEFramework::Core::ERROR_NONE) {
-                    LOGINFO("Successfully set Component port power state to %s", enable ? "ON" : "OFF");
-                }
-            }
-            
-            // Set display power state
-            int32_t displayHandle = 0;
-            DisplayPortType displayType = DisplayPortType::DS_DISPLAY_PORT_TYPE_HDMI;
-            result = _deviceSettings->GetDisplay(displayType, 0, displayHandle);
-            if (result == WPEFramework::Core::ERROR_NONE && displayHandle != 0) {
-                bool enable = (power_state == PowerState::POWER_STATE_ON);
-                LOGINFO("Display HDMI state set to %s", enable ? "enabled" : "disabled");
-                // Note: Additional display control can be added here if needed
-            }
-            
-        } catch (const std::exception& e) {
-            LOGERR("Exception in SyncDisplayPortsWithPowerState: %s", e.what());
-        }
+
+    DSPwrEventListener* listener = DSPwrEventListener::GetInstance();
+    if (listener != nullptr) {
+        listener->SetAVPortsPowerState(power_state);
     } else {
-        LOGERR("DeviceSettings implementation not available");
+        LOGERR("DSPwrEventListener instance not available");
     }
 }
 

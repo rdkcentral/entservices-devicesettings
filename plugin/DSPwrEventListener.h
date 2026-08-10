@@ -104,6 +104,8 @@ public:
     void DeinitPwrControllerEvt();
     void onPowerModeChanged(const PowerState currentState, const PowerState newState);
     void registerPowerEventHandler();
+    static DSPwrEventListener* GetInstance();
+    int SetAVPortsPowerState(PowerState powerState);
 
 private:
     using VideoPortEntry = WPEFramework::Plugin::VideoPortEntry;
@@ -125,7 +127,6 @@ private:
     bool ResolveVideoPortEntryByName(const std::string& requestedPort, VideoPortEntry& resolvedEntry);
     
     int SetLEDStatus(PowerState powerState);
-    int SetAVPortsPowerState(PowerState powerState);
     
     // DeviceSettings integration methods
     uint32_t ConfigureVideoPort(const std::string& portName, VideoPortType portType, int index, bool enabled);

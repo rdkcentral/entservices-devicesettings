@@ -61,6 +61,11 @@ DSPwrEventListener::DSPwrEventListener()
     DSPwrEventListener::_instance = this;
 }
 
+DSPwrEventListener* DSPwrEventListener::GetInstance()
+{
+    return _instance;
+}
+
 bool DSPwrEventListener::IsDeviceSettingsReady(bool refreshCacheIfEmpty)
 {
     if (_deviceSettings == nullptr) {
@@ -164,6 +169,9 @@ DSPwrEventListener::~DSPwrEventListener()
 {
     LOGINFO("DSPwrEventListener Destructor");
     Deinit();
+    if (_instance == this) {
+        _instance = nullptr;
+    }
 }
 
 void DSPwrEventListener::Init(PluginHost::IShell* service)
