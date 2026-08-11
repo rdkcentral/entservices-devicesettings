@@ -54,6 +54,7 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
     Module.cpp
     DeviceSettingsImplementation.cpp
     DeviceSettingsHALConfig.cpp
+    DeviceSettingsHdmiStatus.cpp
     DeviceSettingsFPDImplementation.cpp
     DeviceSettingsVideoPortImplementation.cpp
     DeviceSettingsVideoDeviceImplementation.cpp

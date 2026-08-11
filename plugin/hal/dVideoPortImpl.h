@@ -33,6 +33,8 @@
 
 #include <WPEFramework/interfaces/IDeviceSettingsVideoPort.h>
 #include "DeviceSettingsTypes.h"
+#include "DeviceSettingsHALConfig.h"
+#include "DeviceSettingsHdmiStatus.h"
 
 // Resolution defaults — matches dsVideoPort.c naming
 #define DS_VP_DEFAULT_RESOLUTION       "720p"
@@ -101,6 +103,17 @@ public:
                 return;
             }
             LOGINFO("InitialiseHAL: dsVideoPortInit succeeded");
+
+            _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPSTATUS, dsHDCP_STATUS_UNAUTHENTICATED);
+            _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPVERSION, dsHDCP_VERSION_1X);
+
+            bool connected = false;
+            dsError_t displayError = dsIsDisplayConnected(dsGetDefaultPortHandle(), &connected);
+            if (displayError != dsERR_NONE) {
+                LOGERR("InitialiseHAL: dsIsDisplayConnected failed with error: %d", displayError);
+            }
+            _dsSyncHdmiStatus(DS_HDMI_TAG_HOTPLUP,
+                    connected ? dsDISPLAY_EVENT_CONNECTED : dsDISPLAY_EVENT_DISCONNECTED);
             
             // Load persistence values after successful initialization - following dsVideoPort.c pattern
             getPersistenceValue();
@@ -1358,6 +1371,30 @@ public:
         EXIT_LOG;
     }
 
+    static intptr_t dsGetDefaultPortHandle()
+    {
+        std::vector<VideoPortTypeConfig> videoPortTypes;
+        std::vector<VideoPortPortConfig> videoPorts;
+        DeviceSettingsHAL::PopulateVideoPortConfig(videoPortTypes, videoPorts);
+
+        intptr_t handle = 0;
+        for (const auto& port : videoPorts) {
+            const dsVideoPortType_t type = convertVideoPortType(port.videoPortType);
+            dsError_t error = dsGetVideoPort(type, port.videoPortIndex, &handle);
+            if (type == dsVIDEOPORT_TYPE_HDMI || type == dsVIDEOPORT_TYPE_INTERNAL) {
+                if (error != dsERR_NONE) {
+                    LOGERR("dsGetDefaultPortHandle: dsGetVideoPort failed for type=%d index=%d, error=%d",
+                            type, port.videoPortIndex, error);
+                    return 0;
+                }
+                return handle;
+            }
+        }
+
+        LOGERR("dsGetDefaultPortHandle: HDMI or internal port not found in HAL configuration");
+        return handle;
+    }
+
     // Static callback functions for DS HAL integration - following HdmiIn pattern
     static void VideoPortHDCPStatusCallback(intptr_t handle, dsHdcpStatus_t status)
     {
@@ -1389,6 +1426,21 @@ public:
                 LOGWARN("VideoPortHDCPStatusCallback: unknown HDCP status %d, defaulting to unauthenticated", status);
                 break;
         }
+
+        _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPSTATUS, status);
+
+        dsHdcpProtocolVersion_t protocolVersion = dsHDCP_VERSION_1X;
+        if (status == dsHDCP_STATUS_AUTHENTICATED) {
+            typedef dsError_t (*dsGetHDCPCurrentProtocol_t)(intptr_t, dsHdcpProtocolVersion_t*);
+            static dsGetHDCPCurrentProtocol_t getCurrentProtocol = nullptr;
+            if (getCurrentProtocol == nullptr) {
+                getCurrentProtocol = reinterpret_cast<dsGetHDCPCurrentProtocol_t>(resolve(RDK_DSHAL_NAME, "dsGetHDCPCurrentProtocol"));
+            }
+            if (getCurrentProtocol != nullptr && getCurrentProtocol(dsGetDefaultPortHandle(), &protocolVersion) != dsERR_NONE) {
+                protocolVersion = dsHDCP_VERSION_1X;
+            }
+        }
+        _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPVERSION, protocolVersion);
         
         // Call the stored global callback if available
         if (g_VideoPortHDCPStatusChangeCallback) {

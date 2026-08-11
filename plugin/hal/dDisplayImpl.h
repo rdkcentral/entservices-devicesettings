@@ -32,6 +32,7 @@
 
 #include <WPEFramework/interfaces/IDeviceSettingsDisplay.h>
 #include "DeviceSettingsTypes.h"
+#include "DeviceSettingsHdmiStatus.h"
 
 #ifndef RDK_DSHAL_NAME
 #warning   "RDK_DSHAL_NAME is not defined"
@@ -677,6 +678,7 @@ private:
                 break;
                 
             case dsDISPLAY_EVENT_CONNECTED: // DS_DISPLAY_EVENT_CONNECTED equivalent
+                _dsSyncHdmiStatus(DS_HDMI_TAG_HOTPLUP, dsDISPLAY_EVENT_CONNECTED);
                 if (g_DisplayHDMIHotPlugCallback) {
                     g_DisplayHDMIHotPlugCallback(port, true);
                 }
@@ -689,6 +691,7 @@ private:
                 isEdidBytesCached = false;
                 s_edidBytesCacheLength = 0;
                 LOGINFO("dsDisplayEventCallbackImpl: DISCONNECTED — EDID caches invalidated");
+                _dsSyncHdmiStatus(DS_HDMI_TAG_HOTPLUP, dsDISPLAY_EVENT_DISCONNECTED);
                 if (g_DisplayHDMIHotPlugCallback) {
                     g_DisplayHDMIHotPlugCallback(port, false);
                 }
