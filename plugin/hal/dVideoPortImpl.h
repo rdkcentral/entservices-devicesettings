@@ -1667,7 +1667,7 @@ private:
 
     
     // Helper methods for DS VideoPort HAL conversion
-    dsVideoPortType_t convertVideoPortType(const VideoPortType videoPort)
+    static dsVideoPortType_t convertVideoPortType(const VideoPortType videoPort)
     {
         switch (videoPort) {
             case VideoPortType::DS_VIDEO_PORT_TYPE_HDMI:

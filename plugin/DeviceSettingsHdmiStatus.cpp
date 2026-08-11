@@ -23,6 +23,8 @@
 #include "dsDisplay.h"
 #include "dsVideoPort.h"
 
+#include <wpeframework/helpers/UtilsLogging.h>
+
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -104,7 +106,7 @@ void _dsSyncHdmiStatus(const std::string& key, int val)
     } else if (0 == strncmp(key.c_str(), DS_HDMI_TAG_HDCPVERSION, strlen(DS_HDMI_TAG_HDCPVERSION))) {
         value = getHdcpVersionName(val);
     } else {
-        LOGINFO("_dsSyncHdmiStatus: unknown key is passed %s", key.c_str());
+        LOGWARN("_dsSyncHdmiStatus: unknown key is passed %s", key.c_str());
     }
 
     while (std::getline(statusFile, line)) {
