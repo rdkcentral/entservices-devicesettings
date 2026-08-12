@@ -1292,7 +1292,7 @@ public:
                     if (profileType == STB) {
                         char hdcpKey[HDCP_KEY_MAX_SIZE] = {0};
                         size_t keySize = 0;
-                        ret = dsEnableHDCP(handle, true, hdcpKey, keySize);
+                        dsError_t ret = dsEnableHDCP(handle, true, hdcpKey, keySize);
                         if (ret != dsERR_NONE) {
                             LOGERR("Failed to enable startup HDCP: error=%d", ret);
                         } else {
