@@ -127,8 +127,8 @@ void _dsSyncHdmiStatus(const std::string& key, int val)
     outFile.close();
 
     if (found) {
-        std::cout << "Updated " << key << " to " << value << std::endl;
+        LOGINFO("Updated %s to %s", key.c_str(), value.c_str());
     } else {
-        std::cout << "Added " << key << " with value " << value << std::endl;
+        LOGINFO("Added %s with value %s", key.c_str(), value.c_str());
     }
 }

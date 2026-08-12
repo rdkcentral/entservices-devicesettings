@@ -19,6 +19,7 @@
  */
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <dlfcn.h>
@@ -66,6 +67,12 @@ class dVideoPortImpl : public hal::dVideoPort::IPlatform {
     // delete copy constructor and assignment operator
     dVideoPortImpl(const dVideoPortImpl&) = delete;
     dVideoPortImpl& operator=(const dVideoPortImpl&) = delete;
+
+    static std::atomic<int>& cachedHdcpStatus()
+    {
+        static std::atomic<int> status { dsHDCP_STATUS_UNAUTHENTICATED };
+        return status;
+    }
 
 public:
     dVideoPortImpl()
@@ -428,25 +435,10 @@ public:
 
     uint32_t GetVideoPortHDCPStatus(const int32_t handle, VideoPortHdcpStatus& hdcpStatus) override
     {
-        uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         LOGINFO("GetVideoPortHDCPStatus: handle=%d", handle);
-        
-        dsHdcpStatus_t dsHdcpStatus;
-        dsError_t eError = dsGetHDCPStatus(handle, &dsHdcpStatus);
-        if (eError == dsERR_NONE) {
-            hdcpStatus = convertHdcpStatus(dsHdcpStatus);
-            retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("GetVideoPortHDCPStatus: SUCCESS");
-        } else if (eError == dsERR_INVALID_PARAM || eError == dsERR_OPERATION_NOT_SUPPORTED) {
-            // Internal/non-HDMI port — HDCP not applicable on this port type
-            hdcpStatus = VideoPortHdcpStatus::DS_HDCP_STATUS_UNPOWERED;
-            retCode = WPEFramework::Core::ERROR_NONE;
-            LOGWARN("GetVideoPortHDCPStatus: HDCP not supported on this port (error=%d)", eError);
-        } else {
-            LOGERR("GetVideoPortHDCPStatus: dsGetHDCPStatus failed with error: %d", eError);
-        }
-        
-        return retCode;
+        hdcpStatus = convertHdcpStatus(static_cast<dsHdcpStatus_t>(cachedHdcpStatus().load()));
+        LOGINFO("GetVideoPortHDCPStatus: SUCCESS - cached status=%d", static_cast<int>(hdcpStatus));
+        return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetHDCPProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion& hdcpVersion) override
@@ -1293,7 +1285,26 @@ public:
                 
                 if (dsERR_NONE == eReturn && handle != 0) {
                     LOGINFO("Registering HDCP status callback with handle: %p", (void*)handle);
-                    dsRegisterHdcpStatusCallback(handle, VideoPortHDCPStatusCallback);
+                    const dsError_t callbackError = dsRegisterHdcpStatusCallback(handle, VideoPortHDCPStatusCallback);
+                    if (callbackError != dsERR_NONE) {
+                        LOGERR("dsRegisterHdcpStatusCallback failed with error: %d", callbackError);
+                    }
+                    if (profileType == STB) {
+                        dsEnableHDCPParam_t hdcpParam;
+                        dsError_t ret = dsERR_NONE;
+
+                        errno_t rc = memset_s(&hdcpParam, sizeof(hdcpParam), 0, sizeof(hdcpParam));
+                        if (rc != EOK)
+                        {
+                            LOGERR("Failed to reset HDCP Param: error code:%d", rc);
+                        }
+                        ret = dsEnableHDCP(handle, true, hdcpParam.hdcpKey, hdcpParam.keySize);
+                        if (ret != dsERR_NONE) {
+                            LOGERR("Failed to enable startup HDCP: error=%d", ret);
+                        } else {
+                            LOGINFO("Setting HDCP done ...");
+                        }
+                    }
                 } else {
                     LOGERR("Failed to get video port handle for HDCP callback registration");
                 }
@@ -1399,6 +1410,7 @@ public:
     static void VideoPortHDCPStatusCallback(intptr_t handle, dsHdcpStatus_t status)
     {
         LOGINFO("VideoPortHDCPStatusCallback: handle=%p, status=%d", (void*)handle, status);
+        cachedHdcpStatus().store(status);
         
         // Convert DS HAL HDCP status to VideoPortHdcpStatus
         VideoPortHdcpStatus hdcpStatus;
@@ -1902,6 +1914,10 @@ private:
                 return VideoPortHdcpStatus::DS_HDCP_STATUS_AUTHENTICATED;
             case dsHDCP_STATUS_AUTHENTICATIONFAILURE:
                 return VideoPortHdcpStatus::DS_HDCP_STATUS_AUTHENTICATIONFAILURE;
+            case dsHDCP_STATUS_INPROGRESS:
+                return VideoPortHdcpStatus::DS_HDCP_STATUS_INPROGRESS;
+            case dsHDCP_STATUS_PORTDISABLED:
+                return VideoPortHdcpStatus::DS_HDCP_STATUS_PORTDISABLED;
             default:
                 return VideoPortHdcpStatus::DS_HDCP_STATUS_UNPOWERED;
         }
