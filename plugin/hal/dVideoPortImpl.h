@@ -1290,15 +1290,9 @@ public:
                         LOGERR("dsRegisterHdcpStatusCallback failed with error: %d", callbackError);
                     }
                     if (profileType == STB) {
-                        dsEnableHDCPParam_t hdcpParam;
-                        dsError_t ret = dsERR_NONE;
-
-                        errno_t rc = memset_s(&hdcpParam, sizeof(hdcpParam), 0, sizeof(hdcpParam));
-                        if (rc != EOK)
-                        {
-                            LOGERR("Failed to reset HDCP Param: error code:%d", rc);
-                        }
-                        ret = dsEnableHDCP(handle, true, hdcpParam.hdcpKey, hdcpParam.keySize);
+                        char hdcpKey[HDCP_KEY_MAX_SIZE] = {0};
+                        size_t keySize = 0;
+                        ret = dsEnableHDCP(handle, true, hdcpKey, keySize);
                         if (ret != dsERR_NONE) {
                             LOGERR("Failed to enable startup HDCP: error=%d", ret);
                         } else {
