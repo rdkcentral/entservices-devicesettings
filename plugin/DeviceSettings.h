@@ -166,44 +166,56 @@ namespace Plugin {
 
             void OnHDMIInEventHotPlug(const HDMIInPort port, const bool isConnected) override 
             {
-                DSLOG_INFO(");
+                DSLOG_INFO("port=%d, connected=%s", static_cast<int>(port), isConnected ? "true" : "false");
             }
 
             void OnHDMIInEventSignalStatus(const HDMIInPort port, const HDMIInSignalStatus signalStatus) override
             {
+                DSLOG_INFO("port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
             }
 
             void OnHDMIInEventStatus(const HDMIInPort activePort, const bool isPresented) override
             {
+                DSLOG_INFO("activePort=%d, presented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
             }
 
             void OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution& videoPortResolution) override
             {
+                DSLOG_INFO("port=%d, name=%s, pixelResolution=%d, aspectRatio=%d, stereoScopicMode=%d, frameRate=%d, interlaced=%s",
+                    static_cast<int>(port), videoPortResolution.name.c_str(), static_cast<int>(videoPortResolution.pixelResolution),
+                    static_cast<int>(videoPortResolution.aspectRatio), static_cast<int>(videoPortResolution.stereoScopicMode),
+                    static_cast<int>(videoPortResolution.frameRate), videoPortResolution.interlaced ? "true" : "false");
             }
 
             void OnHDMIInAllmStatus(const HDMIInPort port, const bool allmStatus) override
             {
+                DSLOG_INFO("port=%d, allmStatus=%s", static_cast<int>(port), allmStatus ? "true" : "false");
             }
 
             void OnHDMIInAVIContentType(const HDMIInPort port, const HDMIInAviContentType aviContentType) override
             {
+                DSLOG_INFO("port=%d, aviContentType=%d", static_cast<int>(port), static_cast<int>(aviContentType));
             }
 
             void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay) override
             {
+                DSLOG_INFO("audioDelay=%d, videoDelay=%d", audioDelay, videoDelay);
             }
 
             void OnHDMIInVRRStatus(const HDMIInPort port, const HDMIInVRRType vrrType) override
             {
+                DSLOG_INFO("port=%d, vrrType=%d", static_cast<int>(port), static_cast<int>(vrrType));
             }
 
             // VideoPort notification handlers matching WPE interface
             void OnResolutionPostChange(const ResolutionChange& resolution) override
             {
+                DSLOG_INFO("width=%u, height=%u", resolution.width, resolution.height);
             }
 
             void OnResolutionPreChange(const ResolutionChange& resolution) override
             {
+                DSLOG_INFO("width=%u, height=%u", resolution.width, resolution.height);
             }
 
             void OnHDCPStatusChange(const Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus) override
