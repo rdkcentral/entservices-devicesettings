@@ -116,6 +116,7 @@ namespace Plugin {
         uint32_t GetVideoEOTF(const int32_t handle, HDRStandard &hdrStandard);
         uint32_t IsVideoPortDisplaySurround(const int32_t handle, bool &surround);
         uint32_t GetVideoPortDisplaySurroundMode(const int32_t handle, VideoPortSurroundMode &surroundMode);
+        uint32_t getIgnoreEDIDStatus(const int32_t handle, bool &ignoreEDID);
         uint32_t GetColorDepth(const int32_t handle, uint32_t &colorDepth);
 
         // Additional VideoPort methods

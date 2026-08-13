@@ -469,6 +469,18 @@ namespace Plugin {
 
     // Additional methods required by DeviceSettingsImplementation.cpp and IDeviceSettingsVideoPort.h interface
     
+    uint32_t DeviceSettingsVideoPortImpl::getIgnoreEDIDStatus(const int32_t handle, bool &ignoreEDID)
+    {
+        uint32_t result = Core::ERROR_GENERAL;
+        result = _videoPort.getIgnoreEDIDStatus(handle, ignoreEDID);
+        if (result == Core::ERROR_NONE) {
+            DSLOG_INFO("succeeded: handle=%d, ignoreEDID=%d", handle, static_cast<int>(ignoreEDID));
+        } else {
+            DSLOG_ERR("failed: handle=%d, error=%u", handle, result);
+        }
+        return result;
+    }
+
     uint32_t DeviceSettingsVideoPortImpl::GetColorDepth(const int32_t handle, uint32_t &colorDepth)
     {
         uint32_t result = Core::ERROR_GENERAL;

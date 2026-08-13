@@ -51,6 +51,7 @@ namespace dVideoPort {
         virtual uint32_t IsVideoPortActive(const int32_t handle, bool& active) = 0;
         virtual uint32_t GetVideoPortResolution(const int32_t handle, VideoPortResolution& resolution) = 0;
         virtual uint32_t SetVideoPortResolution(const int32_t handle, const VideoPortResolution resolution, const bool persist, const bool forceCompatibility) = 0;
+        virtual uint32_t getIgnoreEDIDStatus(const int32_t handle, bool& ignoreEDID) = 0;
         virtual uint32_t GetColorDepth(const int32_t handle, uint32_t& colorDepth) = 0;
         virtual uint32_t SetVideoPortColorDepth(const int32_t handle, const uint32_t colorDepth) = 0;
         virtual uint32_t GetQuantizationRange(const int32_t handle, VideoPortQuantizationRange& quantizationRange) = 0;

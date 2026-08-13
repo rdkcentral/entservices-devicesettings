@@ -253,6 +253,35 @@ public:
         return retCode;
     }
 
+    uint32_t getIgnoreEDIDStatus(const int32_t handle, bool& ignoreEDID) override
+    {
+        uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
+        DSLOG_INFO("handle=%d", handle);
+
+        typedef dsError_t (*dsGetIgnoreEDIDStatus_t)(intptr_t handle, bool* ignoreEDID);
+        static dsGetIgnoreEDIDStatus_t dsGetIgnoreEDIDStatusFunc = nullptr;
+
+        if (dsGetIgnoreEDIDStatusFunc == nullptr) {
+            dsGetIgnoreEDIDStatusFunc = (dsGetIgnoreEDIDStatus_t)resolve(RDK_DSHAL_NAME, "dsGetIgnoreEDIDStatus");
+            if (dsGetIgnoreEDIDStatusFunc == nullptr) {
+                DSLOG_INFO("dsGetIgnoreEDIDStatus not defined — optional symbol absent");
+                ignoreEDID = false;
+                return WPEFramework::Core::ERROR_NONE;
+            }
+            DSLOG_INFO("dsGetIgnoreEDIDStatus loaded");
+        }
+
+        dsError_t eError = dsGetIgnoreEDIDStatusFunc(static_cast<intptr_t>(handle), &ignoreEDID);
+        if (eError == dsERR_NONE) {
+            retCode = WPEFramework::Core::ERROR_NONE;
+            DSLOG_INFO("SUCCESS - ignoreEDID=%d", static_cast<int>(ignoreEDID));
+        } else {
+            DSLOG_ERR("dsGetIgnoreEDIDStatus failed with error: %d", eError);
+            ignoreEDID = false;
+        }
+        return retCode;
+    }
+
     uint32_t GetColorDepth(const int32_t handle, uint32_t& colorDepth) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;

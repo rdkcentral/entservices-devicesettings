@@ -77,7 +77,7 @@ namespace Plugin {
 
         // Required Display::INotification interface implementations
         void OnDisplayRxSense(const DisplayEvent displayEvent) override;
-        void OnDisplayHDCPStatus() override;
+        void OnDisplayHDCPStatus(int32_t hdcpStatus) override;
         void OnDisplayHDMIHotPlug(const DisplayEvent displayEvent) override;
 
         // Display interface method implementations called by DeviceSettingsImp 

@@ -238,8 +238,8 @@ using IDeviceSettingsVideoCodecProfileSupportIterator = DeviceSettingsVideoDevic
 #define PWRMGR_MAX_REBOOT_REASON_LENGTH 100
 #endif
 
-#ifndef IARM_BUS_DSMGR_NAME
-#define IARM_BUS_DSMGR_NAME "DSMgr_Plugin"
+#ifndef IARM_BUS_DSMGR_PLUGIN_NAME
+#define IARM_BUS_DSMGR_PLUGIN_NAME "DSMgr_Plugin"
 #endif
 
 typedef enum _DSMgr_EventId_t {

@@ -807,6 +807,10 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortResolution, handle, resolution)
     }
     
+    Core::hresult DeviceSettingsImp::getIgnoreEDIDStatus(const int32_t handle, bool &ignoreEDID) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, getIgnoreEDIDStatus, handle, ignoreEDID)
+    }
+
     Core::hresult DeviceSettingsImp::GetColorDepth(const int32_t handle, uint32_t &colorDepth) {
         DELEGATE_TO_COMPONENT(_videoPortSettings, GetColorDepth, handle, colorDepth)
     }

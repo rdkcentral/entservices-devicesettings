@@ -157,10 +157,10 @@ namespace Plugin {
         dispatchDisplayEvent(&IDisplayNotification::OnDisplayRxSense, displayEvent);
     }
 
-    void DeviceSettingsDisplayImpl::OnDisplayHDCPStatus()
+    void DeviceSettingsDisplayImpl::OnDisplayHDCPStatus(int32_t hdcpStatus)
     {
-        DSLOG_INFO("DS HAL OnDisplayHDCPStatus event");
-        dispatchDisplayEvent(&IDisplayNotification::OnDisplayHDCPStatus);
+        DSLOG_INFO("DS HAL OnDisplayHDCPStatus event: hdcpStatus=%d (HDCP protocol change from Display HAL)", hdcpStatus);
+        dispatchDisplayEvent(&IDisplayNotification::OnDisplayHDCPStatus, hdcpStatus);
     }
 
     void DeviceSettingsDisplayImpl::OnDisplayHDMIHotPlug(const DisplayEvent displayEvent)

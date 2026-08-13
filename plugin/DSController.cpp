@@ -86,6 +86,7 @@ namespace Plugin {
     int DSController::_resolutionRetryCount = 5;
     bool DSController::_hdcpAuthenticated = false;
     bool DSController::_ignoreEdid = false;
+    bool DSController::_bootupFlagEnabled = true;
     dsDisplayEvent_t DSController::_displayEventStatus = dsDISPLAY_EVENT_MAX;
     
     // Platform configuration constants
@@ -166,7 +167,7 @@ namespace Plugin {
 
         setvbuf(stdout, NULL, _IOLBF, 0);
 
-        IARM_Bus_Init(IARM_BUS_DSMGR_NAME);
+        IARM_Bus_Init(IARM_BUS_DSMGR_PLUGIN_NAME);
         IARM_Bus_Connect();
         IARM_Bus_RegisterEvent(IARM_BUS_DSMGR_EVENT_MAX);
 
@@ -174,10 +175,10 @@ namespace Plugin {
 
         _initResolutionFlag = 1;
 
-        dsEdidIgnoreParam_t ignoreEdidParam;
-        memset(&ignoreEdidParam, 0, sizeof(ignoreEdidParam));
-        ignoreEdidParam.handle = dsVIDEOPORT_TYPE_HDMI;
-        _ignoreEdid = ignoreEdidParam.ignoreEDID;
+        int32_t hdmiHandle = GetVideoPortHandle(dsVIDEOPORT_TYPE_HDMI);
+        if (hdmiHandle != 0 && _deviceSettings) {
+            _deviceSettings->getIgnoreEDIDStatus(hdmiHandle, _ignoreEdid);
+        }
         DSLOG_INFO("ResOverride DSController::Start _ignoreEdid: %d", _ignoreEdid);
 
         IARM_Bus_RegisterEventHandler(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_EVENT_SYSTEMSTATE, _EventHandler);
@@ -214,7 +215,7 @@ namespace Plugin {
          * The resolution thread (ResolutionThreadFunc) is already running and will
          * call SetVideoPortResolution() when it is woken by:
          *   - TuneReady IARM event  (IARM_BUS_SYSMGR_SYSSTATE_TUNEREADY)
-         *   - HDMI hotplug          (OnDisplayHDMIHotPlug / EventHandler)
+         *   - HDMI hotplug          (OnDisplayHDMIHotPlug)
          *
          * If TuneReady is already set before we start, signal the resolution thread
          * now so it picks it up immediately without waiting for an event. */
@@ -285,6 +286,7 @@ namespace Plugin {
             _deviceSettings = _deviceSettingsInstance;
             if (_deviceSettings) {
                 _deviceSettings->Register(static_cast<IDisplayHDMIHotPlugNotification*>(this));
+                _deviceSettings->Register(static_cast<IDisplayNotification*>(this));
             } else {
                 DSLOG_ERR("Failed to get DeviceSettings implementation instance");
             }
@@ -297,6 +299,7 @@ namespace Plugin {
     {
         if (_deviceSettings) {
             _deviceSettings->Unregister(static_cast<IDisplayHDMIHotPlugNotification*>(this));
+            _deviceSettings->Unregister(static_cast<IDisplayNotification*>(this));
         }
         
         _deviceSettings = nullptr;
@@ -973,9 +976,6 @@ namespace Plugin {
     void DSController::EventHandler(const char *owner, int eventId, void *data, size_t len)
     {
         
-        // Allows dsmgr to set initial resolution irrespective of ignore edid only during boot
-        static bool bootup_flag_enabled = true;
-        
         // Handle only Sys Manager Events
         if (strcmp(owner, IARM_BUS_SYSMGR_NAME) == 0) {
             // Only handle state events
@@ -1002,72 +1002,6 @@ namespace Plugin {
                         pthread_mutex_unlock(&_mutexLock);
                     }
                     break;
-                default:
-                    break;
-            }
-        } else if (strcmp(owner, IARM_BUS_DSMGR_NAME) == 0) {
-            switch (eventId) {
-                case IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG:
-                {
-                    IARM_Bus_DSMgr_EventData_t* eventData = (IARM_Bus_DSMgr_EventData_t*)data;
-                    
-                    DSLOG_INFO("Got HDMI %s Event",
-                           (eventData->data.hdmi_hpd.event == dsDISPLAY_EVENT_CONNECTED ? "Connect" : "Disconnect"));
-                    
-                    SetBackgroundColor(dsVIDEO_BGCOLOR_NONE);
-                    
-                    // Un-Block the Resolution Settings Thread
-                    pthread_mutex_lock(&_mutexLock);
-                    _displayEventStatus = ((eventData->data.hdmi_hpd.event == dsDISPLAY_EVENT_CONNECTED) ?
-                                          dsDISPLAY_EVENT_CONNECTED : dsDISPLAY_EVENT_DISCONNECTED);
-                    pthread_cond_signal(&_mutexCond);
-                    pthread_mutex_unlock(&_mutexLock);
-                }
-                break;
-                
-                case IARM_BUS_DSMGR_EVENT_HDCP_STATUS:
-                {
-                    IARM_Bus_DSMgr_EventData_t* eventData = (IARM_Bus_DSMgr_EventData_t*)data;
-                    IARM_Bus_SYSMgr_EventData_t HDCPeventData;
-                    int status = eventData->data.hdmi_hdcp.hdcpStatus;
-                    
-                    // HDCP is enabled
-                    HDCPeventData.data.systemStates.stateId = IARM_BUS_SYSMGR_SYSSTATE_HDCP_ENABLED;
-                    HDCPeventData.data.systemStates.state = 1;
-                    
-                    if (status == dsHDCP_STATUS_AUTHENTICATED) {
-                        DSLOG_INFO("Changed status to HDCP Authentication Pass !!!!!!!!");
-                        HDCPeventData.data.systemStates.state = 1;
-                        _hdcpAuthenticated = true;
-                        DSLOG_INFO("HDCP success - Cleared hotplug_event_src Time source %d and set resolution immediately", _hotplugEventSrc);
-                        
-                        if (_hotplugEventSrc) {
-                            _hotplugEventSrc = 0;
-                        }
-                        
-                        SetBackgroundColor(dsVIDEO_BGCOLOR_NONE);
-                        if ((!_ignoreEdid) || bootup_flag_enabled) {
-                            SetVideoPortResolution();
-                            if (bootup_flag_enabled)
-                                bootup_flag_enabled = false;
-                        }
-                        ScheduleEdidDump();
-                    } else if (status == dsHDCP_STATUS_AUTHENTICATIONFAILURE) {
-                        DSLOG_ERR("Changed status to HDCP Authentication Fail !!!!!!!!");
-                        HDCPeventData.data.systemStates.state = 0;
-                        SetBackgroundColor(dsVIDEO_BGCOLOR_BLUE);
-                        _hdcpAuthenticated = false;
-                        if (!_ignoreEdid) {
-                            SetVideoPortResolution();
-                        }
-                        ScheduleEdidDump();
-                    }
-                    
-                    IARM_Bus_BroadcastEvent(IARM_BUS_SYSMGR_NAME, (IARM_EventId_t)IARM_BUS_SYSMGR_EVENT_SYSTEMSTATE,
-                                          (void*)&HDCPeventData, sizeof(HDCPeventData));
-                }
-                break;
-                
                 default:
                     break;
             }
@@ -1125,18 +1059,54 @@ namespace Plugin {
         DSLOG_INFO("displayEvent = %d", static_cast<int>(displayEvent));
     }
     
-    void DSController::OnDisplayHDCPStatus() {
-        DSLOG_INFO("HDCP status event");
+    void DSController::OnDisplayHDCPStatus(const int32_t hdcpStatus) {
+        IARM_Bus_SYSMgr_EventData_t HDCPeventData;
+        HDCPeventData.data.systemStates.stateId = IARM_BUS_SYSMGR_SYSSTATE_HDCP_ENABLED;
+        HDCPeventData.data.systemStates.state = 1;
+
+        DSLOG_INFO("hdcpStatus = %d", hdcpStatus);
+        if (hdcpStatus == dsHDCP_STATUS_AUTHENTICATED) {
+            DSLOG_INFO("Changed status to HDCP Authentication Pass !!!!!!!!");
+            _hdcpAuthenticated = true;
+            DSLOG_INFO("HDCP success - Cleared hotplug_event_src Time source %d and set resolution immediately", _hotplugEventSrc);
+
+            if (_hotplugEventSrc) {
+                g_source_remove(_hotplugEventSrc);
+                _hotplugEventSrc = 0;
+            }
+
+            SetBackgroundColor(dsVIDEO_BGCOLOR_NONE);
+            if ((!_ignoreEdid) || _bootupFlagEnabled) {
+                SetVideoPortResolution();
+                if (_bootupFlagEnabled)
+                    _bootupFlagEnabled = false;
+            }
+            ScheduleEdidDump();
+        } else if (hdcpStatus == dsHDCP_STATUS_AUTHENTICATIONFAILURE) {
+            DSLOG_ERR("Changed status to HDCP Authentication Fail !!!!!!!!");
+            HDCPeventData.data.systemStates.state = 0;
+            SetBackgroundColor(dsVIDEO_BGCOLOR_BLUE);
+            _hdcpAuthenticated = false;
+            if (!_ignoreEdid) {
+                SetVideoPortResolution();
+            }
+            ScheduleEdidDump();
+        }
+        DSLOG_INFO("Broadcasting IARM_BUS_SYSMGR_EVENT_SYSTEMSTATE event for HDCP status: %d", HDCPeventData.data.systemStates.state);
+        IARM_Bus_BroadcastEvent(IARM_BUS_SYSMGR_NAME, (IARM_EventId_t)IARM_BUS_SYSMGR_EVENT_SYSTEMSTATE,
+                                (void*)&HDCPeventData, sizeof(HDCPeventData));
     }
-    
+
     void DSController::OnDisplayHDMIHotPlug(const DisplayEvent displayEvent) {
-        DSLOG_INFO("displayEvent = %d - Converting to IARM event", static_cast<int>(displayEvent));
-        
-        IARM_Bus_DSMgr_EventData_t eventData;
-        eventData.data.hdmi_hpd.event = (displayEvent == DisplayEvent::DS_DISPLAY_EVENT_CONNECTED) ? 
-                                       dsDISPLAY_EVENT_CONNECTED : dsDISPLAY_EVENT_DISCONNECTED;
-        
-        EventHandler(IARM_BUS_DSMGR_NAME, IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG, &eventData, sizeof(eventData));
+        DSLOG_INFO("displayEvent = %d", static_cast<int>(displayEvent));
+
+        SetBackgroundColor(dsVIDEO_BGCOLOR_NONE);
+
+        pthread_mutex_lock(&_mutexLock);
+        _displayEventStatus = (displayEvent == DisplayEvent::DS_DISPLAY_EVENT_CONNECTED) ?
+                              dsDISPLAY_EVENT_CONNECTED : dsDISPLAY_EVENT_DISCONNECTED;
+        pthread_cond_signal(&_mutexCond);
+        pthread_mutex_unlock(&_mutexLock);
     }
 
     // Helper methods implementation

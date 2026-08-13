@@ -271,6 +271,7 @@ namespace Plugin {
         Core::hresult IsVideoPortDisplayConnected(const int32_t handle, bool &connected) override;
         Core::hresult IsVideoPortActive(const int32_t handle, bool &active) override;
         Core::hresult GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution) override;
+        Core::hresult getIgnoreEDIDStatus(const int32_t handle, bool &ignoreEDID);
         Core::hresult GetColorDepth(const int32_t handle, uint32_t &colorDepth) override;
         Core::hresult GetColorSpace(const int32_t handle, VideoPortColorSpace &colorSpace) override;
         Core::hresult GetQuantizationRange(const int32_t handle, VideoPortQuantizationRange &quantizationRange) override;

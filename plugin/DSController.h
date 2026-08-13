@@ -74,7 +74,8 @@ namespace WPEFramework {
 namespace Plugin {
     class DeviceSettingsImp;
     
-    class DSController : public Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification {
+    class DSController : public Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification
+                       , public Exchange::IDeviceSettingsDisplay::INotification {
     public:
         DSController(DeviceSettingsImp* deviceSettingsInstance);
         ~DSController();
@@ -88,6 +89,7 @@ namespace Plugin {
         // Build QueryInterface implementation for Core::IUnknown
         BEGIN_INTERFACE_MAP(DSController)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay::INotification)
         END_INTERFACE_MAP
 
         // Implement Core::IUnknown methods. Some branches expose AddRef as void,
@@ -119,9 +121,9 @@ namespace Plugin {
 
         int getEASMode() const { return _easMode; }
         
-        void OnDisplayRxSense(const DisplayEvent displayEvent);
-        void OnDisplayHDCPStatus();
-        void OnDisplayHDMIHotPlug(const DisplayEvent displayEvent);
+        void OnDisplayRxSense(const DisplayEvent displayEvent) override;
+        void OnDisplayHDCPStatus(const int32_t hdcpStatus) override;
+        void OnDisplayHDMIHotPlug(const DisplayEvent displayEvent) override;
         
     private:
         uint32_t AddRefImpl(std::false_type) const {
@@ -204,6 +206,7 @@ namespace Plugin {
         static int _resolutionRetryCount;
         static bool _hdcpAuthenticated;
         static bool _ignoreEdid;
+        static bool _bootupFlagEnabled;
         static dsDisplayEvent_t _displayEventStatus;
         
         int _easMode;
