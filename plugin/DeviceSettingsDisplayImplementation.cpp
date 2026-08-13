@@ -33,39 +33,39 @@ namespace Plugin {
         _callbackLock(),
         _display(Display::Create(*this))
     {
-        LOGINFO("DeviceSettingsDisplayImpl Constructor - Instance Address: %p", this);
+        DSLOG_INFO("Constructor - Instance Address: %p", this);
     }
 
     DeviceSettingsDisplayImpl::~DeviceSettingsDisplayImpl() {
-        LOGINFO("DeviceSettingsDisplayImpl Destructor - Instance Address: %p", this);
+        DSLOG_INFO("Destructor - Instance Address: %p", this);
     }
 
     template<typename Func, typename... Args>
     void DeviceSettingsDisplayImpl::dispatchDisplayEvent(Func notifyFunc, Args&&... args) {
-        LOGINFO(">>");
+        DSLOG_INFO(">>");
         _callbackLock.Lock();
         for (auto& notification : _DisplayNotifications) {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %" PRId64 "ms to process IDisplay event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client %p took %" PRId64 "ms to process IDisplay event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
-        LOGINFO("<<");
+        DSLOG_INFO("<<");
     }
 
     template<typename Func, typename... Args>
     void DeviceSettingsDisplayImpl::dispatchDisplayHDMIHotPlugEvent(Func notifyFunc, Args&&... args) {
-        LOGINFO(">>");
+        DSLOG_INFO(">>");
         _callbackLock.Lock();
         for (auto& notification : _DisplayHDMIHotPlugNotifications) {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %" PRId64 "ms to process IDisplayHDMIHotPlug event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client %p took %" PRId64 "ms to process IDisplayHDMIHotPlug event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
-        LOGINFO("<<");
+        DSLOG_INFO("<<");
     }
 
     template <typename T>
@@ -81,7 +81,7 @@ namespace Plugin {
             notification->AddRef();
             status = Core::ERROR_NONE;
         } else {
-            LOGWARN("Notification %p already registered - skipping", notification);
+            DSLOG_WARN("Notification %p already registered - skipping", notification);
         }
         _callbackLock.Unlock();
 
@@ -111,9 +111,9 @@ namespace Plugin {
     {
         Core::hresult errorCode = Register(_DisplayNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
-            LOGERR("IDisplay %p, errorCode: %u", notification, errorCode);
+            DSLOG_ERR("IDisplay %p, errorCode: %u", notification, errorCode);
         } else {
-            LOGINFO("IDisplay %p registered successfully", notification);
+            DSLOG_INFO("IDisplay %p registered successfully", notification);
         }
         return errorCode;
     }
@@ -122,9 +122,9 @@ namespace Plugin {
     {
         Core::hresult errorCode = Unregister(_DisplayNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
-            LOGERR("IDisplay %p, errorcode: %u", notification, errorCode);
+            DSLOG_ERR("IDisplay %p, errorcode: %u", notification, errorCode);
         } else {
-            LOGINFO("IDisplay %p unregistered successfully", notification);
+            DSLOG_INFO("IDisplay %p unregistered successfully", notification);
         }
         return errorCode;
     }
@@ -133,9 +133,9 @@ namespace Plugin {
     {
         Core::hresult errorCode = Register(_DisplayHDMIHotPlugNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
-            LOGERR("IDisplayHDMIHotPlug %p, errorCode: %u", notification, errorCode);
+            DSLOG_ERR("IDisplayHDMIHotPlug %p, errorCode: %u", notification, errorCode);
         } else {
-            LOGINFO("IDisplayHDMIHotPlug %p registered successfully", notification);
+            DSLOG_INFO("IDisplayHDMIHotPlug %p registered successfully", notification);
         }
         return errorCode;
     }
@@ -144,28 +144,28 @@ namespace Plugin {
     {
         Core::hresult errorCode = Unregister(_DisplayHDMIHotPlugNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
-            LOGERR("IDisplayHDMIHotPlug %p, errorcode: %u", notification, errorCode);
+            DSLOG_ERR("IDisplayHDMIHotPlug %p, errorcode: %u", notification, errorCode);
         } else {
-            LOGINFO("IDisplayHDMIHotPlug %p unregistered successfully", notification);
+            DSLOG_INFO("IDisplayHDMIHotPlug %p unregistered successfully", notification);
         }
         return errorCode;
     }
 
     void DeviceSettingsDisplayImpl::OnDisplayRxSense(const DisplayEvent displayEvent)
     {
-        LOGINFO("DS HAL OnDisplayRxSense event: displayEvent=%d", static_cast<int>(displayEvent));
+        DSLOG_INFO("DS HAL OnDisplayRxSense event: displayEvent=%d", static_cast<int>(displayEvent));
         dispatchDisplayEvent(&IDisplayNotification::OnDisplayRxSense, displayEvent);
     }
 
     void DeviceSettingsDisplayImpl::OnDisplayHDCPStatus()
     {
-        LOGINFO("DS HAL OnDisplayHDCPStatus event");
+        DSLOG_INFO("DS HAL OnDisplayHDCPStatus event");
         dispatchDisplayEvent(&IDisplayNotification::OnDisplayHDCPStatus);
     }
 
     void DeviceSettingsDisplayImpl::OnDisplayHDMIHotPlug(const DisplayEvent displayEvent)
     {
-        LOGINFO("DS HAL OnDisplayHDMIHotPlug event: displayEvent=%d", static_cast<int>(displayEvent));
+        DSLOG_INFO("DS HAL OnDisplayHDMIHotPlug event: displayEvent=%d", static_cast<int>(displayEvent));
         dispatchDisplayHDMIHotPlugEvent(&IDisplayHDMIHotPlugNotification::OnDisplayHDMIHotPlug, displayEvent);
     }
 
@@ -175,9 +175,9 @@ namespace Plugin {
         uint32_t result = Core::ERROR_GENERAL;
         result = _display.GetDisplayEdid(handle, edId, supportedResolutionList);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("GetDisplayEdid succeeded: handle=%d", handle);
+            DSLOG_INFO("succeeded: handle=%d", handle);
         } else {
-            LOGERR("GetDisplayEdid failed: handle=%d, error=%u", handle, result);
+            DSLOG_ERR("failed: handle=%d, error=%u", handle, result);
         }
         return result;
     }
@@ -187,9 +187,9 @@ namespace Plugin {
         uint32_t result = Core::ERROR_GENERAL;
         result = _display.GetDisplayEdidBytes(handle, edIdBytes, edidLength);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("GetDisplayEdidBytes succeeded: handle=%d, edidLength=%d", handle, edidLength);
+            DSLOG_INFO("succeeded: handle=%d, edidLength=%d", handle, edidLength);
         } else {
-            LOGERR("GetDisplayEdidBytes failed: handle=%d, edidLength=%d, error=%u", handle, edidLength, result);
+            DSLOG_ERR("failed: handle=%d, edidLength=%d, error=%u", handle, edidLength, result);
         }
         return result;
     }
@@ -200,9 +200,9 @@ namespace Plugin {
         uint32_t result = Core::ERROR_GENERAL;
         result = _display.GetDisplay(portType, index, handle);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("GetDisplay succeeded: portType=%d, index=%d, handle=%d", static_cast<int>(portType), index, handle);
+            DSLOG_INFO("succeeded: portType=%d, index=%d, handle=%d", static_cast<int>(portType), index, handle);
         } else {
-            LOGERR("GetDisplay failed: portType=%d, index=%d, error=%u", static_cast<int>(portType), index, result);
+            DSLOG_ERR("failed: portType=%d, index=%d, error=%u", static_cast<int>(portType), index, result);
         }
         return result;
     }
@@ -212,9 +212,9 @@ namespace Plugin {
         uint32_t result = Core::ERROR_GENERAL;
         result = _display.GetDisplayAspectRatio(handle, aspectRatio);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("GetDisplayAspectRatio succeeded: handle=%d, aspectRatio=%d", handle, static_cast<int>(aspectRatio));
+            DSLOG_INFO("succeeded: handle=%d, aspectRatio=%d", handle, static_cast<int>(aspectRatio));
         } else {
-            LOGERR("GetDisplayAspectRatio failed: handle=%d, error=%u", handle, result);
+            DSLOG_ERR("failed: handle=%d, error=%u", handle, result);
         }
         return result;
     }
@@ -224,9 +224,9 @@ namespace Plugin {
         uint32_t result = Core::ERROR_GENERAL;
         result = _display.SetAllmEnabled(handle, enabled);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("SetAllmEnabled succeeded: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
+            DSLOG_INFO("succeeded: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
         } else {
-            LOGERR("SetAllmEnabled failed: handle=%d, enabled=%s, error=%u", handle, enabled ? "true" : "false", result);
+            DSLOG_ERR("failed: handle=%d, enabled=%s, error=%u", handle, enabled ? "true" : "false", result);
         }
         return result;
     }
@@ -236,9 +236,9 @@ namespace Plugin {
         uint32_t result = Core::ERROR_GENERAL;
         result = _display.SetAVIContentType(handle, contentType);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("SetAVIContentType succeeded: handle=%d, contentType=%d", handle, static_cast<int>(contentType));
+            DSLOG_INFO("succeeded: handle=%d, contentType=%d", handle, static_cast<int>(contentType));
         } else {
-            LOGERR("SetAVIContentType failed: handle=%d, contentType=%d, error=%u", handle, static_cast<int>(contentType), result);
+            DSLOG_ERR("failed: handle=%d, contentType=%d, error=%u", handle, static_cast<int>(contentType), result);
         }
         return result;
     }
@@ -248,9 +248,9 @@ namespace Plugin {
         uint32_t result = Core::ERROR_GENERAL;
         result = _display.SetAVIScanInformation(handle, scanInfo);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("SetAVIScanInformation succeeded: handle=%d, scanInfo=%d", handle, static_cast<int>(scanInfo));
+            DSLOG_INFO("succeeded: handle=%d, scanInfo=%d", handle, static_cast<int>(scanInfo));
         } else {
-            LOGERR("SetAVIScanInformation failed: handle=%d, scanInfo=%d, error=%u", handle, static_cast<int>(scanInfo), result);
+            DSLOG_ERR("failed: handle=%d, scanInfo=%d, error=%u", handle, static_cast<int>(scanInfo), result);
         }
         return result;
     }

@@ -25,5 +25,7 @@
 #include <plugins/plugins.h>
 #include <tracing/tracing.h>
 
+#include "DeviceSettingsLogger.h"
+
 #undef EXTERNAL
 #define EXTERNAL

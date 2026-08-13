@@ -32,25 +32,25 @@ namespace Plugin {
         _callbackLock(),
         _compositeIn(CompositeIn::Create<dCompositeInImpl>(*this))
     {
-        LOGINFO("DeviceSettingsCompositeInImpl Constructor - Instance Address: %p", this);
+        DSLOG_INFO("Constructor - Instance Address: %p", this);
     }
 
     DeviceSettingsCompositeInImpl::~DeviceSettingsCompositeInImpl() {
-        LOGINFO("DeviceSettingsCompositeInImpl Destructor - Instance Address: %p", this);
+        DSLOG_INFO("Destructor - Instance Address: %p", this);
     }
 
     template<typename Func, typename... Args>
     void DeviceSettingsCompositeInImpl::dispatchCompositeInEvent(Func notifyFunc, Args&&... args) {
-        LOGINFO(">>");
+        DSLOG_INFO(">>");
         _callbackLock.Lock();
         for (auto& notification : _CompositeInNotifications) {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %" PRId64 "ms to process ICompositeIn event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client %p took %" PRId64 "ms to process ICompositeIn event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
-        LOGINFO("<<");
+        DSLOG_INFO("<<");
     }
 
     template <typename T>
@@ -66,7 +66,7 @@ namespace Plugin {
             notification->AddRef();
             status = Core::ERROR_NONE;
         } else {
-            LOGWARN("Notification %p already registered - skipping", notification);
+            DSLOG_WARN("Notification %p already registered - skipping", notification);
         }
         _callbackLock.Unlock();
 
@@ -96,9 +96,9 @@ namespace Plugin {
     {
         Core::hresult errorCode = Register(_CompositeInNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
-            LOGERR("ICompositeIn %p, errorCode: %u", notification, errorCode);
+            DSLOG_ERR("ICompositeIn %p, errorCode: %u", notification, errorCode);
         } else {
-            LOGINFO("ICompositeIn %p registered successfully", notification);
+            DSLOG_INFO("ICompositeIn %p registered successfully", notification);
         }
         return errorCode;
     }
@@ -107,9 +107,9 @@ namespace Plugin {
     {
         Core::hresult errorCode = Unregister(_CompositeInNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
-            LOGERR("ICompositeIn %p, errorcode: %u", notification, errorCode);
+            DSLOG_ERR("ICompositeIn %p, errorcode: %u", notification, errorCode);
         } else {
-            LOGINFO("ICompositeIn %p unregistered successfully", notification);
+            DSLOG_INFO("ICompositeIn %p unregistered successfully", notification);
         }
         return errorCode;
     }
@@ -117,7 +117,7 @@ namespace Plugin {
     // CompositeIn::INotification interface implementations (called by DS HAL)
     void DeviceSettingsCompositeInImpl::OnCompositeInHotPlug(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const bool isConnected)
     {
-        LOGINFO("DS HAL OnCompositeInHotPlug event: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
+        DSLOG_INFO("DS HAL OnCompositeInHotPlug event: port=%d, isConnected=%s", static_cast<int>(port), isConnected ? "true" : "false");
         
         // Port already converted to WPE type at HAL layer - direct dispatch
         dispatchCompositeInEvent(&Exchange::IDeviceSettingsCompositeIn::INotification::OnCompositeInHotPlug, port, isConnected);
@@ -125,7 +125,7 @@ namespace Plugin {
 
     void DeviceSettingsCompositeInImpl::OnCompositeInSignalStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus signalStatus)
     {
-        LOGINFO("DS HAL OnCompositeInSignalStatus event: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
+        DSLOG_INFO("DS HAL OnCompositeInSignalStatus event: port=%d, signalStatus=%d", static_cast<int>(port), static_cast<int>(signalStatus));
         
         // Types already converted to WPE types at HAL layer - direct dispatch
         dispatchCompositeInEvent(&Exchange::IDeviceSettingsCompositeIn::INotification::OnCompositeInSignalStatus, port, signalStatus);
@@ -133,7 +133,7 @@ namespace Plugin {
 
     void DeviceSettingsCompositeInImpl::OnCompositeInStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const bool isPresented)
     {
-        LOGINFO("DS HAL OnCompositeInStatus event: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
+        DSLOG_INFO("DS HAL OnCompositeInStatus event: activePort=%d, isPresented=%s", static_cast<int>(activePort), isPresented ? "true" : "false");
         
         // Port already converted to WPE type at HAL layer - direct dispatch
         dispatchCompositeInEvent(&Exchange::IDeviceSettingsCompositeIn::INotification::OnCompositeInStatus, activePort, isPresented);
@@ -141,7 +141,7 @@ namespace Plugin {
 
     void DeviceSettingsCompositeInImpl::OnCompositeInVideoModeUpdate(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution videoResolution)
     {
-        LOGINFO("DS HAL OnCompositeInVideoModeUpdate event: activePort=%d", static_cast<int>(activePort));
+        DSLOG_INFO("DS HAL OnCompositeInVideoModeUpdate event: activePort=%d", static_cast<int>(activePort));
         
         // Types already converted to WPE types at HAL layer - direct dispatch
         dispatchCompositeInEvent(&Exchange::IDeviceSettingsCompositeIn::INotification::OnCompositeInVideoModeUpdate, activePort, videoResolution);
@@ -152,9 +152,9 @@ namespace Plugin {
     {
         uint32_t result = _compositeIn.GetNrOfCompositeInputs(nrCompositeInputs);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("GetNrOfCompositeInputs succeeded: nrCompositeInputs=%d", nrCompositeInputs);
+            DSLOG_INFO("succeeded: nrCompositeInputs=%d", nrCompositeInputs);
         } else {
-            LOGERR("GetNrOfCompositeInputs failed: error=%u", result);
+            DSLOG_ERR("failed: error=%u", result);
         }
         return result;
     }
@@ -163,10 +163,10 @@ namespace Plugin {
     {
         uint32_t result = _compositeIn.GetCompositeInStatus(status);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("GetCompositeInStatus succeeded: activePort=%d, isPresented=%s", 
+            DSLOG_INFO("succeeded: activePort=%d, isPresented=%s",
                     static_cast<int>(status.activePort), status.isPresented ? "true" : "false");
         } else {
-            LOGERR("GetCompositeInStatus failed: error=%u", result);
+            DSLOG_ERR("failed: error=%u", result);
         }
         return result;
     }
@@ -175,9 +175,9 @@ namespace Plugin {
     {
         uint32_t result = _compositeIn.SelectCompositeInPort(port);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("SelectCompositeInPort succeeded: port=%d", static_cast<int>(port));
+            DSLOG_INFO("succeeded: port=%d", static_cast<int>(port));
         } else {
-            LOGERR("SelectCompositeInPort failed: port=%d, error=%u", static_cast<int>(port), result);
+            DSLOG_ERR("failed: port=%d, error=%u", static_cast<int>(port), result);
         }
         return result;
     }
@@ -186,10 +186,10 @@ namespace Plugin {
     {
         uint32_t result = _compositeIn.ScaleCompositeInVideo(videoRect);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("ScaleCompositeInVideo succeeded: x=%d, y=%d, width=%d, height=%d", 
+            DSLOG_INFO("succeeded: x=%d, y=%d, width=%d, height=%d",
                     videoRect.x, videoRect.y, videoRect.width, videoRect.height);
         } else {
-            LOGERR("ScaleCompositeInVideo failed: error=%u", result);
+            DSLOG_ERR("failed: error=%u", result);
         }
         return result;
     }

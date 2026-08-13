@@ -34,25 +34,25 @@ namespace Plugin {
         , _configLock()
         , _callbackLock()
     {
-        LOGINFO("DeviceSettingsAudioImpl Constructor - Instance Address: %p", this);
+        DSLOG_INFO("Constructor - Instance Address: %p", this);
     }
 
     DeviceSettingsAudioImpl::~DeviceSettingsAudioImpl() {
-        LOGINFO("DeviceSettingsAudioImpl Destructor - Instance Address: %p", this);
+        DSLOG_INFO("Destructor - Instance Address: %p", this);
     }
 
     template<typename Func, typename... Args>
     void DeviceSettingsAudioImpl::dispatchAudioEvent(Func notifyFunc, Args&&... args) {
-        LOGINFO(">>");
+        DSLOG_INFO(">>");
         _callbackLock.Lock();
         for (auto& notification : _AudioNotifications) {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            LOGINFO("client %p took %" PRId64 "ms to process IAudio event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client %p took %" PRId64 "ms to process IAudio event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
-        LOGINFO("<<");
+        DSLOG_INFO("<<");
     }
 
     template <typename T>
@@ -68,7 +68,7 @@ namespace Plugin {
             notification->AddRef();
             status = Core::ERROR_NONE;
         } else {
-            LOGWARN("Notification %p already registered - skipping", notification);
+            DSLOG_WARN("Notification %p already registered - skipping", notification);
         }
         _callbackLock.Unlock();
 
@@ -98,9 +98,9 @@ namespace Plugin {
     {
         Core::hresult errorCode = Register(_AudioNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
-            LOGERR("IAudio %p, errorCode: %u", notification, errorCode);
+            DSLOG_ERR("IAudio %p, errorCode: %u", notification, errorCode);
         } else {
-            LOGINFO("IAudio %p registered successfully", notification);
+            DSLOG_INFO("IAudio %p registered successfully", notification);
         }
         return errorCode;
     }
@@ -109,9 +109,9 @@ namespace Plugin {
     {
         Core::hresult errorCode = Unregister(_AudioNotifications, notification);
         if (errorCode != Core::ERROR_NONE) {
-            LOGERR("IAudio %p, errorcode: %u", notification, errorCode);
+            DSLOG_ERR("IAudio %p, errorcode: %u", notification, errorCode);
         } else {
-            LOGINFO("IAudio %p unregistered successfully", notification);
+            DSLOG_INFO("IAudio %p unregistered successfully", notification);
         }
         return errorCode;
     }
@@ -119,257 +119,257 @@ namespace Plugin {
     // Audio notification implementations - hardware callbacks
     void DeviceSettingsAudioImpl::OnAssociatedAudioMixingChanged(bool mixing)
     {
-        LOGINFO("OnAssociatedAudioMixingChanged event Received: mixing=%s", mixing ? "true" : "false");
+        DSLOG_INFO("event Received: mixing=%s", mixing ? "true" : "false");
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAssociatedAudioMixingChanged, mixing);
     }
 
     void DeviceSettingsAudioImpl::OnAudioFaderControlChanged(int32_t mixerBalance)
     {
-        LOGINFO("OnAudioFaderControlChanged event Received: mixerBalance=%d", mixerBalance);
+        DSLOG_INFO("event Received: mixerBalance=%d", mixerBalance);
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioFaderControlChanged, mixerBalance);
     }
 
     void DeviceSettingsAudioImpl::OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
     {
-        LOGINFO("OnAudioPrimaryLanguageChanged event Received: primaryLanguage=%s", primaryLanguage.c_str());
+        DSLOG_INFO("event Received: primaryLanguage=%s", primaryLanguage.c_str());
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioPrimaryLanguageChanged, primaryLanguage);
     }
 
     void DeviceSettingsAudioImpl::OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage)
     {
-        LOGINFO("OnAudioSecondaryLanguageChanged event Received: secondaryLanguage=%s", secondaryLanguage.c_str());
+        DSLOG_INFO("event Received: secondaryLanguage=%s", secondaryLanguage.c_str());
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioSecondaryLanguageChanged, secondaryLanguage);
     }
 
     void DeviceSettingsAudioImpl::OnAudioOutHotPlug(AudioPortType portType, uint32_t uiPortNumber, bool isPortConnected)
     {
-        LOGINFO("OnAudioOutHotPlug event Received: portType=%d, port=%u, connected=%s", portType, uiPortNumber, isPortConnected ? "true" : "false");
+        DSLOG_INFO("event Received: portType=%d, port=%u, connected=%s", portType, uiPortNumber, isPortConnected ? "true" : "false");
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioOutHotPlug, portType, uiPortNumber, isPortConnected);
     }
 
     void DeviceSettingsAudioImpl::OnAudioFormatUpdate(AudioFormat audioFormat)
     {
-        LOGINFO("OnAudioFormatUpdate event Received: audioFormat=%d", audioFormat);
+        DSLOG_INFO("event Received: audioFormat=%d", audioFormat);
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioFormatUpdate, audioFormat);
     }
 
     void DeviceSettingsAudioImpl::OnDolbyAtmosCapabilitiesChanged(DolbyAtmosCapability atmosCapability, bool status)
     {
-        LOGINFO("OnDolbyAtmosCapabilitiesChanged event Received: capability=%d, status=%s", atmosCapability, status ? "true" : "false");
+        DSLOG_INFO("event Received: capability=%d, status=%s", atmosCapability, status ? "true" : "false");
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnDolbyAtmosCapabilitiesChanged, atmosCapability, status);
     }
 
     void DeviceSettingsAudioImpl::OnAudioPortStateChanged(AudioPortState audioPortState)
     {
-        LOGINFO("OnAudioPortStateChanged event Received: audioPortState=%d", audioPortState);
+        DSLOG_INFO("event Received: audioPortState=%d", audioPortState);
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioPortStateChanged, audioPortState);
     }
 
     void DeviceSettingsAudioImpl::OnAudioLevelChanged(int32_t audioLevel)
     {
-        LOGINFO("OnAudioLevelChanged event Received: audioLevel=%d", audioLevel);
+        DSLOG_INFO("event Received: audioLevel=%d", audioLevel);
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioLevelChanged, audioLevel);
     }
 
     void DeviceSettingsAudioImpl::OnAudioModeEvent(AudioPortType audioPortType, AudioStereoMode audioMode)
     {
-        LOGINFO("OnAudioModeEvent event Received: portType=%d, mode=%d", audioPortType, audioMode);
+        DSLOG_INFO("event Received: portType=%d, mode=%d", audioPortType, audioMode);
         dispatchAudioEvent(&DeviceSettingsAudio::INotification::OnAudioModeEvent, audioPortType, audioMode);
     }
 
     // Audio port management
     Core::hresult DeviceSettingsAudioImpl::GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) {
-        LOGINFO("GetAudioPort: type=%d, index=%d", type, index);
+        DSLOG_INFO("type=%d, index=%d", type, index);
         uint32_t result = _audio.GetAudioPort(type, index, handle);
         return result;
     }
 
     // Audio capabilities
     Core::hresult DeviceSettingsAudioImpl::GetAudioCapabilities(const int32_t handle, int32_t &capabilities) {
-        LOGINFO("GetAudioCapabilities: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioCapabilities(handle, capabilities);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities) {
-        LOGINFO("GetAudioMS12Capabilities: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioMS12Capabilities(handle, capabilities);
         return result;
     }
 
     // Audio format and encoding
     Core::hresult DeviceSettingsAudioImpl::GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) {
-        LOGINFO("GetAudioFormat: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioFormat(handle, audioFormat);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioEncoding(const int32_t handle, AudioEncoding &encoding) {
-        LOGINFO("GetAudioEncoding: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioEncoding(handle, encoding);
         return result;
     }
 
     // Audio level and volume control
     Core::hresult DeviceSettingsAudioImpl::SetAudioLevel(const int32_t handle, const float audioLevel) {
-        LOGINFO("SetAudioLevel: handle=%d, audioLevel=%.2f", handle, audioLevel);
+        DSLOG_INFO("handle=%d, audioLevel=%.2f", handle, audioLevel);
         uint32_t result = _audio.SetAudioLevel(handle, audioLevel);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioLevel(const int32_t handle, float &audioLevel) {
-        LOGINFO("GetAudioLevel: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioLevel(handle, audioLevel);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::SetAudioGain(const int32_t handle, const float gainLevel) {
-        LOGINFO("SetAudioGain: handle=%d, gainLevel=%.2f", handle, gainLevel);
+        DSLOG_INFO("handle=%d, gainLevel=%.2f", handle, gainLevel);
         uint32_t result = _audio.SetAudioGain(handle, gainLevel);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioGain(const int32_t handle, float &gainLevel) {
-        LOGINFO("GetAudioGain: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioGain(handle, gainLevel);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::SetAudioMute(const int32_t handle, const bool mute) {
-        LOGINFO("SetAudioMute: handle=%d, mute=%s", handle, mute ? "true" : "false");
+        DSLOG_INFO("handle=%d, mute=%s", handle, mute ? "true" : "false");
         uint32_t result = _audio.SetAudioMute(handle, mute);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::IsAudioMuted(const int32_t handle, bool &muted) {
-        LOGINFO("IsAudioMuted: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.IsAudioMuted(handle, muted);
         return result;
     }
 
     // Audio ducking
     Core::hresult DeviceSettingsAudioImpl::SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level) {
-        LOGINFO("SetAudioDucking: handle=%d, duckingType=%d, duckingAction=%d, level=%d", handle, duckingType, duckingAction, level);
+        DSLOG_INFO("handle=%d, duckingType=%d, duckingAction=%d, level=%d", handle, duckingType, duckingAction, level);
         uint32_t result = _audio.SetAudioDucking(handle, duckingType, duckingAction, level);
         return result;
     }
 
     // Stereo mode
     Core::hresult DeviceSettingsAudioImpl::GetStereoMode(const int32_t handle, AudioStereoMode &mode) {
-        LOGINFO("GetStereoMode: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetStereoMode(handle, mode);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) {
-        LOGINFO("SetStereoMode: handle=%d, mode=%d, persist=%s", handle, mode, persist ? "true" : "false");
+        DSLOG_INFO("handle=%d, mode=%d, persist=%s", handle, mode, persist ? "true" : "false");
         uint32_t result = _audio.SetStereoMode(handle, mode, persist);
         return result;
     }
 
     // Associated audio mixing
     Core::hresult DeviceSettingsAudioImpl::SetAssociatedAudioMixing(const int32_t handle, const bool mixing) {
-        LOGINFO("SetAssociatedAudioMixing: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
+        DSLOG_INFO("handle=%d, mixing=%s", handle, mixing ? "true" : "false");
         uint32_t result = _audio.SetAssociatedAudioMixing(handle, mixing);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAssociatedAudioMixing(const int32_t handle, bool &mixing) {
-        LOGINFO("GetAssociatedAudioMixing: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAssociatedAudioMixing(handle, mixing);
         return result;
     }
 
     // Audio fader control
     Core::hresult DeviceSettingsAudioImpl::SetAudioFaderControl(const int32_t handle, const int32_t mixerBalance) {
-        LOGINFO("SetAudioFaderControl: handle=%d, mixerBalance=%d", handle, mixerBalance);
+        DSLOG_INFO("handle=%d, mixerBalance=%d", handle, mixerBalance);
         uint32_t result = _audio.SetAudioFaderControl(handle, mixerBalance);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance) {
-        LOGINFO("GetAudioFaderControl: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioFaderControl(handle, mixerBalance);
         return result;
     }
 
     // Audio language settings
     Core::hresult DeviceSettingsAudioImpl::SetAudioPrimaryLanguage(const int32_t handle, const std::string& primaryAudioLanguage) {
-        LOGINFO("SetAudioPrimaryLanguage: handle=%d, primaryAudioLanguage=%s", handle, primaryAudioLanguage.c_str());
+        DSLOG_INFO("handle=%d, primaryAudioLanguage=%s", handle, primaryAudioLanguage.c_str());
         uint32_t result = _audio.SetAudioPrimaryLanguage(handle, primaryAudioLanguage);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioPrimaryLanguage(const int32_t handle, std::string &primaryAudioLanguage) {
-        LOGINFO("GetAudioPrimaryLanguage: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioPrimaryLanguage(handle, primaryAudioLanguage);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::SetAudioSecondaryLanguage(const int32_t handle, const std::string& secondaryAudioLanguage) {
-        LOGINFO("SetAudioSecondaryLanguage: handle=%d, secondaryAudioLanguage=%s", handle, secondaryAudioLanguage.c_str());
+        DSLOG_INFO("handle=%d, secondaryAudioLanguage=%s", handle, secondaryAudioLanguage.c_str());
         uint32_t result = _audio.SetAudioSecondaryLanguage(handle, secondaryAudioLanguage);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioSecondaryLanguage(const int32_t handle, std::string &secondaryAudioLanguage) {
-        LOGINFO("GetAudioSecondaryLanguage: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioSecondaryLanguage(handle, secondaryAudioLanguage);
         return result;
     }
 
     // Output connection status
     Core::hresult DeviceSettingsAudioImpl::IsAudioOutputConnected(const int32_t handle, bool &isConnected) {
-        LOGINFO("IsAudioOutputConnected: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.IsAudioOutputConnected(handle, isConnected);
         return result;
     }
 
     // Dolby Atmos
     Core::hresult DeviceSettingsAudioImpl::GetAudioSinkDeviceAtmosCapability(const int32_t handle, DolbyAtmosCapability &atmosCapability) {
-        LOGINFO("GetAudioSinkDeviceAtmosCapability: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioSinkDeviceAtmosCapability(handle, atmosCapability);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::SetAudioAtmosOutputMode(const int32_t handle, const bool enable) {
-        LOGINFO("SetAudioAtmosOutputMode: handle=%d, enable=%s", handle, enable ? "true" : "false");
+        DSLOG_INFO("handle=%d, enable=%s", handle, enable ? "true" : "false");
         uint32_t result = _audio.SetAudioAtmosOutputMode(handle, enable);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) {
-        LOGINFO("GetSupportedCompressions: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetSupportedCompressions(handle, compressions);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetAudioCompression(const int32_t handle, AudioCompression &compression) {
-        LOGINFO("GetAudioCompression: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetAudioCompression(handle, compression);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::SetAudioCompression(const int32_t handle, const AudioCompression compression) {
-        LOGINFO("SetAudioCompression: handle=%d, compression=%d", handle, compression);
+        DSLOG_INFO("handle=%d, compression=%d", handle, compression);
         uint32_t result = _audio.SetAudioCompression(handle, compression);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) {
-        LOGINFO("GetMS12Capabilities: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetMS12Capabilities(handle, compressions);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::GetStereoAuto(const int32_t handle, int32_t &mode) {
-        LOGINFO("GetStereoAuto: handle=%d", handle);
+        DSLOG_INFO("handle=%d", handle);
         uint32_t result = _audio.GetStereoAuto(handle, mode);
         return result;
     }
 
     Core::hresult DeviceSettingsAudioImpl::SetStereoAuto(const int32_t handle, const int32_t mode, const bool persist) {
-        LOGINFO("SetStereoAuto: handle=%d, mode=%d, persist=%s", handle, mode, persist ? "true" : "false");
+        DSLOG_INFO("handle=%d, mode=%d, persist=%s", handle, mode, persist ? "true" : "false");
         uint32_t result = _audio.SetStereoAuto(handle, mode, persist);
         return result;
     }

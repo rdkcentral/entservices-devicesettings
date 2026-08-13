@@ -32,8 +32,8 @@
 #include "libIBusDaemon.h"
 //Need to remove this once fix the issue while add DevisettingsTypes.h file
 #ifdef DEBUG_LOGGING
-#define ENTRY_LOG do { LOGINFO("%d: Enter %s", __LINE__, __func__); } while(0);
-#define EXIT_LOG do { LOGINFO("%d: Exit %s", __LINE__, __func__); } while(0);
+#define ENTRY_LOG do { DSLOG_INFO("%d: Enter %s", __LINE__, __func__); } while(0);
+#define EXIT_LOG do { DSLOG_INFO("%d: Exit %s", __LINE__, __func__); } while(0);
 #else
 #define ENTRY_LOG do { } while(0)
 #define EXIT_LOG do { } while(0)

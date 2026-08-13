@@ -65,19 +65,19 @@ static bool LoadDLSymbols(void* pDLHandle, const dlSymbolLookup* symbols, const 
     bool isAllSymbolsLoaded = false;
 
     if ((pDLHandle == NULL) || (symbols == NULL)) {
-        LOGERR("LoadDLSymbols: Invalid handle or symbols");
+        DSLOG_ERR("Invalid handle or symbols");
         return false;
     }
 
     for (int i = 0; i < numberOfSymbols; i++) {
         if ((symbols[i].dataptr == NULL) || (symbols[i].name == NULL)) {
-            LOGERR("LoadDLSymbols: Invalid symbol entry at index %d", i);
+            DSLOG_ERR("Invalid symbol entry at index %d", i);
             continue;
         }
 
         *(symbols[i].dataptr) = dlsym(pDLHandle, symbols[i].name);
         if (*(symbols[i].dataptr) == NULL) {
-            LOGWARN("LoadDLSymbols: [%s] not found", symbols[i].name);
+            DSLOG_WARN("[%s] not found", symbols[i].name);
         } else {
             currentSymbols++;
         }
@@ -112,7 +112,7 @@ static bool LoadFrontPanelConfigFromHAL(fpdConfigs_t& config, void*& outHandle)
     pDLHandle = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
     if (pDLHandle == NULL) {
         const char* dlErr = dlerror();
-        LOGWARN("LoadFrontPanelConfigFromHAL: dlopen failed for %s: %s",
+        DSLOG_WARN("dlopen failed for %s: %s",
                 RDK_DSHAL_NAME, (dlErr ? dlErr : "unknown"));
         return false;
     }
@@ -130,7 +130,7 @@ static bool LoadFrontPanelConfigFromHAL(fpdConfigs_t& config, void*& outHandle)
                                     sizeof(fpdConfigSymbols) / sizeof(dlSymbolLookup));
 
     if (!isSymbolsLoaded) {
-        LOGWARN("LoadFrontPanelConfigFromHAL: Failed to load all front panel symbols from HAL");
+        DSLOG_WARN("Failed to load all front panel symbols from HAL");
         dlclose(pDLHandle);
         return false;
     }
@@ -138,7 +138,7 @@ static bool LoadFrontPanelConfigFromHAL(fpdConfigs_t& config, void*& outHandle)
     if ((config.pKFPDIndicatorColors == NULL) || (config.pKIndicators == NULL) ||
         (config.pKTextDisplays == NULL) || (config.pKFPDIndicatorColors_size == NULL) ||
         (config.pKIndicators_size == NULL) || (config.pKTextDisplays_size == NULL)) {
-        LOGWARN("LoadFrontPanelConfigFromHAL: HAL symbols loaded but one or more pointers are null");
+        DSLOG_WARN("HAL symbols loaded but one or more pointers are null");
         dlclose(pDLHandle);
         return false;
     }
@@ -183,7 +183,7 @@ static bool LoadAudioConfigFromHAL(audioConfigs_t& config, void*& outHandle)
     pDLHandle = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
     if (pDLHandle == NULL) {
         const char* dlErr = dlerror();
-        LOGWARN("LoadAudioConfigFromHAL: dlopen failed for %s: %s",
+        DSLOG_WARN("dlopen failed for %s: %s",
                 RDK_DSHAL_NAME, (dlErr ? dlErr : "unknown"));
         return false;
     }
@@ -199,14 +199,14 @@ static bool LoadAudioConfigFromHAL(audioConfigs_t& config, void*& outHandle)
                                     sizeof(audioConfigSymbols) / sizeof(dlSymbolLookup));
 
     if (!isSymbolsLoaded) {
-        LOGWARN("LoadAudioConfigFromHAL: Failed to load all audio symbols from HAL");
+        DSLOG_WARN("Failed to load all audio symbols from HAL");
         dlclose(pDLHandle);
         return false;
     }
 
     if ((config.pKConfigs == NULL) || (config.pKPorts == NULL) ||
         (config.pKConfigSize == NULL) || (config.pKPortSize == NULL)) {
-        LOGWARN("LoadAudioConfigFromHAL: HAL symbols loaded but one or more pointers are null");
+        DSLOG_WARN("HAL symbols loaded but one or more pointers are null");
         dlclose(pDLHandle);
         return false;
     }
@@ -238,7 +238,7 @@ static bool LoadVideoPortConfigFromHAL(videoPortConfigs_t& config, void*& outHan
     pDLHandle = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
     if (pDLHandle == NULL) {
         const char* dlErr = dlerror();
-        LOGWARN("LoadVideoPortConfigFromHAL: dlopen failed for %s: %s",
+        DSLOG_WARN("dlopen failed for %s: %s",
                 RDK_DSHAL_NAME, (dlErr ? dlErr : "unknown"));
         return false;
     }
@@ -256,7 +256,7 @@ static bool LoadVideoPortConfigFromHAL(videoPortConfigs_t& config, void*& outHan
                                     sizeof(videoPortConfigSymbols) / sizeof(dlSymbolLookup));
 
     if (!isSymbolsLoaded) {
-        LOGWARN("LoadVideoPortConfigFromHAL: Failed to load all video port symbols from HAL");
+        DSLOG_WARN("Failed to load all video port symbols from HAL");
         dlclose(pDLHandle);
         return false;
     }
@@ -264,7 +264,7 @@ static bool LoadVideoPortConfigFromHAL(videoPortConfigs_t& config, void*& outHan
     if ((config.pKConfigs == NULL) || (config.pKPorts == NULL) ||
         (config.pKResolutionsSettings == NULL) || (config.pKVideoPortConfigs_size == NULL) ||
         (config.pKVideoPortPorts_size == NULL) || (config.pKResolutionsSettings_size == NULL)) {
-        LOGWARN("LoadVideoPortConfigFromHAL: HAL symbols loaded but one or more pointers are null");
+        DSLOG_WARN("HAL symbols loaded but one or more pointers are null");
         dlclose(pDLHandle);
         return false;
     }
@@ -304,7 +304,7 @@ static bool LoadVideoDeviceConfigFromHAL(videoDeviceConfigs_t& config, void*& ou
     pDLHandle = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
     if (pDLHandle == NULL) {
         const char* dlErr = dlerror();
-        LOGWARN("LoadVideoDeviceConfigFromHAL: dlopen failed for %s: %s",
+        DSLOG_WARN("dlopen failed for %s: %s",
                 RDK_DSHAL_NAME, (dlErr ? dlErr : "unknown"));
         return false;
     }
@@ -318,13 +318,13 @@ static bool LoadVideoDeviceConfigFromHAL(videoDeviceConfigs_t& config, void*& ou
                                     sizeof(videoDeviceConfigSymbols) / sizeof(dlSymbolLookup));
 
     if (!isSymbolsLoaded) {
-        LOGWARN("LoadVideoDeviceConfigFromHAL: Failed to load all video device symbols from HAL");
+        DSLOG_WARN("Failed to load all video device symbols from HAL");
         dlclose(pDLHandle);
         return false;
     }
 
     if ((config.pKConfigs == NULL) || (config.pKVideoDeviceConfigs_size == NULL)) {
-        LOGWARN("LoadVideoDeviceConfigFromHAL: HAL symbols loaded but one or more pointers are null");
+        DSLOG_WARN("HAL symbols loaded but one or more pointers are null");
         dlclose(pDLHandle);
         return false;
     }
@@ -424,14 +424,14 @@ void PopulateFPDConfig(
             }
         }
 
-        LOGINFO("PopulateFPDConfig: Loaded config from HAL (colors=%d indicators=%d textDisplays=%d)",
+        DSLOG_INFO("Loaded config from HAL (colors=%d indicators=%d textDisplays=%d)",
                 colorCount, indicatorCount, textDisplayCount);
         dlclose(halHandle);
         halHandle = NULL;
         return;
     }
 
-    LOGWARN("PopulateFPDConfig: HAL config not available, returning empty config");
+    DSLOG_WARN("HAL config not available, returning empty config");
 }
 
 void DumpFPDConfig(
@@ -441,42 +441,42 @@ void DumpFPDConfig(
     const std::vector<FPDColorBinding>&    colorBindings)
 {
     if (-1 == access("/opt/dsMgrDumpDeviceConfigs", F_OK)) {
-        LOGINFO("DumpFPDConfig: Dumping of Device configs is disabled");
+        DSLOG_INFO("Dumping of Device configs is disabled");
         return;
     }
 
-    LOGINFO("\n=============== Dump DeviceSettings FPD Cached Config ===============");
-    LOGINFO("Colors count=%zu", colors.size());
+    DSLOG_INFO("\n=============== Dump DeviceSettings FPD Cached Config ===============");
+    DSLOG_INFO("Colors count=%zu", colors.size());
     for (size_t i = 0; i < colors.size(); ++i) {
-        LOGINFO("colors[%zu]: id=%d color=%d", i, colors[i].id, colors[i].color);
+        DSLOG_INFO("colors[%zu]: id=%d color=%d", i, colors[i].id, colors[i].color);
     }
 
-    LOGINFO("Indicators count=%zu", indicators.size());
+    DSLOG_INFO("Indicators count=%zu", indicators.size());
     for (size_t i = 0; i < indicators.size(); ++i) {
         const FPDIndicatorConfig& cfg = indicators[i];
-        LOGINFO("indicators[%zu]: id=%d maxBrightness=%d maxCycleRate=%d minBrightness=%d levels=%d colorMode=%d",
+        DSLOG_INFO("indicators[%zu]: id=%d maxBrightness=%d maxCycleRate=%d minBrightness=%d levels=%d colorMode=%d",
                 i, cfg.id, cfg.maxBrightness, cfg.maxCycleRate,
                 cfg.minBrightness, cfg.levels, cfg.colorMode);
     }
 
-    LOGINFO("TextDisplays count=%zu", textDisplays.size());
+    DSLOG_INFO("TextDisplays count=%zu", textDisplays.size());
     for (size_t i = 0; i < textDisplays.size(); ++i) {
         const FPDTextDisplayConfig& cfg = textDisplays[i];
-        LOGINFO("textDisplays[%zu]: id=%d name=%s maxBrightness=%d maxCycleRate=%d columns=%d rows=%d maxHIter=%d maxVIter=%d levels=%d colorMode=%d supportedChars=%s",
+        DSLOG_INFO("textDisplays[%zu]: id=%d name=%s maxBrightness=%d maxCycleRate=%d columns=%d rows=%d maxHIter=%d maxVIter=%d levels=%d colorMode=%d supportedChars=%s",
                 i, cfg.id, cfg.name.c_str(), cfg.maxBrightness, cfg.maxCycleRate,
                 cfg.columns, cfg.rows, cfg.maxHorizontalIterations,
                 cfg.maxVerticalIterations, cfg.levels, cfg.colorMode,
                 cfg.supportedCharacters.c_str());
     }
 
-    LOGINFO("ColorBindings count=%zu", colorBindings.size());
+    DSLOG_INFO("ColorBindings count=%zu", colorBindings.size());
     for (size_t i = 0; i < colorBindings.size(); ++i) {
         const FPDColorBinding& cfg = colorBindings[i];
-        LOGINFO("colorBindings[%zu]: targetType=%d targetId=%d colorId=%d",
+        DSLOG_INFO("colorBindings[%zu]: targetType=%d targetId=%d colorId=%d",
                 i, static_cast<int>(cfg.targetType), cfg.targetId, cfg.colorId);
     }
 
-    LOGINFO("=============== Dump DeviceSettings FPD Cached Config done ===============\n");
+    DSLOG_INFO("=============== Dump DeviceSettings FPD Cached Config done ===============\n");
 }
 
 // ── Audio ─────────────────────────────────────────────────────────────────
@@ -494,7 +494,7 @@ void PopulateAudioConfig(
     audioPorts.clear();
 
     if (!loadedFromHAL) {
-        LOGWARN("PopulateAudioConfig: HAL config not available, returning empty config");
+        DSLOG_WARN("HAL config not available, returning empty config");
         return;
     }
 
@@ -535,7 +535,7 @@ void PopulateAudioConfig(
         audioPorts.push_back(portCfg);
     }
 
-    LOGINFO("PopulateAudioConfig: Loaded config from HAL (audioTypes=%zu audioPorts=%zu)",
+    DSLOG_INFO("Loaded config from HAL (audioTypes=%zu audioPorts=%zu)",
             audioTypes.size(), audioPorts.size());
     dlclose(halHandle);
     halHandle = NULL;
@@ -546,15 +546,15 @@ void DumpAudioConfig(
     const std::vector<AudioPortConfigInfo>& audioPorts)
 {
     if (-1 == access("/opt/dsMgrDumpDeviceConfigs", F_OK)) {
-        LOGINFO("DumpAudioConfig: Dumping of Device configs is disabled");
+        DSLOG_INFO("Dumping of Device configs is disabled");
         return;
     }
 
-    LOGINFO("\n=============== Dump DeviceSettings Audio Cached Config ===============");
-    LOGINFO("AudioTypes count=%zu", audioTypes.size());
+    DSLOG_INFO("\n=============== Dump DeviceSettings Audio Cached Config ===============");
+    DSLOG_INFO("AudioTypes count=%zu", audioTypes.size());
     for (size_t i = 0; i < audioTypes.size(); ++i) {
         const AudioTypeConfigInfo& cfg = audioTypes[i];
-        LOGINFO("audioTypes[%zu]: typeId=%d name=%s compressionMask=0x%x encodingMask=0x%x stereoModeMask=0x%x",
+        DSLOG_INFO("audioTypes[%zu]: typeId=%d name=%s compressionMask=0x%x encodingMask=0x%x stereoModeMask=0x%x",
                 i,
                 static_cast<int>(cfg.typeId),
                 cfg.name.c_str(),
@@ -563,10 +563,10 @@ void DumpAudioConfig(
                 static_cast<unsigned int>(cfg.supportedStereoModeMask));
     }
 
-    LOGINFO("AudioPorts count=%zu", audioPorts.size());
+    DSLOG_INFO("AudioPorts count=%zu", audioPorts.size());
     for (size_t i = 0; i < audioPorts.size(); ++i) {
         const AudioPortConfigInfo& cfg = audioPorts[i];
-        LOGINFO("audioPorts[%zu]: portType=%d portIndex=%d connectedVideoPortType=%d connectedVideoPortIndex=%d",
+        DSLOG_INFO("audioPorts[%zu]: portType=%d portIndex=%d connectedVideoPortType=%d connectedVideoPortIndex=%d",
                 i,
                 static_cast<int>(cfg.audioPortType),
                 cfg.audioPortIndex,
@@ -574,7 +574,7 @@ void DumpAudioConfig(
                 cfg.connectedVideoPortIndex);
     }
 
-    LOGINFO("=============== Dump DeviceSettings Audio Cached Config done ===============\n");
+    DSLOG_INFO("=============== Dump DeviceSettings Audio Cached Config done ===============\n");
 }
 
 // ── VideoPort ─────────────────────────────────────────────────────────────
@@ -592,7 +592,7 @@ void PopulateVideoPortConfig(
     videoPorts.clear();
 
     if (!loadedFromHAL) {
-        LOGWARN("PopulateVideoPortConfig: HAL config not available, returning empty config");
+        DSLOG_WARN("HAL config not available, returning empty config");
         return;
     }
 
@@ -635,7 +635,7 @@ void PopulateVideoPortConfig(
         videoPorts.push_back(portCfg);
     }
 
-    LOGINFO("PopulateVideoPortConfig: Loaded config from HAL (videoPortTypes=%zu videoPorts=%zu)",
+    DSLOG_INFO("Loaded config from HAL (videoPortTypes=%zu videoPorts=%zu)",
             videoPortTypes.size(), videoPorts.size());
     dlclose(halHandle);
     halHandle = NULL;
@@ -653,7 +653,7 @@ void PopulateVideoPortResolutionConfig(
     resolutions.clear();
 
     if (!loadedFromHAL) {
-        LOGWARN("PopulateVideoPortResolutionConfig: HAL config not available, returning empty config");
+        DSLOG_WARN("HAL config not available, returning empty config");
         return;
     }
 
@@ -681,7 +681,7 @@ void PopulateVideoPortResolutionConfig(
     }
 
     if (!typeFound) {
-        LOGWARN("PopulateVideoPortResolutionConfig: videoPortType=%d not found in HAL type config", static_cast<int>(videoPortType));
+        DSLOG_WARN("videoPortType=%d not found in HAL type config", static_cast<int>(videoPortType));
         dlclose(halHandle);
         halHandle = NULL;
         return;
@@ -707,7 +707,7 @@ void PopulateVideoPortResolutionConfig(
         resolutions.push_back(resCfg);
     }
 
-    LOGINFO("PopulateVideoPortResolutionConfig: Loaded resolution config from HAL (videoPortType=%d resolutions=%zu)",
+    DSLOG_INFO("Loaded resolution config from HAL (videoPortType=%d resolutions=%zu)",
             static_cast<int>(videoPortType), resolutions.size());
     dlclose(halHandle);
     halHandle = NULL;
@@ -719,15 +719,15 @@ void DumpVideoPortConfig(
     const std::vector<VideoPortResolution>& resolutions)
 {
     if (-1 == access("/opt/dsMgrDumpDeviceConfigs", F_OK)) {
-        LOGINFO("DumpVideoPortConfig: Dumping of Device configs is disabled");
+        DSLOG_INFO("Dumping of Device configs is disabled");
         return;
     }
 
-    LOGINFO("\n=============== Dump DeviceSettings VideoPort Cached Config ===============");
-    LOGINFO("VideoPortTypes count=%zu", videoPortTypes.size());
+    DSLOG_INFO("\n=============== Dump DeviceSettings VideoPort Cached Config ===============");
+    DSLOG_INFO("VideoPortTypes count=%zu", videoPortTypes.size());
     for (size_t i = 0; i < videoPortTypes.size(); ++i) {
         const VideoPortTypeConfig& cfg = videoPortTypes[i];
-        LOGINFO("videoPortTypes[%zu]: typeId=%d name=%s dtcp=%s hdcp=%s restrictedRes=%d supportedResolutions=%s",
+        DSLOG_INFO("videoPortTypes[%zu]: typeId=%d name=%s dtcp=%s hdcp=%s restrictedRes=%d supportedResolutions=%s",
                 i,
                 static_cast<int>(cfg.typeId),
                 cfg.name.c_str(),
@@ -737,10 +737,10 @@ void DumpVideoPortConfig(
                 cfg.supportedResolutionNames.c_str());
     }
 
-    LOGINFO("VideoPorts count=%zu", videoPorts.size());
+    DSLOG_INFO("VideoPorts count=%zu", videoPorts.size());
     for (size_t i = 0; i < videoPorts.size(); ++i) {
         const VideoPortPortConfig& cfg = videoPorts[i];
-        LOGINFO("videoPorts[%zu]: videoPortType=%d videoPortIndex=%d connectedAudioPortType=%d connectedAudioPortIndex=%d defaultResolution=%s",
+        DSLOG_INFO("videoPorts[%zu]: videoPortType=%d videoPortIndex=%d connectedAudioPortType=%d connectedAudioPortIndex=%d defaultResolution=%s",
                 i,
                 static_cast<int>(cfg.videoPortType),
                 cfg.videoPortIndex,
@@ -749,10 +749,10 @@ void DumpVideoPortConfig(
                 cfg.defaultResolution.c_str());
     }
 
-    LOGINFO("Resolutions count=%zu", resolutions.size());
+    DSLOG_INFO("Resolutions count=%zu", resolutions.size());
     for (size_t i = 0; i < resolutions.size(); ++i) {
         const VideoPortResolution& cfg = resolutions[i];
-        LOGINFO("resolutions[%zu]: name=%s pixelResolution=%d aspectRatio=%d stereoScopicMode=%d frameRate=%d interlaced=%s",
+        DSLOG_INFO("resolutions[%zu]: name=%s pixelResolution=%d aspectRatio=%d stereoScopicMode=%d frameRate=%d interlaced=%s",
                 i,
                 cfg.name.c_str(),
                 static_cast<int>(cfg.pixelResolution),
@@ -762,7 +762,7 @@ void DumpVideoPortConfig(
                 cfg.interlaced ? "true" : "false");
     }
 
-    LOGINFO("=============== Dump DeviceSettings VideoPort Cached Config done ===============\n");
+    DSLOG_INFO("=============== Dump DeviceSettings VideoPort Cached Config done ===============\n");
 }
 
 // ── VideoDevice ───────────────────────────────────────────────────────────
@@ -778,7 +778,7 @@ void PopulateVideoDeviceConfig(
     videoDeviceConfigs.clear();
 
     if (!loadedFromHAL) {
-        LOGWARN("PopulateVideoDeviceConfig: HAL config not available, returning empty config");
+        DSLOG_WARN("HAL config not available, returning empty config");
         return;
     }
 
@@ -795,7 +795,7 @@ void PopulateVideoDeviceConfig(
         videoDeviceConfigs.push_back(videoCfg);
     }
 
-    LOGINFO("PopulateVideoDeviceConfig: Loaded config from HAL (videoDeviceConfigs=%zu)",
+    DSLOG_INFO("Loaded config from HAL (videoDeviceConfigs=%zu)",
             videoDeviceConfigs.size());
     dlclose(halHandle);
     halHandle = NULL;
@@ -805,21 +805,21 @@ void DumpVideoDeviceConfig(
     const std::vector<VideoDeviceConfigInfo>& videoDeviceConfigs)
 {
     if (-1 == access("/opt/dsMgrDumpDeviceConfigs", F_OK)) {
-        LOGINFO("DumpVideoDeviceConfig: Dumping of Device configs is disabled");
+        DSLOG_INFO("Dumping of Device configs is disabled");
         return;
     }
 
-    LOGINFO("\n=============== Dump DeviceSettings VideoDevice Cached Config ===============");
-    LOGINFO("VideoDeviceConfigs count=%zu", videoDeviceConfigs.size());
+    DSLOG_INFO("\n=============== Dump DeviceSettings VideoDevice Cached Config ===============");
+    DSLOG_INFO("VideoDeviceConfigs count=%zu", videoDeviceConfigs.size());
     for (size_t i = 0; i < videoDeviceConfigs.size(); ++i) {
         const VideoDeviceConfigInfo& cfg = videoDeviceConfigs[i];
-        LOGINFO("videoDeviceConfigs[%zu]: numSupportedDFCs=%u supportedDFCsMask=0x%x defaultDFC=%d",
+        DSLOG_INFO("videoDeviceConfigs[%zu]: numSupportedDFCs=%u supportedDFCsMask=0x%x defaultDFC=%d",
                 i,
                 static_cast<unsigned int>(cfg.numSupportedDFCs),
                 static_cast<unsigned int>(cfg.supportedDFCsMask),
                 static_cast<int>(cfg.defaultDFC));
     }
-    LOGINFO("=============== Dump DeviceSettings VideoDevice Cached Config done ===============\n");
+    DSLOG_INFO("=============== Dump DeviceSettings VideoDevice Cached Config done ===============\n");
 }
 
 } // namespace DeviceSettingsHAL

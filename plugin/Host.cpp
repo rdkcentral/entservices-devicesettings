@@ -32,7 +32,6 @@
 Host::Host(std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
 {
-    LOGINFO("Host Constructor");
     Platform_init();
 }
 
@@ -42,7 +41,7 @@ Host Host::Create() {
 
 void Host::Platform_init()
 {
-    LOGINFO("Host Init - Setting up event callbacks");
+    DSLOG_INFO("Host Init - Setting up event callbacks");
 
     CallbackBundle bundle;
     if (_platform) {
@@ -52,29 +51,28 @@ void Host::Platform_init()
 }
 
 uint32_t Host::GetEDID(uint8_t edId[], const uint16_t edIdLength) {
-    LOGINFO("GetEDID: edIdLength=%u", edIdLength);
+    DSLOG_INFO("edIdLength=%u", edIdLength);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetEDID(edId, edIdLength);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetEDID: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("GetEDID: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Host::GetMS12ConfigType(string &ms12Config) {
-    LOGINFO("GetMS12ConfigType");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetMS12ConfigType(ms12Config);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetMS12ConfigType: SUCCESS - ms12Config='%s'", ms12Config.c_str());
+        DSLOG_INFO("SUCCESS - ms12Config='%s'", ms12Config.c_str());
     } else {
-        LOGERR("GetMS12ConfigType: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 } // namespace end

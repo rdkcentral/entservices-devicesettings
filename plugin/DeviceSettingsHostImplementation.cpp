@@ -30,11 +30,11 @@ namespace Plugin {
         _apiLock(),
         _host(Host::Create())
     {
-        LOGINFO("DeviceSettingsHostImpl Constructor - Instance Address: %p", this);
+        DSLOG_INFO("Constructor - Instance Address: %p", this);
     }
 
     DeviceSettingsHostImpl::~DeviceSettingsHostImpl() {
-        LOGINFO("DeviceSettingsHostImpl Destructor - Instance Address: %p", this);
+        DSLOG_INFO("Destructor - Instance Address: %p", this);
     }
 
     Core::hresult DeviceSettingsHostImpl::GetEDID(uint8_t edId[], const uint16_t edIdLength)
@@ -42,9 +42,9 @@ namespace Plugin {
         uint32_t result = Core::ERROR_GENERAL;
         result = _host.GetEDID(edId, edIdLength);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("GetEDID succeeded: edIdLength=%u", edIdLength);
+            DSLOG_INFO("succeeded: edIdLength=%u", edIdLength);
         } else {
-            LOGERR("GetEDID failed: edIdLength=%u, error=%u", edIdLength, result);
+            DSLOG_ERR("failed: edIdLength=%u, error=%u", edIdLength, result);
         }
         return result;
     }
@@ -54,9 +54,9 @@ namespace Plugin {
         uint32_t result = Core::ERROR_GENERAL;
         result = _host.GetMS12ConfigType(ms12Config);
         if (result == Core::ERROR_NONE) {
-            LOGINFO("GetMS12ConfigType succeeded: ms12Config='%s'", ms12Config.c_str());
+            DSLOG_INFO("succeeded: ms12Config='%s'", ms12Config.c_str());
         } else {
-            LOGERR("GetMS12ConfigType failed: error=%u", result);
+            DSLOG_ERR("failed: error=%u", result);
         }
         return result;
     }

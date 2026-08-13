@@ -121,7 +121,7 @@ namespace Plugin {
     }
 
     DSController::~DSController() {
-        LOGINFO("DSController Destructor - Instance Address: %p", this);
+        DSLOG_INFO("Destructor - Instance Address: %p", this);
         
         _dsMgr_thread_exit_flag = true;
         
@@ -178,7 +178,7 @@ namespace Plugin {
         memset(&ignoreEdidParam, 0, sizeof(ignoreEdidParam));
         ignoreEdidParam.handle = dsVIDEOPORT_TYPE_HDMI;
         _ignoreEdid = ignoreEdidParam.ignoreEDID;
-        LOGINFO("ResOverride DSController::Start _ignoreEdid: %d", _ignoreEdid);
+        DSLOG_INFO("ResOverride DSController::Start _ignoreEdid: %d", _ignoreEdid);
 
         IARM_Bus_RegisterEventHandler(IARM_BUS_SYSMGR_NAME, IARM_BUS_SYSMGR_EVENT_SYSTEMSTATE, _EventHandler);
         IARM_Bus_RegisterCall(IARM_BUS_COMMON_API_SysModeChange, _SysModeChange);
@@ -186,7 +186,7 @@ namespace Plugin {
         // Initialize power event listener (migrated from dsMGR)
         // Note: service parameter will be passed separately via InitializePowerEventListener()
         _pwrEventListener = new DSPwrEventListener();
-        LOGINFO("DSPwrEventListener created: %p", _pwrEventListener);
+        DSLOG_INFO("DSPwrEventListener created: %p", _pwrEventListener);
         
         InitializeResolutionThread();
         
@@ -194,13 +194,13 @@ namespace Plugin {
         if(_mainLoop != NULL){
             g_timeout_add_seconds(300, HeartbeatMsg, _mainLoop); 
         } else {
-            LOGERR("Fails to Create a main Loop for DS Manager");
+            DSLOG_ERR("Fails to Create a main Loop for DS Manager");
         }
         
         FILE* fDSCtrptr = fopen("/opt/ddcDelay", "r");
         if (NULL != fDSCtrptr) {
             if (0 > fscanf(fDSCtrptr, "%d", &_resolutionRetryCount)) {
-                LOGERR("Error: fscanf on ddcDelay failed");
+                DSLOG_ERR("Error: fscanf on ddcDelay failed");
             }
             fclose(fDSCtrptr);
         }
@@ -224,7 +224,7 @@ namespace Plugin {
                      &tuneReadyParam, sizeof(tuneReadyParam));
 
         if (1 == tuneReadyParam.TuneReadyStatus.state) {
-            LOGINFO("DSController::Start - TuneReady already set, signalling resolution thread");
+            DSLOG_INFO("TuneReady already set, signalling resolution thread");
             _tuneReady = 1;
             pthread_mutex_lock(&_mutexLock);
             _displayEventStatus = dsDISPLAY_EVENT_CONNECTED;
@@ -268,12 +268,12 @@ namespace Plugin {
     {
         pthread_mutex_init(&_mutexLock, NULL);
         if (pthread_cond_init(&_mutexCond, NULL) != 0) {
-            LOGERR("Failed to create pthread_cond_init _mutexCond");
+            DSLOG_ERR("Failed to create pthread_cond_init _mutexCond");
             return;
         }
         
         if (pthread_create(&_resolutionThreadID, NULL, ResolutionThreadFunc, NULL) != 0) {
-            LOGERR("Failed pthread_create ResolutionThreadFunc");
+            DSLOG_ERR("Failed pthread_create ResolutionThreadFunc");
             return;
         }
     }
@@ -286,10 +286,10 @@ namespace Plugin {
             if (_deviceSettings) {
                 _deviceSettings->Register(static_cast<IDisplayHDMIHotPlugNotification*>(this));
             } else {
-                LOGERR("Failed to get DeviceSettings implementation instance");
+                DSLOG_ERR("Failed to get DeviceSettings implementation instance");
             }
         } catch (const std::exception& e) {
-            LOGERR("Exception during DeviceSettings component initialization: %s", e.what());
+            DSLOG_ERR("Exception during DeviceSettings component initialization: %s", e.what());
         }
     }
     
@@ -304,22 +304,22 @@ namespace Plugin {
 
     void DSController::InitializePowerEventListener(PluginHost::IShell* service)
     {
-        LOGINFO("InitializePowerEventListener called with service: %p", service);
-        
+        DSLOG_INFO("Service: %p", service);
+
         if (_pwrEventListener && service) {
-            LOGINFO("Initializing DSPwrEventListener with service");
+            DSLOG_INFO("Initializing DSPwrEventListener with service");
             _pwrEventListener->Init(service);
         } else {
-            LOGERR("Cannot initialize DSPwrEventListener - missing listener or service");
+            DSLOG_ERR("Cannot initialize DSPwrEventListener - missing listener or service");
         }
     }
     
     void DSController::DeinitializePowerEventListener()
     {
-        LOGINFO("DeinitializePowerEventListener called");
+        DSLOG_INFO(" called");
         
         if (_pwrEventListener) {
-            LOGINFO("Deinitializing and deleting DSPwrEventListener");
+            DSLOG_INFO("Deinitializing and deleting DSPwrEventListener");
             _pwrEventListener->Deinit();
             delete _pwrEventListener;
             _pwrEventListener = nullptr;
@@ -328,12 +328,12 @@ namespace Plugin {
 
     void DSController::Init()
     {
-        LOGINFO("DSController::Init - Initializing Device Settings subsystems");
+        DSLOG_INFO("Initializing Device Settings subsystems");
     }
     
     void DSController::Deinit()
     {
-        LOGINFO("DSController::Deinit - Terminating Device Settings subsystems");
+        DSLOG_INFO("Terminating Device Settings subsystems");
     }
 
 // Helper methods using DeviceSettings components
@@ -346,11 +346,11 @@ namespace Plugin {
             uint32_t result = _deviceSettings->GetVideoPort(vpType, 0, handle);
             if (result != Core::ERROR_NONE) {
                 // INVALID_PARAM for unconfigured ports (e.g. COMPONENT on TV) is expected
-                LOGWARN("GetVideoPortHandle: port type %d not available (result=%u)", port, result);
+                DSLOG_WARN("port type %d not available (result=%u)", port, result);
                 handle = 0;
             }
         } else {
-            LOGERR("GetVideoPortHandle: DeviceSettings not initialized");
+            DSLOG_ERR("DeviceSettings not initialized");
         }
         
         return handle;
@@ -365,12 +365,12 @@ namespace Plugin {
             if (handle != 0) {
                 uint32_t result = _deviceSettings->IsVideoPortDisplayConnected(handle, connected);
                 if (result != Core::ERROR_NONE) {
-                    LOGERR("IsHDMIConnected: Failed to check connection status");
+                    DSLOG_ERR("Failed to check connection status");
                     connected = false;
                 }
             }
         } else {
-            LOGERR("IsHDMIConnected: DeviceSettings not initialized");
+            DSLOG_ERR("DeviceSettings not initialized");
         }
         
         return connected;
@@ -381,7 +381,7 @@ namespace Plugin {
         dsDisplayEvent_t edisplayEventStatusLocal = dsDISPLAY_EVENT_MAX;
         
         while (!_dsMgr_thread_exit_flag) {
-            LOGINFO("_DSMgrResnThreadFunc... wait for for HDMI or Tune Ready Events");
+            DSLOG_INFO("_DSMgrResnThreadFunc... wait for for HDMI or Tune Ready Events");
             
             pthread_mutex_lock(&_mutexLock);
             while (!_dsMgr_thread_exit_flag && _displayEventStatus == dsDISPLAY_EVENT_MAX) {
@@ -390,13 +390,13 @@ namespace Plugin {
             edisplayEventStatusLocal = _displayEventStatus;
             pthread_mutex_unlock(&_mutexLock);
             
-            LOGINFO("Setting Resolution On:: HDMI %s Event with TuneReady status = %d",
+            DSLOG_INFO("Setting Resolution On:: HDMI %s Event with TuneReady status = %d",
                    (edisplayEventStatusLocal == dsDISPLAY_EVENT_CONNECTED ? "Connect" : "Disconnect"),
                    _tuneReady);
             
             if (_hotplugEventSrc) {
                 g_source_remove(_hotplugEventSrc);
-                LOGINFO("Cleared Hot Plug Event Time source %d", _hotplugEventSrc);
+                DSLOG_INFO("Cleared Hot Plug Event Time source %d", _hotplugEventSrc);
                 _hotplugEventSrc = 0;
             }
             
@@ -415,7 +415,7 @@ namespace Plugin {
                 if (_instance && _instance->isComponentPortPresent())
                 {
                     _hotplugEventSrc = g_timeout_add_seconds((guint)5, SetResolutionHandler, _instance->_mainLoop);
-                    LOGINFO("Schedule a handler to set the resolution after 5 sec for %d time src..", _hotplugEventSrc);
+                    DSLOG_INFO("Schedule a handler to set the resolution after 5 sec for %d time src..", _hotplugEventSrc);
                 }
             }
             
@@ -429,7 +429,7 @@ namespace Plugin {
 
     void DSController::SetVideoPortResolution()
     {
-        LOGINFO("SetVideoPortResolution - Enter");
+        DSLOG_INFO("Enter");
         
         int32_t hdmiHandle = 0;
         int32_t compHandle = 0;
@@ -448,42 +448,42 @@ namespace Plugin {
                     if (dsGetHDMIDDCLineStatus()) {
                         break;
                     }
-                    LOGINFO("Waiting for HDMI DDC Line to be ready for resolution Change...");
+                    DSLOG_INFO("Waiting for HDMI DDC Line to be ready for resolution Change...");
                     iCount++;
                 }
                 #endif
             }
             
             if (connected) {
-                LOGINFO("Setting HDMI resolution..........");
+                DSLOG_INFO("Setting HDMI resolution..........");
                 SetResolution(hdmiHandle, dsVIDEOPORT_TYPE_HDMI);
             } else {
                 compHandle = GetVideoPortHandle(dsVIDEOPORT_TYPE_COMPONENT);
                 
                 if (0 != compHandle) {
-                    LOGINFO("Setting Component/Composite Resolution..........");
+                    DSLOG_INFO("Setting Component/Composite Resolution..........");
                     SetResolution(compHandle, dsVIDEOPORT_TYPE_COMPONENT);
                 } else {
-                    LOGINFO("DSController: NULL Handle for component");
+                    DSLOG_INFO("DSController: NULL Handle for component");
                     int32_t compositeHandle = GetVideoPortHandle(dsVIDEOPORT_TYPE_BB);
                     if (0 != compositeHandle) {
-                        LOGINFO("Setting BB Composite Resolution..........");
+                        DSLOG_INFO("Setting BB Composite Resolution..........");
                         SetResolution(compositeHandle, dsVIDEOPORT_TYPE_BB);
                     } else {
-                        LOGINFO("DSController: NULL Handle for Composite");
+                        DSLOG_INFO("DSController: NULL Handle for Composite");
                         int32_t rfHandle = GetVideoPortHandle(dsVIDEOPORT_TYPE_RF);
                         if (0 != rfHandle) {
-                            LOGINFO("Setting RF Resolution..........");
+                            DSLOG_INFO("Setting RF Resolution..........");
                             SetResolution(rfHandle, dsVIDEOPORT_TYPE_RF);
                         } else {
-                            LOGINFO("DSController: NULL Handle for RF");
+                            DSLOG_INFO("DSController: NULL Handle for RF");
                         }
                     }
                 }
             }
         }
         
-        LOGINFO("SetVideoPortResolution - Exit");
+        DSLOG_INFO("Exit");
     }
 
     void DSController::SetResolution(int32_t handle, dsVideoPortType_t portType)
@@ -495,7 +495,7 @@ namespace Plugin {
         
         // Return if Handle is NULL
         if (handle == 0) {
-            LOGERR("SetResolution - Got NULL Handle");
+            DSLOG_ERR("Got NULL Handle");
             return;
         }
         
@@ -504,12 +504,12 @@ namespace Plugin {
         if (_deviceSettings) {
             uint32_t result = _deviceSettings->GetVideoPortResolution(handle, presolution);
             if (result != Core::ERROR_NONE) {
-                LOGERR("SetResolution: Failed to get persisted resolution");
+                DSLOG_ERR("Failed to get persisted resolution");
                 return;
             }
         }
         
-        LOGINFO("Got User Persisted Resolution - %s", presolution.name.c_str());
+        DSLOG_INFO("Got User Persisted Resolution - %s", presolution.name.c_str());
         
         if (portType == dsVIDEOPORT_TYPE_HDMI) {
             // Get The Display Handle
@@ -524,13 +524,13 @@ namespace Plugin {
                     if (result == Core::ERROR_NONE) {
                         DumpHdmiEdidInfo(edidData);
                         numResolutions = edidData.numOfSupportedResolution;
-                        LOGINFO("numResolutions is %d", numResolutions);
+                        DSLOG_INFO("numResolutions is %d", numResolutions);
                         
                         // If HDMI is connected and Low power Mode, TV might not transmit EDID information
                         // Change the Resolution in Next Hot plug. Do not set if TV is in DVI mode
                         if ((0 == numResolutions) || (!edidData.hdmiDeviceType)) {
-                            LOGERR("Do not Set Resolution..The HDMI is not Ready !!");
-                            LOGERR("numResolutions = %d edidData.hdmiDeviceType = %d !!", numResolutions, edidData.hdmiDeviceType);
+                            DSLOG_ERR("Do not Set Resolution..The HDMI is not Ready !!");
+                            DSLOG_ERR("numResolutions = %d edidData.hdmiDeviceType = %d !!", numResolutions, edidData.hdmiDeviceType);
                             return;
                         }
 
@@ -545,19 +545,19 @@ namespace Plugin {
                             supportedResolutionList->Release();
                             supportedResolutionList = nullptr;
                         }
-                        LOGINFO("SetResolution: EDID supported resolution count from iterator: %zu", edidSupportedNames.size());
+                        DSLOG_INFO("EDID supported resolution count from iterator: %zu", edidSupportedNames.size());
 
                         auto isResInEdid = [&](const char* name) -> bool {
                             if (!name || name[0] == '\0') return false;
                             bool found = edidSupportedNames.count(std::string(name)) > 0;
-                            if (found) LOGINFO("Resolution supported in EDID: %s", name);
+                            if (found) DSLOG_INFO("Resolution supported in EDID: %s", name);
                             return found;
                         };
 
                         // First check if persisted resolution is directly supported
                         if (isResInEdid(presolution.name.c_str())) {
                             isValidResolution = true;
-                            LOGINFO("Persisted resolution %s is directly supported", presolution.name.c_str());
+                            DSLOG_INFO("Persisted resolution %s is directly supported", presolution.name.c_str());
                         }
                         
                         // If resolution with 50Hz not supported, check for same resolution with 60Hz (EU fallback)
@@ -566,7 +566,7 @@ namespace Plugin {
                             // Get secondary resolution based on presolution
                             if (getSecondaryResolution(const_cast<char*>(presolution.name.c_str()), secResn)) {
                                 if (isResInEdid(secResn)) {
-                                    LOGINFO("Got Secondary Resolution - %s", secResn);
+                                    DSLOG_INFO("Got Secondary Resolution - %s", secResn);
                                     isValidResolution = true;
                                     // Update presolution to use the secondary resolution
                                     presolution.name = std::string(secResn);
@@ -593,20 +593,20 @@ namespace Plugin {
                             for (int i = index + 1; i < fNumResolutions; i++) {
                                 if (IsEUPlatform) {
                                     getFallBackResolution(fallBackResolutionList[i], fbResn, 1); // EU fps
-                                    LOGINFO("Check next resolution: %s", fbResn);
+                                    DSLOG_INFO("Check next resolution: %s", fbResn);
                                     if (isResInEdid(fbResn)) {
                                         isValidResolution = true;
                                     }
                                 }
                                 if (!isValidResolution) {
                                     getFallBackResolution(fallBackResolutionList[i], fbResn, 0); // default fps
-                                    LOGINFO("Check next resolution: %s", fbResn);
+                                    DSLOG_INFO("Check next resolution: %s", fbResn);
                                     if (isResInEdid(fbResn)) {
                                         isValidResolution = true;
                                     }
                                 }
                                 if (isValidResolution) {
-                                    LOGINFO("Got Next Best Resolution - %s", fbResn);
+                                    DSLOG_INFO("Got Next Best Resolution - %s", fbResn);
                                     // Update presolution to use the fallback resolution
                                     presolution.name = std::string(fbResn);
                                     break;
@@ -618,7 +618,7 @@ namespace Plugin {
             }
         } else if (portType == dsVIDEOPORT_TYPE_COMPONENT || portType == dsVIDEOPORT_TYPE_BB || portType == dsVIDEOPORT_TYPE_RF) {
             // Set the Component / Composite Resolution
-            LOGINFO("Setting resolution for non-HDMI port type: %d", portType);
+            DSLOG_INFO("Setting resolution for non-HDMI port type: %d", portType);
             isValidResolution = true; // Assume valid for component/composite
         }
         
@@ -626,12 +626,12 @@ namespace Plugin {
         if (isValidResolution && _deviceSettings) {
             uint32_t result = _deviceSettings->SetVideoPortResolution(handle, presolution, false, false);
             if (result != Core::ERROR_NONE) {
-                LOGERR("SetResolution: Failed to set resolution");
+                DSLOG_ERR("Failed to set resolution");
             } else {
-                LOGINFO("Setting resolution to: %s", presolution.name.c_str());
+                DSLOG_INFO("Setting resolution to: %s", presolution.name.c_str());
             }
         } else {
-            LOGERR("Failed to find any valid resolution!");
+            DSLOG_ERR("Failed to find any valid resolution!");
         }
         
     }
@@ -640,12 +640,12 @@ namespace Plugin {
     {
         
         if (_easMode == 1) { // IARM_BUS_SYS_MODE_EAS
-            LOGINFO("EAS In progress..Do not Modify Audio");
+            DSLOG_INFO("EAS In progress..Do not Modify Audio");
             return;
         }
         
         if (!_deviceSettings) {
-            LOGERR("SetAudioMode: DeviceSettings not initialized");
+            DSLOG_ERR("DeviceSettings not initialized");
             return;
         }
         
@@ -677,7 +677,7 @@ namespace Plugin {
                 }
                 
                 if (!connected) {
-                    LOGINFO("HDMI Not Connected ..Do not Set Audio on HDMI !!!");
+                    DSLOG_INFO("HDMI Not Connected ..Do not Set Audio on HDMI !!!");
                     continue;
                 }
                 
@@ -694,11 +694,11 @@ namespace Plugin {
                 if (!isSurround) {
                     // If Surround not supported, then force Stereo
                     currentMode = AudioStereoMode::AUDIO_STEREO_STEREO;
-                    LOGINFO("Surround mode not Supported on HDMI ..Set Stereo");
+                    DSLOG_INFO("Surround mode not Supported on HDMI ..Set Stereo");
                 }
             }
             
-            LOGINFO("Audio mode for audio port %d is : %d", static_cast<int>(supportedPortTypes[i]), static_cast<int>(currentMode));
+            DSLOG_INFO("Audio mode for audio port %d is : %d", static_cast<int>(supportedPortTypes[i]), static_cast<int>(currentMode));
             _deviceSettings->SetStereoMode(handle, currentMode, false);
         }
         
@@ -708,12 +708,12 @@ namespace Plugin {
     {
         
         if (_easMode != 1) { // IARM_BUS_SYS_MODE_EAS
-            LOGINFO("EAS Not In progress..Do not Modify Audio");
+            DSLOG_INFO("EAS Not In progress..Do not Modify Audio");
             return;
         }
         
         if (!_deviceSettings) {
-            LOGERR("SetEASAudioMode: DeviceSettings not initialized");
+            DSLOG_ERR("DeviceSettings not initialized");
             return;
         }
         
@@ -739,7 +739,7 @@ namespace Plugin {
                 currentMode = AudioStereoMode::AUDIO_STEREO_STEREO;
             }
             
-            LOGINFO("EAS Audio mode for audio port %d is : %d", static_cast<int>(supportedPortTypes[i]), static_cast<int>(currentMode));
+            DSLOG_INFO("EAS Audio mode for audio port %d is : %d", static_cast<int>(supportedPortTypes[i]), static_cast<int>(currentMode));
             _deviceSettings->SetStereoMode(handle, currentMode, false);
         }
         
@@ -755,7 +755,7 @@ namespace Plugin {
             VideoBackgroundColor bgColor = static_cast<VideoBackgroundColor>(color);
             uint32_t result = _deviceSettings->SetBackgroundColor(hdmiHandle, bgColor);
             if (result != Core::ERROR_NONE) {
-                LOGERR("SetBackgroundColor: Failed to set background color");
+                DSLOG_ERR("Failed to set background color");
             }
         }
         
@@ -763,15 +763,15 @@ namespace Plugin {
 
     void DSController::DumpHdmiEdidInfo(const DisplayEDID& edidData)
     {
-        LOGINFO("Connected HDMI Display Device Info");
+        DSLOG_INFO("Connected HDMI Display Device Info");
 
         if (!edidData.monitorName.empty())
-            LOGINFO("HDMI Monitor Name is %s", edidData.monitorName.c_str());
-        LOGINFO("HDMI Manufacturing ID is %d", edidData.serialNumber);
-        LOGINFO("HDMI Product Code is %d", edidData.productCode);
-        LOGINFO("HDMI Device Type is %s", edidData.hdmiDeviceType ? "HDMI" : "DVI");
-        LOGINFO("HDMI Sink Device %s a Repeater", edidData.isRepeater ? "is" : "is not");
-        LOGINFO("HDMI Physical Address is %d:%d:%d:%d",
+            DSLOG_INFO("HDMI Monitor Name is %s", edidData.monitorName.c_str());
+        DSLOG_INFO("HDMI Manufacturing ID is %d", edidData.serialNumber);
+        DSLOG_INFO("HDMI Product Code is %d", edidData.productCode);
+        DSLOG_INFO("HDMI Device Type is %s", edidData.hdmiDeviceType ? "HDMI" : "DVI");
+        DSLOG_INFO("HDMI Sink Device %s a Repeater", edidData.isRepeater ? "is" : "is not");
+        DSLOG_INFO("HDMI Physical Address is %d:%d:%d:%d",
                 edidData.physicalAddressA, edidData.physicalAddressB,
                 edidData.physicalAddressC, edidData.physicalAddressD);
         
@@ -793,17 +793,17 @@ namespace Plugin {
         
         FILE *file = fopen(devPropPath, "r");
         if (file == NULL) {
-            LOGERR("Unable to open file %s", devPropPath);
+            DSLOG_ERR("Unable to open file %s", devPropPath);
             return false;
         }
         
         while (fgets(line, sizeof(line), file)) {
             if (strstr(line, deviceProp) != NULL) {
                 if (strstr(line, USRegion) != NULL) {
-                    LOGINFO("Detected US region: %s, isEUflag:%d", line, isEUflag);
+                    DSLOG_INFO("Detected US region: %s, isEUflag:%d", line, isEUflag);
                 } else { // EU - UK/IT/DE
                     isEUflag = true;
-                    LOGINFO("Detected EU region: %s, isEUflag:%d", line, isEUflag);
+                    DSLOG_INFO("Detected EU region: %s, isEUflag:%d", line, isEUflag);
                 }
                 break;
             }
@@ -826,7 +826,7 @@ namespace Plugin {
             }
             if (count < RES_MAX_COUNT) {
                 snprintf(fallBackResolutionList[count], RES_MAX_LEN, "%s", resList[i]);
-                LOGINFO("Fallback resolution[%d]: %s", count, fallBackResolutionList[count]);
+                DSLOG_INFO("Fallback resolution[%d]: %s", count, fallBackResolutionList[count]);
                 count++;
             } else {
                 break;
@@ -850,7 +850,7 @@ namespace Plugin {
             ret = false; // For other resolutions 480p 576p
         }
         
-        LOGINFO("Secondary resolution for %s: %s (ret=%d)", res, secRes, ret);
+        DSLOG_INFO("Secondary resolution for %s: %s (ret=%d)", res, secRes, ret);
         return ret;
     }
     
@@ -870,7 +870,7 @@ namespace Plugin {
             snprintf(bResn + len, RES_MAX_LEN - len, "%s", "p");  // Append 'p'
         }
         
-        LOGINFO("Parsed resolution from %s to %s", pResn, bResn);
+        DSLOG_INFO("Parsed resolution from %s to %s", pResn, bResn);
     }
     
     void DSController::getFallBackResolution(char* Resn, char *fbResn, int flag)
@@ -897,7 +897,7 @@ namespace Plugin {
         }
         
         snprintf(fbResn, RES_MAX_LEN, "%s", tmpResn);
-        LOGINFO("Fallback resolution for %s (EU=%d): %s", Resn, flag, fbResn);
+        DSLOG_INFO("Fallback resolution for %s (EU=%d): %s", Resn, flag, fbResn);
     }
     
     bool DSController::isResolutionSupported(dsDisplayEDID_t *edidData, int numResolutions, 
@@ -912,7 +912,7 @@ namespace Plugin {
                 // Check if platform supports this resolution
                 // Note: kResolutions would need to be defined or passed as parameter
                 // For now, we'll mark as supported if found in EDID
-                LOGINFO("Resolution supported in EDID: %s", Resn);
+                DSLOG_INFO("Resolution supported in EDID: %s", Resn);
                 supported = true;
                 *index = i;
                 break;
@@ -925,13 +925,13 @@ namespace Plugin {
     // Static callback functions
     gboolean DSController::HeartbeatMsg(gpointer data)
     {
-        LOGINFO("I-ARM BUS DS Mgr: HeartBeat ping.");
+        DSLOG_INFO("I-ARM BUS DS Mgr: HeartBeat ping.");
         return TRUE;
     }
     
     gboolean DSController::SetResolutionHandler(gpointer data)
     {
-        LOGINFO("Set Video Resolution after delayed time ..");
+        DSLOG_INFO("Set Video Resolution after delayed time ..");
         if (_instance) {
             _instance->SetVideoPortResolution();
             _instance->_hotplugEventSrc = 0;
@@ -941,7 +941,7 @@ namespace Plugin {
     
     gboolean DSController::DumpEdidOnChecksumDiff(gpointer data)
     {
-        LOGINFO("dumpEdidOnChecksumDiff HDMI-EDID Dump>>>>>>>>>>>>>>");
+        DSLOG_INFO("dumpEdidOnChecksumDiff HDMI-EDID Dump>>>>>>>>>>>>>>");
         
         if (_instance && _instance->_deviceSettings) {
             int32_t displayHandle = 0;
@@ -961,7 +961,7 @@ namespace Plugin {
                     
                     if ((cached_EDID_checksum == 0) || (current_EDID_checksum != cached_EDID_checksum)) {
                         cached_EDID_checksum = current_EDID_checksum;
-                        LOGINFO("HDMI-EDID Dump detected changes");
+                        DSLOG_INFO("HDMI-EDID Dump detected changes");
                     }
                 }
             }
@@ -984,11 +984,11 @@ namespace Plugin {
             IARM_Bus_SYSMgr_EventData_t* sysEventData = (IARM_Bus_SYSMgr_EventData_t*)data;
             IARM_Bus_SYSMgr_SystemState_t stateId = sysEventData->data.systemStates.stateId;
             int state = sysEventData->data.systemStates.state;
-            LOGINFO("EventHandler invoked for stateid %d of state %d", stateId, state);
+            DSLOG_INFO("invoked for stateid %d of state %d", stateId, state);
 
             switch (stateId) {
                 case IARM_BUS_SYSMGR_SYSSTATE_TUNEREADY:
-                    LOGINFO("Tune Ready Events in DS Manager");
+                    DSLOG_INFO("Tune Ready Events in DS Manager");
                     
                     if (0 == _tuneReady) {
                         _tuneReady = 1;
@@ -1011,7 +1011,7 @@ namespace Plugin {
                 {
                     IARM_Bus_DSMgr_EventData_t* eventData = (IARM_Bus_DSMgr_EventData_t*)data;
                     
-                    LOGINFO("Got HDMI %s Event",
+                    DSLOG_INFO("Got HDMI %s Event",
                            (eventData->data.hdmi_hpd.event == dsDISPLAY_EVENT_CONNECTED ? "Connect" : "Disconnect"));
                     
                     SetBackgroundColor(dsVIDEO_BGCOLOR_NONE);
@@ -1036,10 +1036,10 @@ namespace Plugin {
                     HDCPeventData.data.systemStates.state = 1;
                     
                     if (status == dsHDCP_STATUS_AUTHENTICATED) {
-                        LOGINFO("Changed status to HDCP Authentication Pass !!!!!!!!");
+                        DSLOG_INFO("Changed status to HDCP Authentication Pass !!!!!!!!");
                         HDCPeventData.data.systemStates.state = 1;
                         _hdcpAuthenticated = true;
-                        LOGINFO("HDCP success - Cleared hotplug_event_src Time source %d and set resolution immediately", _hotplugEventSrc);
+                        DSLOG_INFO("HDCP success - Cleared hotplug_event_src Time source %d and set resolution immediately", _hotplugEventSrc);
                         
                         if (_hotplugEventSrc) {
                             _hotplugEventSrc = 0;
@@ -1053,7 +1053,7 @@ namespace Plugin {
                         }
                         ScheduleEdidDump();
                     } else if (status == dsHDCP_STATUS_AUTHENTICATIONFAILURE) {
-                        LOGERR("Changed status to HDCP Authentication Fail !!!!!!!!");
+                        DSLOG_ERR("Changed status to HDCP Authentication Fail !!!!!!!!");
                         HDCPeventData.data.systemStates.state = 0;
                         SetBackgroundColor(dsVIDEO_BGCOLOR_BLUE);
                         _hdcpAuthenticated = false;
@@ -1081,7 +1081,7 @@ namespace Plugin {
         IARM_Bus_CommonAPI_SysModeChange_Param_t* param = (IARM_Bus_CommonAPI_SysModeChange_Param_t*)arg;
         int isNextEAS = 0; // IARM_BUS_SYS_MODE_NORMAL
         
-        LOGINFO("Recvd Sysmode Change::New mode --> %d, Old mode --> %d", param->newMode, param->oldMode);
+        DSLOG_INFO("Recvd Sysmode Change::New mode --> %d, Old mode --> %d", param->newMode, param->oldMode);
         
         if ((param->newMode == IARM_BUS_SYS_MODE_EAS) ||
             (param->newMode == IARM_BUS_SYS_MODE_NORMAL)) {
@@ -1122,15 +1122,15 @@ namespace Plugin {
     
     // Display::INotification implementation - Only for HDMI hotplug events
     void DSController::OnDisplayRxSense(const DisplayEvent displayEvent) {
-        LOGINFO("OnDisplayRxSense: displayEvent = %d", static_cast<int>(displayEvent));
+        DSLOG_INFO("displayEvent = %d", static_cast<int>(displayEvent));
     }
     
     void DSController::OnDisplayHDCPStatus() {
-        LOGINFO("OnDisplayHDCPStatus: HDCP status event");
+        DSLOG_INFO("HDCP status event");
     }
     
     void DSController::OnDisplayHDMIHotPlug(const DisplayEvent displayEvent) {
-        LOGINFO("OnDisplayHDMIHotPlug: displayEvent = %d - Converting to IARM event", static_cast<int>(displayEvent));
+        DSLOG_INFO("displayEvent = %d - Converting to IARM event", static_cast<int>(displayEvent));
         
         IARM_Bus_DSMgr_EventData_t eventData;
         eventData.data.hdmi_hpd.event = (displayEvent == DisplayEvent::DS_DISPLAY_EVENT_CONNECTED) ? 
@@ -1151,7 +1151,7 @@ namespace Plugin {
             present = (compositeHandle != 0);
         }
         
-        LOGINFO("isComponentPortPresent: %s", present ? "true" : "false");
+        DSLOG_INFO("%s", present ? "true" : "false");
         return present;
     }
 

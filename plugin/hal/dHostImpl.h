@@ -63,14 +63,14 @@ class dHostImpl : public hal::dHost::IPlatform {
 public:
     dHostImpl()
     {
-        LOGINFO("dHostImpl Constructor");
+        DSLOG_INFO("Constructor");
         getInstance() = this; // Set static instance for callback access
         InitialiseHAL();
     }
 
     virtual ~dHostImpl()
     {
-        LOGINFO("dHostImpl Destructor");
+        DSLOG_INFO("Destructor");
         DeInitialiseHAL();
         getInstance() = nullptr; // Clear static instance
     }
@@ -84,19 +84,18 @@ public:
 
     void InitialiseHAL()
     {
-        LOGINFO("InitialiseHAL");
         // Note: host_isInitialized should only be set in setAllCallbacks after callback registration
         // Don't set it here as it prevents callback registration condition from working
 
         if (!host_isPlatInitialized) {
-            LOGINFO("InitialiseHAL <dsHost>");
+            DSLOG_INFO("<dsHost>");
             dsError_t eError = dsHostInit();
             if (dsERR_NONE != eError) {
-                LOGERR("InitialiseHAL: dsHostInit failed with error: %d", eError);
+                DSLOG_ERR(" dsHostInit failed with error: %d", eError);
                 return;
             }
             host_isPlatInitialized = 1;
-            LOGINFO("InitialiseHAL: dsHost HAL initialized successfully");
+            DSLOG_INFO(" dsHost HAL initialized successfully");
             
             // Load persistence values - following dsHost.cpp dsHostMgr_init pattern
             getPersistenceValue();
@@ -105,21 +104,20 @@ public:
 
     void DeInitialiseHAL()
     {
-        LOGINFO("DeInitialiseHAL");
         if (host_isPlatInitialized) {
             dsError_t eError = dsHostTerm();
             if (dsERR_NONE != eError) {
-                LOGERR("DeInitialiseHAL: dsHostTerm failed with error: %d", eError);
+                DSLOG_ERR(" dsHostTerm failed with error: %d", eError);
             }
             host_isPlatInitialized = 0;
-            LOGINFO("DeInitialiseHAL: dsHost HAL de-initialized successfully");
+            DSLOG_INFO(" dsHost HAL de-initialized successfully");
         }
     }
 
     uint32_t GetEDID(uint8_t edId[], const uint16_t edIdLength) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetEDID: edIdLength=%u", edIdLength);
+        DSLOG_INFO(" edIdLength=%u", edIdLength);
 
         // Use resolve function following dHdmiInImpl.h pattern
         typedef dsError_t (*dsGetHostEDIDFunc_t)(unsigned char *edid, int *length);
@@ -132,16 +130,16 @@ public:
             if (eError == dsERR_NONE && length <= static_cast<int>(edIdLength)) {
                 memcpy(edId, edidBytes, length);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetEDID: SUCCESS - copied %d bytes", length);
+                DSLOG_INFO(" SUCCESS - copied %d bytes", length);
             } else if (eError == dsERR_NONE && length > static_cast<int>(edIdLength)) {
-                LOGERR("GetEDID: Buffer too small - required %d bytes, provided %u", length, edIdLength);
+                DSLOG_ERR(" Buffer too small - required %d bytes, provided %u", length, edIdLength);
                 retCode = WPEFramework::Core::ERROR_BAD_REQUEST;
             } else {
-                LOGERR("GetEDID: dsGetHostEDID failed with error: %d", eError);
+                DSLOG_ERR(" dsGetHostEDID failed with error: %d", eError);
             }
         } else {
             retCode = WPEFramework::Core::ERROR_UNAVAILABLE;
-            LOGERR("GetEDID: Function not available");
+            DSLOG_ERR(" Function not available");
         }
 
         return retCode;
@@ -150,19 +148,18 @@ public:
     uint32_t GetMS12ConfigType(string &ms12Config) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetMS12ConfigType");
         
         // Following dsHost.cpp pattern
         try {
             ms12Config = device::HostPersistence::getInstance().getDefaultProperty("MS12.Config.Type");
-            LOGINFO("GetMS12ConfigType: SUCCESS - ms12Config='%s'", ms12Config.c_str());
+            DSLOG_INFO(" SUCCESS - ms12Config='%s'", ms12Config.c_str());
             retCode = WPEFramework::Core::ERROR_NONE;
         } catch (const std::exception& e) {
-            LOGWARN("GetMS12ConfigType: Failed to retrieve config from default persistence: %s", e.what());
+            DSLOG_WARN(" Failed to retrieve config from default persistence: %s", e.what());
             ms12Config = "CONFIG_NONE";
             retCode = WPEFramework::Core::ERROR_NONE;
         } catch (...) {
-            LOGWARN("GetMS12ConfigType: Unknown error retrieving config from default persistence");
+            DSLOG_WARN(" Unknown error retrieving config from default persistence");
             ms12Config = "CONFIG_NONE";
             retCode = WPEFramework::Core::ERROR_NONE;
         }
@@ -173,10 +170,9 @@ public:
     void setAllCallbacks(const CallbackBundle& bundle) override
     {
         ENTRY_LOG;
-        LOGINFO("Host::setAllCallbacks");
         if (host_isPlatInitialized && !host_isInitialized) {
             host_isInitialized = 1;
-            LOGINFO("Host platform callback Initialization done");
+            DSLOG_INFO("Host platform callback Initialization done");
         }
         EXIT_LOG;
     }
@@ -184,7 +180,6 @@ public:
     void getPersistenceValue() override
     {
         ENTRY_LOG;
-        LOGINFO("Host::getPersistenceValue");
         EXIT_LOG;
     }
 

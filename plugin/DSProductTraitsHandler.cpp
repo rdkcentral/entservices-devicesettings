@@ -52,7 +52,7 @@ static reboot_type_t GetRebootType()
     reboot_type_t ret = reboot_type_t::SOFT;
 
     if (0 != access(file_updated_flag, F_OK)) {
-        LOGINFO("Error! Reboot info file isn't updated yet");
+        DSLOG_INFO("Error! Reboot info file isn't updated yet");
         ret = reboot_type_t::UNAVAILABLE;
     } else {
         std::ifstream reboot_info_file(reboot_info_file_name);
@@ -60,13 +60,13 @@ static reboot_type_t GetRebootType()
         if (true == reboot_info_file.is_open()) {
             while (std::getline(reboot_info_file, line)) {
                 if (std::string::npos != line.find(hard_reboot_match_string)) {
-                    LOGINFO("Detected hard reboot");
+                    DSLOG_INFO("Detected hard reboot");
                     ret = reboot_type_t::HARD;
                     break;
                 }
             }
         } else {
-            LOGINFO("Failed to open reboot info file");
+            DSLOG_INFO("Failed to open reboot info file");
         }
     }
     return ret;
@@ -86,10 +86,10 @@ static void ScheduleRebootReasonCheck(UXController* controller, unsigned int ret
             });
             retryThread.detach();
         } else {
-            LOGINFO("Exceeded retry limit");
+            DSLOG_INFO("Exceeded retry limit");
         }
     } else {
-        LOGINFO("Got reboot reason in async check. Applying display configuration");
+        DSLOG_INFO("Got reboot reason in async check. Applying display configuration");
         controller->SyncDisplayPortsWithRebootReason(reboot_type);
     }
 }
@@ -101,7 +101,7 @@ static inline bool DoForceDisplayOnPostReboot()
     if (0 == access(flag_filename, F_OK)) {
         ret = true;
     }
-    LOGINFO("DoForceDisplayOnPostReboot: %s", (true == ret ? "true" : "false"));
+    DSLOG_INFO("ForceDisplay: %s", (true == ret ? "true" : "false"));
     return ret;
 }
 
@@ -115,12 +115,12 @@ UXController::UXController(unsigned int id, const std::string& name, deviceType_
     , _firstPowerTransitionComplete(false)
     , _deviceSettings(nullptr)
 {
-    LOGINFO("UXController initializing for profile id %d, name %s", id, name.c_str());
+    DSLOG_INFO("initializing for profile id %d, name %s", id, name.c_str());
     
     // Get DeviceSettings implementation instance
     _deviceSettings = DeviceSettingsImp::instance();
     if (!_deviceSettings) {
-        LOGERR("Failed to get DeviceSettings implementation instance");
+        DSLOG_ERR("Failed to get DeviceSettings implementation instance");
     }
     
     InitializeSafeDefaults();
@@ -165,10 +165,10 @@ bool UXController::SetBootloaderPattern(mfrBlPattern_t pattern) const
     mfrparam.pattern = pattern;
     if (IARM_RESULT_SUCCESS != IARM_Bus_Call(IARM_BUS_MFRLIB_NAME, IARM_BUS_MFRLIB_API_SetBootLoaderPattern, 
                                              (void*)&mfrparam, sizeof(mfrparam))) {
-        LOGINFO("Warning! Call to SetBootLoaderPattern failed");
+        DSLOG_INFO("Warning! Call to SetBootLoaderPattern failed");
         ret = false;
     } else {
-        LOGINFO("Successfully set bootloader pattern %d", (int)pattern);
+        DSLOG_INFO("Successfully set bootloader pattern %d", (int)pattern);
     }
     return ret;
 }
@@ -179,19 +179,19 @@ void UXController::SetBootloaderPatternAsync(mfrBlPattern_t pattern) const
     const unsigned int retry_interval_seconds = 5;
     unsigned int remaining_retries = 12;
     
-    LOGINFO("SetBootloaderPatternAsync start for pattern 0x%x", pattern);
+    DSLOG_INFO("start for pattern 0x%x", pattern);
     do {
         std::this_thread::sleep_for(std::chrono::seconds(retry_interval_seconds));
         std::unique_lock<std::mutex> lock(_mutex);
         if (false == _invalidateAsyncBootloaderPattern) {
             ret = SetBootloaderPattern(pattern);
         } else {
-            LOGINFO("Bootloader pattern invalidated. Aborting");
+            DSLOG_INFO("Bootloader pattern invalidated. Aborting");
             break;
         }
     } while ((false == ret) && (0 < --remaining_retries));
 
-    LOGINFO("SetBootloaderPatternAsync returns");
+    DSLOG_INFO("returns");
 }
 
 bool UXController::SetBootloaderPatternFaultTolerant(mfrBlPattern_t pattern)
@@ -211,7 +211,7 @@ bool UXController::SetBootloaderPatternFaultTolerant(mfrBlPattern_t pattern)
 void UXController::SyncPowerLedWithPowerState(PowerState power_state) const
 {
     if (true == _enableMultiColourLedSupport) {
-        LOGINFO("Warning! Device supports multi-colour LEDs but it isn't handled");
+        DSLOG_INFO("Warning! Device supports multi-colour LEDs but it isn't handled");
     }
 
     bool led_state;
@@ -222,7 +222,7 @@ void UXController::SyncPowerLedWithPowerState(PowerState power_state) const
     }
 
     try {
-        LOGINFO("Setting power LED State to %s", (led_state ? "ON" : "OFF"));
+        DSLOG_INFO("Setting power LED State to %s", (led_state ? "ON" : "OFF"));
         
         if (_deviceSettings) {
             FPDIndicator indicator = static_cast<FPDIndicator>(dsFPD_INDICATOR_POWER);
@@ -230,27 +230,27 @@ void UXController::SyncPowerLedWithPowerState(PowerState power_state) const
             
             uint32_t result = _deviceSettings->SetFPDState(indicator, fpdState);
             if (result != WPEFramework::Core::ERROR_NONE) {
-                LOGERR("SetFPDState failed with error: %d", result);
+                DSLOG_ERR("SetFPDState failed with error: %d", result);
             } else {
-                LOGINFO("Successfully set FPD power state to %s", (led_state ? "ON" : "OFF"));
+                DSLOG_INFO("Successfully set FPD power state to %s", (led_state ? "ON" : "OFF"));
             }
         } else {
-            LOGERR("DeviceSettings implementation not available");
+            DSLOG_ERR("DeviceSettings implementation not available");
         }
     } catch (...) {
-        LOGERR("Warning! exception caught when trying to change FP state");
+        DSLOG_ERR("Warning! exception caught when trying to change FP state");
     }
 }
 
 void UXController::SyncDisplayPortsWithPowerState(PowerState power_state) const
 {
-    LOGINFO("SyncDisplayPortsWithPowerState: %d", static_cast<int>(power_state));
+    DSLOG_INFO("PowerState: %d", static_cast<int>(power_state));
 
     DSPwrEventListener* listener = DSPwrEventListener::GetInstance();
     if (listener != nullptr) {
         listener->SetAVPortsPowerState(power_state);
     } else {
-        LOGERR("DSPwrEventListener instance not available");
+        DSLOG_ERR("DSPwrEventListener instance not available");
     }
 }
 
@@ -276,7 +276,7 @@ bool UXController::Initialize(unsigned int profile_id)
             break;
 
         default:
-            LOGERR("Error! Unsupported product profile id %d", profile_id);
+            DSLOG_ERR("Error! Unsupported product profile id %d", profile_id);
             ret = false;
     }
     return ret;
@@ -339,7 +339,7 @@ bool UXControllerTvEu::ApplyPostRebootConfig(PowerState targetState,
             pattern = mfrBL_PATTERN_SILENT_LED_ON;
             break;
         default:
-            LOGINFO("Warning! Unhandled power transition. New state: %d", targetState);
+            DSLOG_INFO("Warning! Unhandled power transition. New state: %d", targetState);
             break;
     }
     ret = SetBootloaderPatternFaultTolerant(pattern);
@@ -485,7 +485,7 @@ bool UXControllerTv::ApplyPostRebootConfig(PowerState targetState,
             pattern = mfrBL_PATTERN_SILENT_LED_ON;
             break;
         default:
-            LOGINFO("Warning! Unhandled power transition. New state: %d", targetState);
+            DSLOG_INFO("Warning! Unhandled power transition. New state: %d", targetState);
             break;
     }
     ret = SetBootloaderPatternFaultTolerant(pattern);

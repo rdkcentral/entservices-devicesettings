@@ -33,13 +33,12 @@ VideoDevice::VideoDevice(INotification& parent, std::shared_ptr<IPlatform> platf
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    LOGINFO("VideoDevice Constructor");
     Platform_init();
 }
 
 void VideoDevice::Platform_init()
 {
-    LOGINFO("VideoDevice Init - Setting up event callbacks");
+    DSLOG_INFO("VideoDevice Init - Setting up event callbacks");
     
     // Set up callback bundle for VideoDevice events - using global CallbackBundle pattern
     CallbackBundle bundle;
@@ -63,171 +62,171 @@ void VideoDevice::Platform_init()
 }
 
 uint32_t VideoDevice::GetVideoDeviceHandle(const int32_t index, int32_t &handle) {
-    LOGINFO("GetVideoDeviceHandle: index=%d", index);
+    DSLOG_INFO("index=%d", index);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetVideoDeviceHandle(index, handle);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetVideoDeviceHandle: SUCCESS - platform call completed successfully, handle=%d", handle);
+        DSLOG_INFO("SUCCESS - platform call completed successfully, handle=%d", handle);
     } else {
-        LOGERR("GetVideoDeviceHandle: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::SetVideoDeviceDFC(const int32_t handle, const VideoDeviceZoom zoomSetting) {
-    LOGINFO("SetVideoDeviceDFC: handle=%d, zoomSetting=%d", handle, static_cast<int>(zoomSetting));
+    DSLOG_INFO("handle=%d, zoomSetting=%d", handle, static_cast<int>(zoomSetting));
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetVideoDeviceDFC(handle, zoomSetting);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetVideoDeviceDFC: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetVideoDeviceDFC: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::GetVideoDeviceDFC(const int32_t handle, VideoDeviceZoom &zoomSetting) {
-    LOGINFO("GetVideoDeviceDFC: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetVideoDeviceDFC(handle, zoomSetting);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetVideoDeviceDFC: SUCCESS - zoomSetting=%d", static_cast<int>(zoomSetting));
+        DSLOG_INFO("SUCCESS - zoomSetting=%d", static_cast<int>(zoomSetting));
     } else {
-        LOGERR("GetVideoDeviceDFC: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::GetHDRCapabilities(const int32_t handle, int32_t &capabilities) {
-    LOGINFO("GetHDRCapabilities: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetHDRCapabilities(handle, capabilities);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetHDRCapabilities: SUCCESS - capabilities=0x%x", capabilities);
+        DSLOG_INFO("SUCCESS - capabilities=0x%x", capabilities);
     } else {
-        LOGERR("GetHDRCapabilities: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::GetSupportedVideoCodingFormats(const int32_t handle, int32_t &supportedFormats) {
-    LOGINFO("GetSupportedVideoCodingFormats: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetSupportedVideoCodingFormats(handle, supportedFormats);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetSupportedVideoCodingFormats: SUCCESS - supportedFormats=0x%x", supportedFormats);
+        DSLOG_INFO("SUCCESS - supportedFormats=0x%x", supportedFormats);
     } else {
-        LOGERR("GetSupportedVideoCodingFormats: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::GetCodecInfo(const int32_t handle, const VideoDeviceCodec videoCodec, IDeviceSettingsVideoCodecProfileSupportIterator*& codecInfo) {
-    LOGINFO("GetCodecInfo: handle=%d, videoCodec=%d", handle, static_cast<int>(videoCodec));
+    DSLOG_INFO("handle=%d, videoCodec=%d", handle, static_cast<int>(videoCodec));
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetCodecInfo(handle, videoCodec, codecInfo);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetCodecInfo: SUCCESS - codecInfo returned");
+        DSLOG_INFO("SUCCESS - codecInfo returned");
     } else {
-        LOGERR("GetCodecInfo: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::DisableHDR(const int32_t handle, const bool disable) {
-    LOGINFO("DisableHDR: handle=%d, disable=%s", handle, disable ? "true" : "false");
+    DSLOG_INFO("handle=%d, disable=%s", handle, disable ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().DisableHDR(handle, disable);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("DisableHDR: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("DisableHDR: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::SetFRFMode(const int32_t handle, const int32_t frfmode) {
-    LOGINFO("SetFRFMode: handle=%d, frfmode=%d", handle, frfmode);
+    DSLOG_INFO("handle=%d, frfmode=%d", handle, frfmode);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetFRFMode(handle, frfmode);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetFRFMode: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetFRFMode: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::GetFRFMode(const int32_t handle, int32_t &frfmode) {
-    LOGINFO("GetFRFMode: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetFRFMode(handle, frfmode);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetFRFMode: SUCCESS - frfmode=%d", frfmode);
+        DSLOG_INFO("SUCCESS - frfmode=%d", frfmode);
     } else {
-        LOGERR("GetFRFMode: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::GetCurrentDisplayFrameRate(const int32_t handle, string &framerate) {
-    LOGINFO("GetCurrentDisplayFrameRate: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetCurrentDisplayFrameRate(handle, framerate);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetCurrentDisplayFrameRate: SUCCESS - framerate=%s", framerate.c_str());
+        DSLOG_INFO("SUCCESS - framerate=%s", framerate.c_str());
     } else {
-        LOGERR("GetCurrentDisplayFrameRate: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t VideoDevice::SetDisplayFrameRate(const int32_t handle, const string framerate) {
-    LOGINFO("SetDisplayFrameRate: handle=%d, framerate=%s", handle, framerate.c_str());
+    DSLOG_INFO("handle=%d, framerate=%s", handle, framerate.c_str());
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetDisplayFrameRate(handle, framerate);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetDisplayFrameRate: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetDisplayFrameRate: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 // VideoDevice event handlers - called by DS HAL to forward events to parent
 void VideoDevice::OnZoomSettingsChanged(const VideoDeviceZoom zoomSetting) {
-    LOGINFO("DS HAL OnZoomSettingsChanged event: zoomSetting=%d", static_cast<int>(zoomSetting));
+    DSLOG_INFO("DS HAL OnZoomSettingsChanged event: zoomSetting=%d", static_cast<int>(zoomSetting));
     _parent.OnZoomSettingsChanged(zoomSetting);
 }
 
 void VideoDevice::OnDisplayFrameratePreChange(const string frameRate) {
-    LOGINFO("DS HAL OnDisplayFrameratePreChange event: frameRate=%s", frameRate.c_str());
+    DSLOG_INFO("DS HAL OnDisplayFrameratePreChange event: frameRate=%s", frameRate.c_str());
     _parent.OnDisplayFrameratePreChange(frameRate);
 }
 
 void VideoDevice::OnDisplayFrameratePostChange(const string frameRate) {
-    LOGINFO("DS HAL OnDisplayFrameratePostChange event: frameRate=%s", frameRate.c_str());
+    DSLOG_INFO("DS HAL OnDisplayFrameratePostChange event: frameRate=%s", frameRate.c_str());
     _parent.OnDisplayFrameratePostChange(frameRate);
 }

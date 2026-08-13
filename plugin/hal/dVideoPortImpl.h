@@ -77,14 +77,14 @@ class dVideoPortImpl : public hal::dVideoPort::IPlatform {
 public:
     dVideoPortImpl()
     {
-        LOGINFO("dVideoPortImpl Constructor");
+        DSLOG_INFO("Constructor");
         getInstance() = this; // Set static instance for callback access
         InitialiseHAL();
     }
 
     virtual ~dVideoPortImpl()
     {
-        LOGINFO("dVideoPortImpl Destructor");
+        DSLOG_INFO("Destructor");
         DeInitialiseHAL();
         getInstance() = nullptr; // Clear static instance
     }
@@ -98,18 +98,17 @@ public:
 
     void InitialiseHAL()
     {
-        LOGINFO("InitialiseHAL");
         // Note: videoPort_isInitialized should only be set in setAllCallbacks after callback registration
         // Don't set it here as it prevents callback registration condition from working
 
         if (!videoPort_isPlatInitialized) {
-            LOGINFO("InitialiseHAL <dsVideoPort>");
+            DSLOG_INFO("<dsVideoPort>");
             dsError_t eError = dsVideoPortInit();
             if (dsERR_NONE != eError) {
-                LOGERR("InitialiseHAL: dsVideoPortInit failed with error: %d", eError);
+                DSLOG_ERR(" dsVideoPortInit failed with error: %d", eError);
                 return;
             }
-            LOGINFO("InitialiseHAL: dsVideoPortInit succeeded");
+            DSLOG_INFO(" dsVideoPortInit succeeded");
 
             _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPSTATUS, dsHDCP_STATUS_UNAUTHENTICATED);
             _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPVERSION, dsHDCP_VERSION_1X);
@@ -117,7 +116,7 @@ public:
             bool connected = false;
             dsError_t displayError = dsIsDisplayConnected(dsGetDefaultPortHandle(), &connected);
             if (displayError != dsERR_NONE) {
-                LOGERR("InitialiseHAL: dsIsDisplayConnected failed with error: %d", displayError);
+                DSLOG_ERR(" dsIsDisplayConnected failed with error: %d", displayError);
             }
             _dsSyncHdmiStatus(DS_HDMI_TAG_HOTPLUP,
                     connected ? dsDISPLAY_EVENT_CONNECTED : dsDISPLAY_EVENT_DISCONNECTED);
@@ -126,14 +125,13 @@ public:
             getPersistenceValue();
             
             videoPort_isPlatInitialized = 1;
-            LOGINFO("InitialiseHAL completed: videoPort_isPlatInitialized=%d, videoPort_isInitialized=%d", 
+            DSLOG_INFO("completed: videoPort_isPlatInitialized=%d, videoPort_isInitialized=%d",
                     videoPort_isPlatInitialized, videoPort_isInitialized);
         }
     }
 
     void DeInitialiseHAL()
     {
-        LOGINFO("DeInitialiseHAL");
         if (videoPort_isPlatInitialized)
         {
             dsVideoPortTerm();
@@ -150,7 +148,7 @@ public:
     uint32_t GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t& handle) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetVideoPort: videoPort=%d, index=%d", static_cast<int>(videoPort), index);
+        DSLOG_INFO(" videoPort=%d, index=%d", static_cast<int>(videoPort), index);
         
         dsVideoPortType_t dsVideoPort = convertVideoPortType(videoPort);
         intptr_t dsHandle;
@@ -159,9 +157,9 @@ public:
         if (eError == dsERR_NONE) {
             handle = static_cast<int32_t>(dsHandle);
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("GetVideoPort: SUCCESS - handle=%d", handle);
+            DSLOG_INFO(" SUCCESS - handle=%d", handle);
         } else {
-            LOGERR("GetVideoPort: dsGetVideoPort failed with error: %d", eError);
+            DSLOG_ERR(" dsGetVideoPort failed with error: %d", eError);
         }
         
         return retCode;
@@ -170,16 +168,16 @@ public:
     uint32_t IsVideoPortEnabled(const int32_t handle, bool& enabled) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("IsVideoPortEnabled: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         bool dsEnabled = false;
         dsError_t eError = dsIsVideoPortEnabled(handle, &dsEnabled);
         if (eError == dsERR_NONE) {
             enabled = dsEnabled;
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("IsVideoPortEnabled: SUCCESS - enabled=%s", enabled ? "true" : "false");
+            DSLOG_INFO(" SUCCESS - enabled=%s", enabled ? "true" : "false");
         } else {
-            LOGERR("IsVideoPortEnabled: dsIsVideoPortEnabled failed with error: %d", eError);
+            DSLOG_ERR(" dsIsVideoPortEnabled failed with error: %d", eError);
         }
         
         return retCode;
@@ -188,14 +186,14 @@ public:
     uint32_t EnableVideoPort(const int32_t handle, const bool enabled) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("EnableVideoPort: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
+        DSLOG_INFO(" handle=%d, enabled=%s", handle, enabled ? "true" : "false");
         
         dsError_t eError = dsEnableVideoPort(handle, enabled);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("EnableVideoPort: SUCCESS");
+            DSLOG_INFO(" SUCCESS");
         } else {
-            LOGERR("EnableVideoPort: dsEnableVideoPort failed with error: %d", eError);
+            DSLOG_ERR(" dsEnableVideoPort failed with error: %d", eError);
         }
         
         return retCode;
@@ -204,16 +202,16 @@ public:
     uint32_t IsVideoPortDisplayConnected(const int32_t handle, bool& connected) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("IsVideoPortDisplayConnected: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         bool dsConnected = false;
         dsError_t eError = dsIsDisplayConnected(handle, &dsConnected);
         if (eError == dsERR_NONE) {
             connected = dsConnected;
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("IsVideoPortDisplayConnected: SUCCESS - connected=%s", connected ? "true" : "false");
+            DSLOG_INFO(" SUCCESS - connected=%s", connected ? "true" : "false");
         } else {
-            LOGERR("IsVideoPortDisplayConnected: dsIsDisplayConnected failed with error: %d", eError);
+            DSLOG_ERR(" dsIsDisplayConnected failed with error: %d", eError);
         }
         
         return retCode;
@@ -222,16 +220,16 @@ public:
     uint32_t IsVideoPortActive(const int32_t handle, bool& active) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("IsVideoPortActive: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         bool dsActive = false;
         dsError_t eError = dsIsVideoPortActive(handle, &dsActive);
         if (eError == dsERR_NONE) {
             active = dsActive;
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("IsVideoPortActive: SUCCESS - active=%s", active ? "true" : "false");
+            DSLOG_INFO(" SUCCESS - active=%s", active ? "true" : "false");
         } else {
-            LOGERR("IsVideoPortActive: dsIsVideoPortActive failed with error: %d", eError);
+            DSLOG_ERR(" dsIsVideoPortActive failed with error: %d", eError);
         }
         
         return retCode;
@@ -240,16 +238,16 @@ public:
     uint32_t GetVideoPortResolution(const int32_t handle, VideoPortResolution& resolution) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetVideoPortResolution: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         dsVideoPortResolution_t dsResolution;
         dsError_t eError = dsGetResolution(handle, &dsResolution);
         if (eError == dsERR_NONE) {
             resolution = convertVideoPortResolution(dsResolution);
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("GetVideoPortResolution: SUCCESS");
+            DSLOG_INFO(" SUCCESS");
         } else {
-            LOGERR("GetVideoPortResolution: dsGetResolution failed with error: %d", eError);
+            DSLOG_ERR(" dsGetResolution failed with error: %d", eError);
         }
         
         return retCode;
@@ -258,7 +256,7 @@ public:
     uint32_t GetColorDepth(const int32_t handle, uint32_t& colorDepth) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetColorDepth: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetColorDepth_t)(intptr_t handle, unsigned int* color_depth);
         static dsGetColorDepth_t dsGetColorDepthFunc = 0;
@@ -266,10 +264,10 @@ public:
         if (dsGetColorDepthFunc == 0) {
             dsGetColorDepthFunc = (dsGetColorDepth_t)resolve(RDK_DSHAL_NAME, "dsGetColorDepth");
             if (dsGetColorDepthFunc == 0) {
-                LOGERR("GetColorDepth: dsGetColorDepth_t(int, unsigned int*) is not defined");
+                DSLOG_ERR(" dsGetColorDepth_t(int, unsigned int*) is not defined");
             }
             else {
-                LOGINFO("GetColorDepth: dsGetColorDepth_t(int, unsigned int*) is defined and loaded");
+                DSLOG_INFO(" dsGetColorDepth_t(int, unsigned int*) is defined and loaded");
             }
         }
 
@@ -279,13 +277,13 @@ public:
             if (eError == dsERR_NONE) {
                 colorDepth = dsColorDepth;
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetColorDepth: SUCCESS - colorDepth=%u", colorDepth);
+                DSLOG_INFO(" SUCCESS - colorDepth=%u", colorDepth);
             } else {
-                LOGERR("GetColorDepth: dsGetColorDepth failed with error: %d", eError);
+                DSLOG_ERR(" dsGetColorDepth failed with error: %d", eError);
                 colorDepth = 0; // Default value on error
             }
         } else {
-            LOGERR("GetColorDepth: not able to load function dsGetColorDepthFunc:%p", dsGetColorDepthFunc);
+            DSLOG_ERR(" not able to load function dsGetColorDepthFunc:%p", dsGetColorDepthFunc);
             colorDepth = 0; // Default value
         }
         
@@ -295,16 +293,16 @@ public:
     uint32_t SetVideoPortColorDepth(const int32_t handle, const uint32_t colorDepth) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetVideoPortColorDepth: handle=%d, colorDepth=%u", handle, colorDepth);
+        DSLOG_INFO(" handle=%d, colorDepth=%u", handle, colorDepth);
         
         // Use dsSetPreferredColorDepth instead since dsSetVideoPortColorDepth may not exist
         dsDisplayColorDepth_t dsColorDepth = static_cast<dsDisplayColorDepth_t>(colorDepth);
         dsError_t eError = dsSetPreferredColorDepth(handle, dsColorDepth);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("SetVideoPortColorDepth: SUCCESS (via dsSetPreferredColorDepth)");
+            DSLOG_INFO(" SUCCESS (via dsSetPreferredColorDepth)");
         } else {
-            LOGERR("SetVideoPortColorDepth: dsSetPreferredColorDepth failed with error: %d", eError);
+            DSLOG_ERR(" dsSetPreferredColorDepth failed with error: %d", eError);
         }
         
         return retCode;
@@ -313,7 +311,7 @@ public:
     uint32_t GetQuantizationRange(const int32_t handle, VideoPortQuantizationRange& quantizationRange) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetQuantizationRange: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetQuantizationRange_t)(intptr_t handle, dsDisplayQuantizationRange_t* quantization_range);
         static dsGetQuantizationRange_t dsGetQuantizationRangeFunc = 0;
@@ -321,10 +319,10 @@ public:
         if (dsGetQuantizationRangeFunc == 0) {
             dsGetQuantizationRangeFunc = (dsGetQuantizationRange_t)resolve(RDK_DSHAL_NAME, "dsGetQuantizationRange");
             if(dsGetQuantizationRangeFunc == 0) {
-                LOGERR("dsGetQuantizationRange is not defined");
+                DSLOG_ERR("dsGetQuantizationRange is not defined");
             }
             else {
-                LOGINFO("dsGetQuantizationRange loaded");
+                DSLOG_INFO("dsGetQuantizationRange loaded");
             }
         }
 
@@ -334,12 +332,12 @@ public:
             if (eError == dsERR_NONE) {
                 quantizationRange = convertQuantizationRange(dsQuantizationRange);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetQuantizationRange: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else {
-                LOGERR("GetQuantizationRange: dsGetQuantizationRange failed with error: %d", eError);
+                DSLOG_ERR(" dsGetQuantizationRange failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetQuantizationRange: dsGetQuantizationRange function not available");
+            DSLOG_ERR(" dsGetQuantizationRange function not available");
             quantizationRange = static_cast<VideoPortQuantizationRange>(dsDISPLAY_QUANTIZATIONRANGE_UNKNOWN);
         }
         
@@ -349,14 +347,14 @@ public:
     uint32_t SetVideoPortQuantizationRange(const int32_t handle, const VideoPortQuantizationRange quantizationRange) override
     {
         // dsVideoPort.c has no dsSetQuantizationRange; quantization range is a read-only sink attribute
-        LOGWARN("SetVideoPortQuantizationRange: not supported by DS HAL (read-only sink property)");
+        DSLOG_WARN(" not supported by DS HAL (read-only sink property)");
         return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetColorSpace(const int32_t handle, VideoPortColorSpace& colorSpace) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetColorSpace: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetColorSpace_t)(intptr_t handle, dsDisplayColorSpace_t* color_space);
         static dsGetColorSpace_t dsGetColorSpaceFunc = 0;
@@ -364,10 +362,10 @@ public:
         if (dsGetColorSpaceFunc == 0) {
             dsGetColorSpaceFunc = (dsGetColorSpace_t)resolve(RDK_DSHAL_NAME, "dsGetColorSpace");
             if(dsGetColorSpaceFunc == 0) {
-                LOGERR("dsGetColorSpace is not defined");
+                DSLOG_ERR("dsGetColorSpace is not defined");
             }
             else {
-                LOGINFO("dsGetColorSpace loaded");
+                DSLOG_INFO("dsGetColorSpace loaded");
             }
         }
 
@@ -377,12 +375,12 @@ public:
             if (eError == dsERR_NONE) {
                 colorSpace = static_cast<VideoPortColorSpace>(dsColorSpace);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetColorSpace: SUCCESS - colorSpace=%d", static_cast<int>(colorSpace));
+                DSLOG_INFO(" SUCCESS - colorSpace=%d", static_cast<int>(colorSpace));
             } else {
-                LOGERR("GetColorSpace: dsGetColorSpace failed with error: %d", eError);
+                DSLOG_ERR(" dsGetColorSpace failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetColorSpace: dsGetColorSpace function not available");
+            DSLOG_ERR(" dsGetColorSpace function not available");
             colorSpace = static_cast<VideoPortColorSpace>(dsDISPLAY_COLORSPACE_RGB); // Default fallback
         }
         
@@ -392,14 +390,14 @@ public:
     uint32_t SetColorSpace(const int32_t handle, const VideoPortColorSpace colorSpace) override
     {
         // dsVideoPort.c has no dsSetColorSpace; color space is a read-only EDID-negotiated property
-        LOGWARN("SetColorSpace: not supported by DS HAL (read-only sink property)");
+        DSLOG_WARN(" not supported by DS HAL (read-only sink property)");
         return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetVideoPortFrameRate(const int32_t handle, uint32_t& frameRate) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetVideoPortFrameRate: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
 
         // No standalone dsGetFrameRate API; frame rate is embedded in the resolution name (e.g. "1080p60", "2160p30")
         dsVideoPortResolution_t dsResolution;
@@ -417,9 +415,9 @@ public:
                 default:                     frameRate = 60;  break;
             }
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("GetVideoPortFrameRate: SUCCESS - frameRate=%u (from resolution %s)", frameRate, dsResolution.name);
+            DSLOG_INFO(" SUCCESS - frameRate=%u (from resolution %s)", frameRate, dsResolution.name);
         } else {
-            LOGERR("GetVideoPortFrameRate: dsGetResolution failed: %d", eError);
+            DSLOG_ERR(" dsGetResolution failed: %d", eError);
             frameRate = 60;
         }
 
@@ -429,22 +427,22 @@ public:
     uint32_t SetVideoPortFrameRate(const int32_t handle, const uint32_t frameRate) override
     {
         // No standalone dsSetFrameRate API; frame rate is set via dsSetResolution as part of the resolution name
-        LOGWARN("SetVideoPortFrameRate: not a separate HAL operation — frame rate is implicit in SetVideoPortResolution");
+        DSLOG_WARN(" not a separate HAL operation — frame rate is implicit in SetVideoPortResolution");
         return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetVideoPortHDCPStatus(const int32_t handle, VideoPortHdcpStatus& hdcpStatus) override
     {
-        LOGINFO("GetVideoPortHDCPStatus: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         hdcpStatus = convertHdcpStatus(static_cast<dsHdcpStatus_t>(cachedHdcpStatus().load()));
-        LOGINFO("GetVideoPortHDCPStatus: SUCCESS - cached status=%d", static_cast<int>(hdcpStatus));
+        DSLOG_INFO(" SUCCESS - cached status=%d", static_cast<int>(hdcpStatus));
         return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetHDCPProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion& hdcpVersion) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetHDCPProtocolVersionOnVideoPort: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetHDCPProtocol_t)(intptr_t handle, dsHdcpProtocolVersion_t* protocolVersion);
         static dsGetHDCPProtocol_t dsGetHDCPProtocolFunc = 0;
@@ -452,10 +450,10 @@ public:
         if (dsGetHDCPProtocolFunc == 0) {
             dsGetHDCPProtocolFunc = (dsGetHDCPProtocol_t)resolve(RDK_DSHAL_NAME, "dsGetHDCPProtocol");
             if(dsGetHDCPProtocolFunc == 0) {
-                LOGERR("dsGetHDCPProtocol is not defined");
+                DSLOG_ERR("dsGetHDCPProtocol is not defined");
             }
             else {
-                LOGINFO("dsGetHDCPProtocol loaded");
+                DSLOG_INFO("dsGetHDCPProtocol loaded");
             }
         }
 
@@ -465,12 +463,12 @@ public:
             if (eError == dsERR_NONE) {
                 hdcpVersion = convertHdcpProtocolVersion(dsHdcpVersion);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetHDCPProtocolVersionOnVideoPort: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else {
-                LOGERR("GetHDCPProtocolVersionOnVideoPort: dsGetHDCPProtocol failed with error: %d", eError);
+                DSLOG_ERR(" dsGetHDCPProtocol failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetHDCPProtocolVersionOnVideoPort: dsGetHDCPProtocol function not available");
+            DSLOG_ERR(" dsGetHDCPProtocol function not available");
         }
         
         return retCode;
@@ -479,7 +477,7 @@ public:
     uint32_t GetHDCPReceiverProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion& hdcpVersion) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetHDCPReceiverProtocolVersionOnVideoPort: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetHDCPReceiverProtocol_t)(intptr_t handle, dsHdcpProtocolVersion_t* protocolVersion);
         static dsGetHDCPReceiverProtocol_t dsGetHDCPReceiverProtocolFunc = 0;
@@ -487,10 +485,10 @@ public:
         if (dsGetHDCPReceiverProtocolFunc == 0) {
             dsGetHDCPReceiverProtocolFunc = (dsGetHDCPReceiverProtocol_t)resolve(RDK_DSHAL_NAME, "dsGetHDCPReceiverProtocol");
             if(dsGetHDCPReceiverProtocolFunc == 0) {
-                LOGERR("dsGetHDCPReceiverProtocol is not defined");
+                DSLOG_ERR("dsGetHDCPReceiverProtocol is not defined");
             }
             else {
-                LOGINFO("dsGetHDCPReceiverProtocol loaded");
+                DSLOG_INFO("dsGetHDCPReceiverProtocol loaded");
             }
         }
 
@@ -500,12 +498,12 @@ public:
             if (eError == dsERR_NONE) {
                 hdcpVersion = convertHdcpProtocolVersion(dsHdcpVersion);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetHDCPReceiverProtocolVersionOnVideoPort: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else {
-                LOGERR("GetHDCPReceiverProtocolVersionOnVideoPort: dsGetHDCPReceiverProtocol failed with error: %d", eError);
+                DSLOG_ERR(" dsGetHDCPReceiverProtocol failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetHDCPReceiverProtocolVersionOnVideoPort: dsGetHDCPReceiverProtocol function not available");
+            DSLOG_ERR(" dsGetHDCPReceiverProtocol function not available");
         }
         
         return retCode;
@@ -514,7 +512,7 @@ public:
     uint32_t GetHDCPCurrentProtocolVersionOnVideoPort(const int32_t handle, VideoPortHdcpProtocolVersion& hdcpVersion) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetHDCPCurrentProtocolVersionOnVideoPort: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetHDCPCurrentProtocol_t)(intptr_t handle, dsHdcpProtocolVersion_t* protocolVersion);
         static dsGetHDCPCurrentProtocol_t dsGetHDCPCurrentProtocolFunc = 0;
@@ -522,10 +520,10 @@ public:
         if (dsGetHDCPCurrentProtocolFunc == 0) {
             dsGetHDCPCurrentProtocolFunc = (dsGetHDCPCurrentProtocol_t)resolve(RDK_DSHAL_NAME, "dsGetHDCPCurrentProtocol");
             if(dsGetHDCPCurrentProtocolFunc == 0) {
-                LOGERR("dsGetHDCPCurrentProtocol is not defined");
+                DSLOG_ERR("dsGetHDCPCurrentProtocol is not defined");
             }
             else {
-                LOGINFO("dsGetHDCPCurrentProtocol loaded");
+                DSLOG_INFO("dsGetHDCPCurrentProtocol loaded");
             }
         }
 
@@ -535,12 +533,12 @@ public:
             if (eError == dsERR_NONE) {
                 hdcpVersion = convertHdcpProtocolVersion(dsHdcpVersion);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetHDCPCurrentProtocolVersionOnVideoPort: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else {
-                LOGERR("GetHDCPCurrentProtocolVersionOnVideoPort: dsGetHDCPCurrentProtocol failed with error: %d", eError);
+                DSLOG_ERR(" dsGetHDCPCurrentProtocol failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetHDCPCurrentProtocolVersionOnVideoPort: dsGetHDCPCurrentProtocol function not available");
+            DSLOG_ERR(" dsGetHDCPCurrentProtocol function not available");
         }
         
         return retCode;
@@ -549,7 +547,7 @@ public:
     uint32_t GetVideoEOTF(const int32_t handle, HDRStandard& hdrStandard) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetVideoEOTF: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetVideoEOTF_t)(intptr_t handle, dsHDRStandard_t* video_eotf);
         static dsGetVideoEOTF_t dsGetVideoEOTFFunc = 0;
@@ -557,10 +555,10 @@ public:
         if (dsGetVideoEOTFFunc == 0) {
             dsGetVideoEOTFFunc = (dsGetVideoEOTF_t)resolve(RDK_DSHAL_NAME, "dsGetVideoEOTF");
             if(dsGetVideoEOTFFunc == 0) {
-                LOGERR("dsGetVideoEOTF is not defined");
+                DSLOG_ERR("dsGetVideoEOTF is not defined");
             }
             else {
-                LOGINFO("dsGetVideoEOTF loaded");
+                DSLOG_INFO("dsGetVideoEOTF loaded");
             }
         }
 
@@ -570,12 +568,12 @@ public:
             if (eError == dsERR_NONE) {
                 hdrStandard = static_cast<HDRStandard>(dsVideoEotf);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetVideoEOTF: SUCCESS - hdrStandard=%d", static_cast<int>(hdrStandard));
+                DSLOG_INFO(" SUCCESS - hdrStandard=%d", static_cast<int>(hdrStandard));
             } else {
-                LOGERR("GetVideoEOTF: dsGetVideoEOTF failed with error: %d", eError);
+                DSLOG_ERR(" dsGetVideoEOTF failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetVideoEOTF: dsGetVideoEOTF function not available");
+            DSLOG_ERR(" dsGetVideoEOTF function not available");
             hdrStandard = static_cast<HDRStandard>(dsHDRSTANDARD_NONE);
         }
         
@@ -585,7 +583,7 @@ public:
     uint32_t GetMatrixCoefficients(const int32_t handle, DisplayMatrixCoefficients& matrixCoefficients) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetMatrixCoefficients: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetMatrixCoefficients_t)(intptr_t handle, dsDisplayMatrixCoefficients_t* matrix_coefficients);
         static dsGetMatrixCoefficients_t dsGetMatrixCoefficientsFunc = 0;
@@ -593,10 +591,10 @@ public:
         if (dsGetMatrixCoefficientsFunc == 0) {
             dsGetMatrixCoefficientsFunc = (dsGetMatrixCoefficients_t)resolve(RDK_DSHAL_NAME, "dsGetMatrixCoefficients");
             if(dsGetMatrixCoefficientsFunc == 0) {
-                LOGERR("dsGetMatrixCoefficients is not defined");
+                DSLOG_ERR("dsGetMatrixCoefficients is not defined");
             }
             else {
-                LOGINFO("dsGetMatrixCoefficients loaded");
+                DSLOG_INFO("dsGetMatrixCoefficients loaded");
             }
         }
 
@@ -606,12 +604,12 @@ public:
             if (eError == dsERR_NONE) {
                 matrixCoefficients = static_cast<DisplayMatrixCoefficients>(dsMatrixCoefficients);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetMatrixCoefficients: SUCCESS - matrixCoefficients=%d", static_cast<int>(matrixCoefficients));
+                DSLOG_INFO(" SUCCESS - matrixCoefficients=%d", static_cast<int>(matrixCoefficients));
             } else {
-                LOGERR("GetMatrixCoefficients: dsGetMatrixCoefficients failed with error: %d", eError);
+                DSLOG_ERR(" dsGetMatrixCoefficients failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetMatrixCoefficients: dsGetMatrixCoefficients function not available");
+            DSLOG_ERR(" dsGetMatrixCoefficients function not available");
             matrixCoefficients = static_cast<DisplayMatrixCoefficients>(dsDISPLAY_MATRIXCOEFFICIENT_UNKNOWN);
         }
         
@@ -621,7 +619,7 @@ public:
     uint32_t IsVideoPortDisplaySurround(const int32_t handle, bool& surround) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("IsVideoPortDisplaySurround: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsIsDisplaySurround_t)(intptr_t handle, bool *surround);
         static dsIsDisplaySurround_t dsIsDisplaySurroundFunc = 0;
@@ -629,10 +627,10 @@ public:
         if (dsIsDisplaySurroundFunc == 0) {
             dsIsDisplaySurroundFunc = (dsIsDisplaySurround_t)resolve(RDK_DSHAL_NAME, "dsIsDisplaySurround");
             if(dsIsDisplaySurroundFunc == 0) {
-                LOGERR("dsIsDisplaySurround is not defined");
+                DSLOG_ERR("dsIsDisplaySurround is not defined");
             }
             else {
-                LOGINFO("dsIsDisplaySurround loaded");
+                DSLOG_INFO("dsIsDisplaySurround loaded");
             }
         }
 
@@ -642,12 +640,12 @@ public:
             if (eError == dsERR_NONE) {
                 surround = dsSurround;
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("IsVideoPortDisplaySurround: SUCCESS - surround=%s", surround ? "true" : "false");
+                DSLOG_INFO(" SUCCESS - surround=%s", surround ? "true" : "false");
             } else {
-                LOGERR("IsVideoPortDisplaySurround: dsIsDisplaySurround failed with error: %d", eError);
+                DSLOG_ERR(" dsIsDisplaySurround failed with error: %d", eError);
             }
         } else {
-            LOGERR("IsVideoPortDisplaySurround: dsIsDisplaySurround function not available");
+            DSLOG_ERR(" dsIsDisplaySurround function not available");
             surround = false;
         }
         
@@ -657,7 +655,7 @@ public:
     uint32_t GetVideoPortDisplaySurroundMode(const int32_t handle, VideoPortSurroundMode& surroundMode) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetVideoPortDisplaySurroundMode: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetSurroundMode_t)(intptr_t handle, int *surround);
         static dsGetSurroundMode_t dsGetSurroundModeFunc = 0;
@@ -665,10 +663,10 @@ public:
         if (dsGetSurroundModeFunc == 0) {
             dsGetSurroundModeFunc = (dsGetSurroundMode_t)resolve(RDK_DSHAL_NAME, "dsGetSurroundMode");
             if(dsGetSurroundModeFunc == 0) {
-                LOGERR("dsGetSurroundMode is not defined");
+                DSLOG_ERR("dsGetSurroundMode is not defined");
             }
             else {
-                LOGINFO("dsGetSurroundMode loaded");
+                DSLOG_INFO("dsGetSurroundMode loaded");
             }
         }
 
@@ -678,12 +676,12 @@ public:
             if (eError == dsERR_NONE) {
                 surroundMode = static_cast<VideoPortSurroundMode>(dsSurroundMode);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetVideoPortDisplaySurroundMode: SUCCESS - surroundMode=%d", static_cast<int>(surroundMode));
+                DSLOG_INFO(" SUCCESS - surroundMode=%d", static_cast<int>(surroundMode));
             } else {
-                LOGERR("GetVideoPortDisplaySurroundMode: dsGetSurroundMode failed with error: %d", eError);
+                DSLOG_ERR(" dsGetSurroundMode failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetVideoPortDisplaySurroundMode: dsGetSurroundMode function not available");
+            DSLOG_ERR(" dsGetSurroundMode function not available");
             surroundMode = VideoPortSurroundMode::DS_VIDEO_PORT_SURROUNDMODE_NONE;
         }
         
@@ -693,7 +691,7 @@ public:
     uint32_t GetCurrentOutputSettings(const int32_t handle, DSOutputSettings& outputSettings) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetCurrentOutputSettings: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetCurrentOutputSettings_t)(intptr_t handle, dsHDRStandard_t* video_eotf, dsDisplayMatrixCoefficients_t* matrix_coefficients, dsDisplayColorSpace_t* color_space, unsigned int* color_depth, dsDisplayQuantizationRange_t* quantization_range);
         static dsGetCurrentOutputSettings_t dsGetCurrentOutputSettingsFunc = 0;
@@ -701,10 +699,10 @@ public:
         if (dsGetCurrentOutputSettingsFunc == 0) {
             dsGetCurrentOutputSettingsFunc = (dsGetCurrentOutputSettings_t)resolve(RDK_DSHAL_NAME, "dsGetCurrentOutputSettings");
             if(dsGetCurrentOutputSettingsFunc == 0) {
-                LOGERR("dsGetCurrentOutputSettings is not defined");
+                DSLOG_ERR("dsGetCurrentOutputSettings is not defined");
             }
             else {
-                LOGINFO("dsGetCurrentOutputSettings loaded");
+                DSLOG_INFO("dsGetCurrentOutputSettings loaded");
             }
         }
 
@@ -723,14 +721,14 @@ public:
                 outputSettings.colorSpace = static_cast<VideoPortColorSpace>(dsColorSpace);
                 outputSettings.quantizationRange = static_cast<VideoPortQuantizationRange>(dsQuantizationRange);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetCurrentOutputSettings: SUCCESS - eotf=%d, matrix=%d, colorDepth=%u, colorSpace=%d, quantization=%d", 
+                DSLOG_INFO(" SUCCESS - eotf=%d, matrix=%d, colorDepth=%u, colorSpace=%d, quantization=%d",
                        static_cast<int>(outputSettings.videoEotf), static_cast<int>(outputSettings.matrixCoefficients),
                        outputSettings.colorDepth, static_cast<int>(outputSettings.colorSpace), static_cast<int>(outputSettings.quantizationRange));
             } else {
-                LOGERR("GetCurrentOutputSettings: dsGetCurrentOutputSettings failed with error: %d", eError);
+                DSLOG_ERR(" dsGetCurrentOutputSettings failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetCurrentOutputSettings: dsGetCurrentOutputSettings function not available");
+            DSLOG_ERR(" dsGetCurrentOutputSettings function not available");
             // Set default values
             outputSettings.videoEotf = static_cast<HDRStandard>(dsHDRSTANDARD_NONE);
             outputSettings.matrixCoefficients = static_cast<DisplayMatrixCoefficients>(dsDISPLAY_MATRIXCOEFFICIENT_UNKNOWN);
@@ -745,14 +743,14 @@ public:
     uint32_t GetPreferredColorDepth(const int32_t handle, DisplayColorDepth& colorDepth, const bool persist) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetPreferredColorDepth: handle=%d, persist=%s", handle, persist ? "true" : "false");
+        DSLOG_INFO(" handle=%d, persist=%s", handle, persist ? "true" : "false");
         
         if (persist) {
             // Use persistent color depth - following dsVideoPort.c pattern
             DisplayColorDepth persistentColorDepth = getPersistentColorDepth();
             colorDepth = persistentColorDepth;
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("GetPreferredColorDepth: SUCCESS (from persistence) - colorDepth=%d", static_cast<int>(colorDepth));
+            DSLOG_INFO(" SUCCESS (from persistence) - colorDepth=%d", static_cast<int>(colorDepth));
         } else {
             // Get from HAL
             typedef dsError_t (*dsGetPreferredColorDepth_t)(intptr_t handle, dsDisplayColorDepth_t *colorDepth);
@@ -761,10 +759,10 @@ public:
             if (dsGetPreferredColorDepthFunc == 0) {
                 dsGetPreferredColorDepthFunc = (dsGetPreferredColorDepth_t)resolve(RDK_DSHAL_NAME, "dsGetPreferredColorDepth");
                 if(dsGetPreferredColorDepthFunc == 0) {
-                    LOGERR("dsGetPreferredColorDepth is not defined");
+                    DSLOG_ERR("dsGetPreferredColorDepth is not defined");
                 }
                 else {
-                    LOGINFO("dsGetPreferredColorDepth loaded");
+                    DSLOG_INFO("dsGetPreferredColorDepth loaded");
                 }
             }
 
@@ -774,12 +772,12 @@ public:
                 if (eError == dsERR_NONE) {
                     colorDepth = static_cast<DisplayColorDepth>(dsColorDepth);
                     retCode = WPEFramework::Core::ERROR_NONE;
-                    LOGINFO("GetPreferredColorDepth: SUCCESS (from HAL) - colorDepth=%d", static_cast<int>(colorDepth));
+                    DSLOG_INFO(" SUCCESS (from HAL) - colorDepth=%d", static_cast<int>(colorDepth));
                 } else {
-                    LOGERR("GetPreferredColorDepth: dsGetPreferredColorDepth failed with error: %d", eError);
+                    DSLOG_ERR(" dsGetPreferredColorDepth failed with error: %d", eError);
                 }
             } else {
-                LOGERR("GetPreferredColorDepth: dsGetPreferredColorDepth function not available");
+                DSLOG_ERR(" dsGetPreferredColorDepth function not available");
                 colorDepth = static_cast<DisplayColorDepth>(dsDISPLAY_COLORDEPTH_UNKNOWN);
             }
         }
@@ -790,7 +788,7 @@ public:
     uint32_t SetPreferredColorDepth(const int32_t handle, const DisplayColorDepth colorDepth, const bool persist) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetPreferredColorDepth: handle=%d, colorDepth=%d, persist=%s", handle, static_cast<int>(colorDepth), persist ? "true" : "false");
+        DSLOG_INFO(" handle=%d, colorDepth=%d, persist=%s", handle, static_cast<int>(colorDepth), persist ? "true" : "false");
         
         typedef dsError_t (*dsSetPreferredColorDepth_t)(intptr_t handle, dsDisplayColorDepth_t colorDepth);
         static dsSetPreferredColorDepth_t dsSetPreferredColorDepthFunc = 0;
@@ -798,10 +796,10 @@ public:
         if (dsSetPreferredColorDepthFunc == 0) {
             dsSetPreferredColorDepthFunc = (dsSetPreferredColorDepth_t)resolve(RDK_DSHAL_NAME, "dsSetPreferredColorDepth");
             if(dsSetPreferredColorDepthFunc == 0) {
-                LOGERR("dsSetPreferredColorDepth is not defined");
+                DSLOG_ERR("dsSetPreferredColorDepth is not defined");
             }
             else {
-                LOGINFO("dsSetPreferredColorDepth loaded");
+                DSLOG_INFO("dsSetPreferredColorDepth loaded");
             }
         }
 
@@ -810,23 +808,23 @@ public:
             dsError_t eError = dsSetPreferredColorDepthFunc(handle, dsColorDepth);
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("SetPreferredColorDepth: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
                 
                 // Persist color depth setting if requested - following dsVideoPort.c pattern
                 if (persist) {
                     try {
                         std::string colorDepthStr = std::to_string(static_cast<int>(colorDepth));
                         device::HostPersistence::getInstance().persistHostProperty("HDMI0.colorDepth", colorDepthStr);
-                        LOGINFO("Color depth persisted: %s", colorDepthStr.c_str());
+                        DSLOG_INFO("Color depth persisted: %s", colorDepthStr.c_str());
                     } catch(...) {
-                        LOGERR("Failed to persist color depth setting");
+                        DSLOG_ERR("Failed to persist color depth setting");
                     }
                 }
             } else {
-                LOGERR("SetPreferredColorDepth: dsSetPreferredColorDepth failed with error: %d", eError);
+                DSLOG_ERR(" dsSetPreferredColorDepth failed with error: %d", eError);
             }
         } else {
-            LOGERR("SetPreferredColorDepth: dsSetPreferredColorDepth function not available");
+            DSLOG_ERR(" dsSetPreferredColorDepth function not available");
         }
         
         return retCode;
@@ -835,7 +833,7 @@ public:
     uint32_t SetVideoPortResolution(const int32_t handle, const VideoPortResolution resolution, const bool persist, const bool forceCompatibility) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetVideoPortResolution: handle=%d, persist=%s, forceCompatibility=%s", handle, persist ? "true" : "false", forceCompatibility ? "true" : "false");
+        DSLOG_INFO(" handle=%d, persist=%s, forceCompatibility=%s", handle, persist ? "true" : "false", forceCompatibility ? "true" : "false");
 
         dsVideoPortResolution_t dsResolution = convertVideoPortResolution(resolution);
 
@@ -845,7 +843,7 @@ public:
         dsError_t eError = dsSetResolution(handle, &dsResolution);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("SetVideoPortResolution: SUCCESS");
+            DSLOG_INFO(" SUCCESS");
             
             // Persist resolution setting if requested - following dsVideoPort.c pattern
             if (persist) {
@@ -855,7 +853,7 @@ public:
             // Trigger resolution post-change callback on successful resolution change
             VideoPortPostResolutionChange(&dsResolution);
         } else {
-            LOGERR("SetVideoPortResolution: dsSetResolution failed with error: %d", eError);
+            DSLOG_ERR(" dsSetResolution failed with error: %d", eError);
         }
         
         return retCode;
@@ -864,14 +862,14 @@ public:
     uint32_t EnableHDCPOnVideoPort(const int32_t handle, const bool hdcpEnable, const uint8_t* hdcpKey, const uint16_t hdcpKeySize) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("EnableHDCPOnVideoPort: handle=%d, hdcpEnable=%s, hdcpKeySize=%u", handle, hdcpEnable ? "true" : "false", hdcpKeySize);
+        DSLOG_INFO(" handle=%d, hdcpEnable=%s, hdcpKeySize=%u", handle, hdcpEnable ? "true" : "false", hdcpKeySize);
         
         dsError_t eError = dsEnableHDCP(handle, hdcpEnable, (char*)hdcpKey, static_cast<int>(hdcpKeySize));
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("EnableHDCPOnVideoPort: SUCCESS");
+            DSLOG_INFO(" SUCCESS");
         } else {
-            LOGERR("EnableHDCPOnVideoPort: dsEnableHDCP failed with error: %d", eError);
+            DSLOG_ERR(" dsEnableHDCP failed with error: %d", eError);
         }
         
         return retCode;
@@ -880,16 +878,16 @@ public:
     uint32_t IsHDCPEnabledOnVideoPort(const int32_t handle, bool& hdcpEnabled) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("IsHDCPEnabledOnVideoPort: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         bool dsHdcpEnabled = false;
         dsError_t eError = dsIsHDCPEnabled(handle, &dsHdcpEnabled);
         if (eError == dsERR_NONE) {
             hdcpEnabled = dsHdcpEnabled;
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("IsHDCPEnabledOnVideoPort: SUCCESS - hdcpEnabled=%s", hdcpEnabled ? "true" : "false");
+            DSLOG_INFO(" SUCCESS - hdcpEnabled=%s", hdcpEnabled ? "true" : "false");
         } else {
-            LOGERR("IsHDCPEnabledOnVideoPort: dsIsHDCPEnabled failed with error: %d", eError);
+            DSLOG_ERR(" dsIsHDCPEnabled failed with error: %d", eError);
         }
         
         return retCode;
@@ -898,7 +896,7 @@ public:
     uint32_t GetTVHDRCapabilities(const int32_t handle, int32_t& capabilities) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetTVHDRCapabilities: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetTVHDRCapabilitiesFunc_t)(intptr_t handle, int* capabilities);
         static dsGetTVHDRCapabilitiesFunc_t dsGetTVHDRCapabilitiesFunc = 0;
@@ -906,10 +904,10 @@ public:
         if (dsGetTVHDRCapabilitiesFunc == 0) {
             dsGetTVHDRCapabilitiesFunc = (dsGetTVHDRCapabilitiesFunc_t)resolve(RDK_DSHAL_NAME, "dsGetTVHDRCapabilities");
             if(dsGetTVHDRCapabilitiesFunc == 0) {
-                LOGERR("dsGetTVHDRCapabilities is not defined");
+                DSLOG_ERR("dsGetTVHDRCapabilities is not defined");
             }
             else {
-                LOGINFO("dsGetTVHDRCapabilities loaded");
+                DSLOG_INFO("dsGetTVHDRCapabilities loaded");
             }
         }
 
@@ -919,12 +917,12 @@ public:
             if (eError == dsERR_NONE) {
                 capabilities = static_cast<int32_t>(dsCapabilities);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetTVHDRCapabilities: SUCCESS - capabilities=0x%x", capabilities);
+                DSLOG_INFO(" SUCCESS - capabilities=0x%x", capabilities);
             } else {
-                LOGERR("GetTVHDRCapabilities: dsGetTVHDRCapabilities failed with error: %d", eError);
+                DSLOG_ERR(" dsGetTVHDRCapabilities failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetTVHDRCapabilities: dsGetTVHDRCapabilities function not available");
+            DSLOG_ERR(" dsGetTVHDRCapabilities function not available");
             capabilities = 0; // Default value
         }
         
@@ -934,7 +932,7 @@ public:
     uint32_t GetTVSupportedResolutions(const int32_t handle, int32_t& resolutions) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetTVSupportedResolutions: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsSupportedTvResolutionsFunc_t)(intptr_t handle, int* resolutions);
         static dsSupportedTvResolutionsFunc_t dsSupportedTvResolutionsFunc = 0;
@@ -942,10 +940,10 @@ public:
         if (dsSupportedTvResolutionsFunc == 0) {
             dsSupportedTvResolutionsFunc = (dsSupportedTvResolutionsFunc_t)resolve(RDK_DSHAL_NAME, "dsSupportedTvResolutions");
             if(dsSupportedTvResolutionsFunc == 0) {
-                LOGERR("dsSupportedTvResolutions is not defined");
+                DSLOG_ERR("dsSupportedTvResolutions is not defined");
             }
             else {
-                LOGINFO("dsSupportedTvResolutions loaded");
+                DSLOG_INFO("dsSupportedTvResolutions loaded");
             }
         }
 
@@ -955,12 +953,12 @@ public:
             if (eError == dsERR_NONE) {
                 resolutions = static_cast<int32_t>(dsResolutions);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetTVSupportedResolutions: SUCCESS - resolutions=0x%x", resolutions);
+                DSLOG_INFO(" SUCCESS - resolutions=0x%x", resolutions);
             } else {
-                LOGERR("GetTVSupportedResolutions: dsSupportedTvResolutions failed with error: %d", eError);
+                DSLOG_ERR(" dsSupportedTvResolutions failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetTVSupportedResolutions: dsSupportedTvResolutions function not available");
+            DSLOG_ERR(" dsSupportedTvResolutions function not available");
             resolutions = 0; // Default value
         }
         
@@ -970,23 +968,23 @@ public:
     uint32_t SetForceDisable4K(const int32_t handle, const bool disable) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetForceDisable4K: handle=%d, disable=%s", handle, disable ? "true" : "false");
+        DSLOG_INFO(" handle=%d, disable=%s", handle, disable ? "true" : "false");
         
         dsError_t eError = dsSetForceDisable4KSupport(handle, disable);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("SetForceDisable4K: SUCCESS");
+            DSLOG_INFO(" SUCCESS");
             /* Persist 4K disable state — matches dsVideoPort.c _dsSetForceDisable4K() */
             try {
                 device::HostPersistence::getInstance().persistHostProperty(
                     "VideoDevice.force4KDisabled", disable ? "true" : "false");
-                LOGINFO("SetForceDisable4K: persisted VideoDevice.force4KDisabled=%s",
+                DSLOG_INFO(" persisted VideoDevice.force4KDisabled=%s",
                         disable ? "true" : "false");
             } catch (...) {
-                LOGERR("SetForceDisable4K: failed to persist force4KDisabled");
+                DSLOG_ERR(" failed to persist force4KDisabled");
             }
         } else {
-            LOGERR("SetForceDisable4K: dsSetForceDisable4KSupport failed with error: %d", eError);
+            DSLOG_ERR(" dsSetForceDisable4KSupport failed with error: %d", eError);
         }
         
         return retCode;
@@ -995,7 +993,7 @@ public:
     uint32_t GetForceDisable4K(const int32_t handle, bool& disabled) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetForceDisable4K: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         // Use correct DS HAL function: dsGetForceDisable4KSupport
         bool dsDisabled = false;
@@ -1003,9 +1001,9 @@ public:
         if (eError == dsERR_NONE) {
             disabled = dsDisabled;
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("GetForceDisable4K: SUCCESS - disabled=%s", disabled ? "true" : "false");
+            DSLOG_INFO(" SUCCESS - disabled=%s", disabled ? "true" : "false");
         } else {
-            LOGERR("GetForceDisable4K: dsGetForceDisable4KSupport failed with error: %d", eError);
+            DSLOG_ERR(" dsGetForceDisable4KSupport failed with error: %d", eError);
             disabled = false; // Default value on error
         }
         
@@ -1015,7 +1013,7 @@ public:
     uint32_t IsVideoPortOutputHDR(const int32_t handle, bool& isHDR) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("IsVideoPortOutputHDR: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsIsOutputHDR_t)(intptr_t handle, bool* isHDR);
         static dsIsOutputHDR_t dsIsOutputHDRFunc = 0;
@@ -1023,10 +1021,10 @@ public:
         if (dsIsOutputHDRFunc == 0) {
             dsIsOutputHDRFunc = (dsIsOutputHDR_t)resolve(RDK_DSHAL_NAME, "dsIsOutputHDR");
             if(dsIsOutputHDRFunc == 0) {
-                LOGERR("dsIsOutputHDR is not defined");
+                DSLOG_ERR("dsIsOutputHDR is not defined");
             }
             else {
-                LOGINFO("dsIsOutputHDR loaded");
+                DSLOG_INFO("dsIsOutputHDR loaded");
             }
         }
 
@@ -1036,12 +1034,12 @@ public:
             if (eError == dsERR_NONE) {
                 isHDR = dsIsHDR;
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("IsVideoPortOutputHDR: SUCCESS - isHDR=%s", isHDR ? "true" : "false");
+                DSLOG_INFO(" SUCCESS - isHDR=%s", isHDR ? "true" : "false");
             } else {
-                LOGERR("IsVideoPortOutputHDR: dsIsOutputHDR failed with error: %d", eError);
+                DSLOG_ERR(" dsIsOutputHDR failed with error: %d", eError);
             }
         } else {
-            LOGERR("IsVideoPortOutputHDR: dsIsOutputHDR function not available");
+            DSLOG_ERR(" dsIsOutputHDR function not available");
             isHDR = false; // Default value
         }
         
@@ -1051,7 +1049,6 @@ public:
     uint32_t ResetVideoPortOutputToSDR() override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("ResetVideoPortOutputToSDR");
         
         typedef dsError_t (*dsResetOutputToSDR_t)(void);
         static dsResetOutputToSDR_t dsResetOutputToSDRFunc = 0;
@@ -1059,10 +1056,10 @@ public:
         if (dsResetOutputToSDRFunc == 0) {
             dsResetOutputToSDRFunc = (dsResetOutputToSDR_t)resolve(RDK_DSHAL_NAME, "dsResetOutputToSDR");
             if(dsResetOutputToSDRFunc == 0) {
-                LOGERR("dsResetOutputToSDR is not defined");
+                DSLOG_ERR("dsResetOutputToSDR is not defined");
             }
             else {
-                LOGINFO("dsResetOutputToSDR loaded");
+                DSLOG_INFO("dsResetOutputToSDR loaded");
             }
         }
 
@@ -1070,12 +1067,12 @@ public:
             dsError_t eError = dsResetOutputToSDRFunc();
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("ResetVideoPortOutputToSDR: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else {
-                LOGERR("ResetVideoPortOutputToSDR: dsResetOutputToSDR failed with error: %d", eError);
+                DSLOG_ERR(" dsResetOutputToSDR failed with error: %d", eError);
             }
         } else {
-            LOGERR("ResetVideoPortOutputToSDR: dsResetOutputToSDR function not available");
+            DSLOG_ERR(" dsResetOutputToSDR function not available");
         }
         
         return retCode;
@@ -1084,7 +1081,7 @@ public:
     uint32_t GetHDMIPreference(const int32_t handle, VideoPortHdcpProtocolVersion& hdcpVersion) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetHDMIPreference: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetHdmiPreference_t)(intptr_t handle, dsHdcpProtocolVersion_t* hdcpVersion);
         static dsGetHdmiPreference_t dsGetHdmiPreferenceFunc = 0;
@@ -1092,10 +1089,10 @@ public:
         if (dsGetHdmiPreferenceFunc == 0) {
             dsGetHdmiPreferenceFunc = (dsGetHdmiPreference_t)resolve(RDK_DSHAL_NAME, "dsGetHdmiPreference");
             if(dsGetHdmiPreferenceFunc == 0) {
-                LOGERR("dsGetHdmiPreference is not defined");
+                DSLOG_ERR("dsGetHdmiPreference is not defined");
             }
             else {
-                LOGINFO("dsGetHdmiPreference loaded");
+                DSLOG_INFO("dsGetHdmiPreference loaded");
             }
         }
 
@@ -1105,12 +1102,12 @@ public:
             if (eError == dsERR_NONE) {
                 hdcpVersion = convertHdcpProtocolVersion(dsHdcpVersion);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetHDMIPreference: SUCCESS - hdcpVersion=%d", static_cast<int>(hdcpVersion));
+                DSLOG_INFO(" SUCCESS - hdcpVersion=%d", static_cast<int>(hdcpVersion));
             } else {
-                LOGERR("GetHDMIPreference: dsGetHdmiPreference failed with error: %d", eError);
+                DSLOG_ERR(" dsGetHdmiPreference failed with error: %d", eError);
             }
         } else {
-            LOGERR("GetHDMIPreference: dsGetHdmiPreference function not available");
+            DSLOG_ERR(" dsGetHdmiPreference function not available");
         }
         
         return retCode;
@@ -1119,7 +1116,7 @@ public:
     uint32_t SetHDMIPreference(const int32_t handle, const VideoPortHdcpProtocolVersion hdcpVersion) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetHDMIPreference: handle=%d, hdcpVersion=%d", handle, static_cast<int>(hdcpVersion));
+        DSLOG_INFO(" handle=%d, hdcpVersion=%d", handle, static_cast<int>(hdcpVersion));
         
         typedef dsError_t (*dsSetHdmiPreference_t)(intptr_t handle, dsHdcpProtocolVersion_t* hdcpVersion);
         static dsSetHdmiPreference_t dsSetHdmiPreferenceFunc = 0;
@@ -1127,10 +1124,10 @@ public:
         if (dsSetHdmiPreferenceFunc == 0) {
             dsSetHdmiPreferenceFunc = (dsSetHdmiPreference_t)resolve(RDK_DSHAL_NAME, "dsSetHdmiPreference");
             if(dsSetHdmiPreferenceFunc == 0) {
-                LOGERR("dsSetHdmiPreference is not defined");
+                DSLOG_ERR("dsSetHdmiPreference is not defined");
             }
             else {
-                LOGINFO("dsSetHdmiPreference loaded");
+                DSLOG_INFO("dsSetHdmiPreference loaded");
             }
         }
 
@@ -1139,12 +1136,12 @@ public:
             dsError_t eError = dsSetHdmiPreferenceFunc(handle, &dsHdcpVersion);
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("SetHDMIPreference: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else {
-                LOGERR("SetHDMIPreference: dsSetHdmiPreference failed with error: %d", eError);
+                DSLOG_ERR(" dsSetHdmiPreference failed with error: %d", eError);
             }
         } else {
-            LOGERR("SetHDMIPreference: dsSetHdmiPreference function not available");
+            DSLOG_ERR(" dsSetHdmiPreference function not available");
         }
         
         return retCode;
@@ -1153,15 +1150,15 @@ public:
     uint32_t SetBackgroundColor(const int32_t handle, const VideoBackgroundColor backgroundColor) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetBackgroundColor: handle=%d, backgroundColor=%d", handle, static_cast<int>(backgroundColor));
+        DSLOG_INFO(" handle=%d, backgroundColor=%d", handle, static_cast<int>(backgroundColor));
         
         dsVideoBackgroundColor_t dsBackgroundColor = static_cast<dsVideoBackgroundColor_t>(backgroundColor);
         dsError_t eError = dsSetBackgroundColor(handle, dsBackgroundColor);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("SetBackgroundColor: SUCCESS");
+            DSLOG_INFO(" SUCCESS");
         } else {
-            LOGERR("SetBackgroundColor: dsSetBackgroundColor failed with error: %d", eError);
+            DSLOG_ERR(" dsSetBackgroundColor failed with error: %d", eError);
         }
         
         return retCode;
@@ -1170,7 +1167,7 @@ public:
     uint32_t SetForceHDRMode(const int32_t handle, const HDRStandard hdrMode) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetForceHDRMode: handle=%d, hdrMode=%d", handle, static_cast<int>(hdrMode));
+        DSLOG_INFO(" handle=%d, hdrMode=%d", handle, static_cast<int>(hdrMode));
         
         typedef dsError_t (*dsSetForceHDRMode_t)(intptr_t handle, dsHDRStandard_t hdrMode);
         static dsSetForceHDRMode_t dsSetForceHDRModeFunc = 0;
@@ -1178,10 +1175,10 @@ public:
         if (dsSetForceHDRModeFunc == 0) {
             dsSetForceHDRModeFunc = (dsSetForceHDRMode_t)resolve(RDK_DSHAL_NAME, "dsSetForceHDRMode");
             if(dsSetForceHDRModeFunc == 0) {
-                LOGERR("dsSetForceHDRMode is not defined");
+                DSLOG_ERR("dsSetForceHDRMode is not defined");
             }
             else {
-                LOGINFO("dsSetForceHDRMode loaded");
+                DSLOG_INFO("dsSetForceHDRMode loaded");
             }
         }
 
@@ -1190,14 +1187,14 @@ public:
             dsError_t eError = dsSetForceHDRModeFunc(handle, dsHdrMode);
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("SetForceHDRMode: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else if (eError == dsERR_OPERATION_NOT_SUPPORTED) {
-                LOGWARN("SetForceHDRMode: not supported on this platform");
+                DSLOG_WARN(" not supported on this platform");
             } else {
-                LOGERR("SetForceHDRMode: dsSetForceHDRMode failed with error: %d", eError);
+                DSLOG_ERR(" dsSetForceHDRMode failed with error: %d", eError);
             }
         } else {
-            LOGERR("SetForceHDRMode: dsSetForceHDRMode function not available");
+            DSLOG_ERR(" dsSetForceHDRMode function not available");
         }
         
         return retCode;
@@ -1206,7 +1203,7 @@ public:
     uint32_t GetColorDepthCapabilities(const int32_t handle, uint32_t& colorDepthCapabilities) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetColorDepthCapabilities: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsColorDepthCapabilities_t)(intptr_t handle, unsigned int* colorDepthCapability);
         static dsColorDepthCapabilities_t dsColorDepthCapabilitiesFunc = 0;
@@ -1214,10 +1211,10 @@ public:
         if (dsColorDepthCapabilitiesFunc == 0) {
             dsColorDepthCapabilitiesFunc = (dsColorDepthCapabilities_t)resolve(RDK_DSHAL_NAME, "dsColorDepthCapabilities");
             if (dsColorDepthCapabilitiesFunc == 0) {
-                LOGERR("GetColorDepthCapabilities: dsColorDepthCapabilities(intptr_t handle, unsigned int *colorDepthCapability ) is not defined");
+                DSLOG_ERR(" dsColorDepthCapabilities(intptr_t handle, unsigned int *colorDepthCapability ) is not defined");
             }
             else {
-                LOGINFO("GetColorDepthCapabilities: dsColorDepthCapabilities(intptr_t handle, unsigned int *colorDepthCapability ) is defined and loaded");
+                DSLOG_INFO(" dsColorDepthCapabilities(intptr_t handle, unsigned int *colorDepthCapability ) is defined and loaded");
             }
         }
 
@@ -1225,7 +1222,7 @@ public:
             unsigned int dsColorDepthCapabilities = 0;
             dsError_t eError = dsColorDepthCapabilitiesFunc(handle, &dsColorDepthCapabilities);
             if (eError == dsERR_NONE) {
-                LOGINFO("GetColorDepthCapabilities: dsColorDepthCapabilities returned:%d  colorDepthCapability: 0x%x", 
+                DSLOG_INFO(" dsColorDepthCapabilities returned:%d  colorDepthCapability: 0x%x",
                         eError, dsColorDepthCapabilities);
                 
                 // Add auto by default - consistent with _dsColorDepthCapabilities in dsVideoPort.c
@@ -1233,13 +1230,13 @@ public:
                 
                 colorDepthCapabilities = static_cast<uint32_t>(dsColorDepthCapabilities);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetColorDepthCapabilities: SUCCESS - final colorDepthCapabilities=0x%x", colorDepthCapabilities);
+                DSLOG_INFO(" SUCCESS - final colorDepthCapabilities=0x%x", colorDepthCapabilities);
             } else {
-                LOGERR("GetColorDepthCapabilities: dsColorDepthCapabilities failed with error: %d", eError);
+                DSLOG_ERR(" dsColorDepthCapabilities failed with error: %d", eError);
                 colorDepthCapabilities = 0; // Default value on error
             }
         } else {
-            LOGERR("GetColorDepthCapabilities: not able to load function dsColorDepthCapabilitiesFunc:%p", dsColorDepthCapabilitiesFunc);
+            DSLOG_ERR(" not able to load function dsColorDepthCapabilitiesFunc:%p", dsColorDepthCapabilitiesFunc);
             colorDepthCapabilities = 0; // Default value
         }
         
@@ -1250,31 +1247,31 @@ public:
     void setAllCallbacks(const CallbackBundle& bundle) override
     {
         ENTRY_LOG;
-        LOGINFO("VideoPort::setAllCallbacks - Registering event callbacks with DS HAL");
+        DSLOG_INFO("Registering event callbacks with DS HAL");
         
         // Debug logging to diagnose condition failure
-        LOGINFO("VideoPort callback registration check: videoPort_isInitialized=%d, videoPort_isPlatInitialized=%d", 
+        DSLOG_INFO("VideoPort callback registration check: videoPort_isInitialized=%d, videoPort_isPlatInitialized=%d",
                 videoPort_isInitialized, videoPort_isPlatInitialized);
         
         if (videoPort_isPlatInitialized && !videoPort_isInitialized) {
-            LOGINFO("VideoPort platform callback Initialization");
+            DSLOG_INFO("VideoPort platform callback Initialization");
             
             // Register Resolution Pre/Post Change callbacks
             if (bundle.OnResolutionPreChange) {
-                LOGINFO("VideoPort Resolution PreChange Event Callback Registered");
+                DSLOG_INFO("VideoPort Resolution PreChange Event Callback Registered");
                 g_VideoPortResolutionPreChangeCallback = bundle.OnResolutionPreChange;
                 // Resolution callbacks are handled manually during resolution setting
             }
             
             if (bundle.OnResolutionPostChange) {
-                LOGINFO("VideoPort Resolution PostChange Event Callback Registered");
+                DSLOG_INFO("VideoPort Resolution PostChange Event Callback Registered");
                 g_VideoPortResolutionPostChangeCallback = bundle.OnResolutionPostChange;
                 // Resolution callbacks are handled manually during resolution setting
             }
             
             // Register HDCP Status Callback with DS HAL
             if (bundle.OnHDCPStatusChange) {
-                LOGINFO("VideoPort HDCP Status Change Event Callback Registered");
+                DSLOG_INFO("VideoPort HDCP Status Change Event Callback Registered");
                 g_VideoPortHDCPStatusChangeCallback = bundle.OnHDCPStatusChange;
                 
                 intptr_t handle = 0;
@@ -1284,48 +1281,48 @@ public:
                 }
                 
                 if (dsERR_NONE == eReturn && handle != 0) {
-                    LOGINFO("Registering HDCP status callback with handle: %p", (void*)handle);
+                    DSLOG_INFO("Registering HDCP status callback with handle: %p", (void*)handle);
                     const dsError_t callbackError = dsRegisterHdcpStatusCallback(handle, VideoPortHDCPStatusCallback);
                     if (callbackError != dsERR_NONE) {
-                        LOGERR("dsRegisterHdcpStatusCallback failed with error: %d", callbackError);
+                        DSLOG_ERR("dsRegisterHdcpStatusCallback failed with error: %d", callbackError);
                     }
                     if (profileType == STB) {
                         char hdcpKey[HDCP_KEY_MAX_SIZE] = {0};
                         size_t keySize = 0;
                         dsError_t ret = dsEnableHDCP(handle, true, hdcpKey, keySize);
                         if (ret != dsERR_NONE) {
-                            LOGERR("Failed to enable startup HDCP: error=%d", ret);
+                            DSLOG_ERR("Failed to enable startup HDCP: error=%d", ret);
                         } else {
-                            LOGINFO("Setting HDCP done ...");
+                            DSLOG_INFO("Setting HDCP done ...");
                         }
                     }
                 } else {
-                    LOGERR("Failed to get video port handle for HDCP callback registration");
+                    DSLOG_ERR("Failed to get video port handle for HDCP callback registration");
                 }
             }
             
             // Register Video Format Update Callback with DS HAL
             if (bundle.OnVideoFormatUpdate) {
-                LOGINFO("VideoPort Video Format Update Event Callback Registered");
+                DSLOG_INFO("VideoPort Video Format Update Event Callback Registered");
                 g_VideoPortVideoFormatUpdateCallback = bundle.OnVideoFormatUpdate;
                 
                 dsError_t eRet = VideoPortRegisterVideoFormatUpdateCB(VideoPortVideoFormatUpdateCallback);
                 if (dsERR_NONE != eRet) {
-                    LOGERR("VideoPortRegisterVideoFormatUpdateCB failed with error: %d", eRet);
+                    DSLOG_ERR("VideoPortRegisterVideoFormatUpdateCB failed with error: %d", eRet);
                 } else {
-                    LOGINFO("Video format update callback registered successfully");
+                    DSLOG_INFO("Video format update callback registered successfully");
                 }
             }
             
             videoPort_isInitialized = 1;
-            LOGINFO("VideoPort platform callback Initialization done");
+            DSLOG_INFO("VideoPort platform callback Initialization done");
         } else {
             if (!videoPort_isPlatInitialized) {
-                LOGERR("VideoPort callback registration FAILED: Platform not initialized (videoPort_isPlatInitialized=%d)", 
+                DSLOG_ERR("VideoPort callback registration FAILED: Platform not initialized (videoPort_isPlatInitialized=%d)",
                        videoPort_isPlatInitialized);
             }
             if (videoPort_isInitialized) {
-                LOGWARN("VideoPort callback registration SKIPPED: Callbacks already initialized (videoPort_isInitialized=%d)", 
+                DSLOG_WARN("VideoPort callback registration SKIPPED: Callbacks already initialized (videoPort_isInitialized=%d)",
                         videoPort_isInitialized);
             }
         }
@@ -1336,33 +1333,33 @@ public:
     void getPersistenceValue()
     {
         ENTRY_LOG;
-        LOGINFO("VideoPort::getPersistenceValue - Loading persistence settings");
+        DSLOG_INFO("Loading persistence settings");
         
         try {
             // Match dsVideoPort.c pattern: TV profile (profileType=1) defaults to 2160p, STB to 1080p
             std::string defaultResolution = (profileType == 1) ? DS_VP_DEFAULT_RESOLUTION_2160P : DS_VP_DEFAULT_RESOLUTION_1080P;
             
             _dsHDMIResolution = device::HostPersistence::getInstance().getProperty("HDMI0.resolution", defaultResolution);
-            LOGINFO("Persistent HDMI resolution read: %s", _dsHDMIResolution.c_str());
+            DSLOG_INFO("Persistent HDMI resolution read: %s", _dsHDMIResolution.c_str());
             
             #ifdef HAS_ONLY_COMPOSITE
                 _dsCompResolution = device::HostPersistence::getInstance().getProperty("Baseband0.resolution", defaultResolution);
             #else
                 _dsCompResolution = device::HostPersistence::getInstance().getProperty("COMPONENT0.resolution", defaultResolution);
             #endif
-            LOGINFO("Persistent Component/Composite resolution read: %s", _dsCompResolution.c_str());
+            DSLOG_INFO("Persistent Component/Composite resolution read: %s", _dsCompResolution.c_str());
             
             _dsRFResolution = device::HostPersistence::getInstance().getProperty("RF0.resolution", defaultResolution);
-            LOGINFO("Persistent RF resolution read: %s", _dsRFResolution.c_str());
+            DSLOG_INFO("Persistent RF resolution read: %s", _dsRFResolution.c_str());
             
             _dsBBResolution = device::HostPersistence::getInstance().getProperty("Baseband0.resolution", defaultResolution);
-            LOGINFO("Persistent BB resolution read: %s", _dsBBResolution.c_str());
+            DSLOG_INFO("Persistent BB resolution read: %s", _dsBBResolution.c_str());
             
             // Read 4K disable setting and apply to HAL — matches dsVideoPort.c getPersistenceValue()
             std::string force4KDisabled = "false";
             force4KDisabled = device::HostPersistence::getInstance().getProperty("VideoDevice.force4KDisabled", force4KDisabled);
             if (force4KDisabled.compare("true") == 0) {
-                LOGINFO("4K support is force disabled via persistence — applying to HAL");
+                DSLOG_INFO("4K support is force disabled via persistence — applying to HAL");
                 intptr_t hdmiHandle = 0;
                 if (dsGetVideoPort(dsVIDEOPORT_TYPE_HDMI, 0, &hdmiHandle) == dsERR_NONE) {
                     dsSetForceDisable4KSupport(hdmiHandle, true);
@@ -1370,7 +1367,7 @@ public:
             }
             
         } catch(...) {
-            LOGERR("Error reading persistence values for VideoPort");
+            DSLOG_ERR("Error reading persistence values for VideoPort");
         }
         
         EXIT_LOG;
@@ -1388,7 +1385,7 @@ public:
             dsError_t error = dsGetVideoPort(type, port.videoPortIndex, &handle);
             if (type == dsVIDEOPORT_TYPE_HDMI || type == dsVIDEOPORT_TYPE_INTERNAL) {
                 if (error != dsERR_NONE) {
-                    LOGERR("dsGetDefaultPortHandle: dsGetVideoPort failed for type=%d index=%d, error=%d",
+                    DSLOG_ERR(" dsGetVideoPort failed for type=%d index=%d, error=%d",
                             type, port.videoPortIndex, error);
                     return 0;
                 }
@@ -1396,14 +1393,14 @@ public:
             }
         }
 
-        LOGERR("dsGetDefaultPortHandle: HDMI or internal port not found in HAL configuration");
+        DSLOG_ERR(" HDMI or internal port not found in HAL configuration");
         return handle;
     }
 
     // Static callback functions for DS HAL integration - following HdmiIn pattern
     static void VideoPortHDCPStatusCallback(intptr_t handle, dsHdcpStatus_t status)
     {
-        LOGINFO("VideoPortHDCPStatusCallback: handle=%p, status=%d", (void*)handle, status);
+        DSLOG_INFO(" handle=%p, status=%d", (void*)handle, status);
         cachedHdcpStatus().store(status);
         
         // Convert DS HAL HDCP status to VideoPortHdcpStatus
@@ -1429,7 +1426,7 @@ public:
                 break;
             default:
                 hdcpStatus = VideoPortHdcpStatus::DS_HDCP_STATUS_UNAUTHENTICATED;
-                LOGWARN("VideoPortHDCPStatusCallback: unknown HDCP status %d, defaulting to unauthenticated", status);
+                DSLOG_WARN(" unknown HDCP status %d, defaulting to unauthenticated", status);
                 break;
         }
 
@@ -1456,7 +1453,7 @@ public:
 
     static void VideoPortVideoFormatUpdateCallback(dsHDRStandard_t videoFormat)
     {
-        LOGINFO("VideoPortVideoFormatUpdateCallback: videoFormat=%d", videoFormat);
+        DSLOG_INFO(" videoFormat=%d", videoFormat);
         
         // Convert DS HAL HDR standard to HDRStandard
         HDRStandard hdrStandard;
@@ -1476,7 +1473,7 @@ public:
                 break;
             default:
                 hdrStandard = HDRStandard::DS_HDRSTANDARD_SDR;
-                LOGWARN("Unrecognised HDR standard %d, treating as SDR", videoFormat);
+                DSLOG_WARN("Unrecognised HDR standard %d, treating as SDR", videoFormat);
                 break;
         }
         
@@ -1490,7 +1487,7 @@ public:
     static dsError_t VideoPortRegisterVideoFormatUpdateCB(dsVideoFormatUpdateCB_t cbFun)
     {
         dsError_t eRet = dsERR_GENERAL;
-        LOGINFO("VideoPortRegisterVideoFormatUpdateCB: Registering video format callback");
+        DSLOG_INFO(" Registering video format callback");
         
         typedef dsError_t (*dsVideoFormatUpdateRegisterCB_t)(dsVideoFormatUpdateCB_t cbFunArg);
         static dsVideoFormatUpdateRegisterCB_t dsVideoFormatUpdateRegisterCBFunc = 0;
@@ -1500,14 +1497,14 @@ public:
             if (dllib) {
                 dsVideoFormatUpdateRegisterCBFunc = (dsVideoFormatUpdateRegisterCB_t) dlsym(dllib, "dsVideoFormatUpdateRegisterCB");
                 if (dsVideoFormatUpdateRegisterCBFunc == 0) {
-                    LOGERR("dsVideoFormatUpdateRegisterCB is not defined: %s", dlerror());
+                    DSLOG_ERR("dsVideoFormatUpdateRegisterCB is not defined: %s", dlerror());
                     eRet = dsERR_GENERAL;
                 } else {
-                    LOGINFO("dsVideoFormatUpdateRegisterCB loaded successfully");
+                    DSLOG_INFO("dsVideoFormatUpdateRegisterCB loaded successfully");
                 }
                 dlclose(dllib);
             } else {
-                LOGERR("Failed to open RDK_DSHAL_NAME [%s]: %s", RDK_DSHAL_NAME, dlerror());
+                DSLOG_ERR("Failed to open RDK_DSHAL_NAME [%s]: %s", RDK_DSHAL_NAME, dlerror());
                 eRet = dsERR_GENERAL;
             }
         }
@@ -1515,9 +1512,9 @@ public:
         if (dsVideoFormatUpdateRegisterCBFunc != 0) {
             eRet = dsVideoFormatUpdateRegisterCBFunc(cbFun);
             if (dsERR_NONE == eRet) {
-                LOGINFO("Video format update callback registered successfully");
+                DSLOG_INFO("Video format update callback registered successfully");
             } else {
-                LOGERR("Failed to register video format callback: %d", eRet);
+                DSLOG_ERR("Failed to register video format callback: %d", eRet);
             }
         }
         
@@ -1528,11 +1525,11 @@ public:
     static void VideoPortPreResolutionChange(dsVideoPortResolution_t* resolution)
     {
         if (!resolution) {
-            LOGERR("VideoPortPreResolutionChange: Invalid resolution parameter");
+            DSLOG_ERR(" Invalid resolution parameter");
             return;
         }
         
-        LOGINFO("VideoPortPreResolutionChange: pixelResolution=%d", resolution->pixelResolution);
+        DSLOG_INFO(" pixelResolution=%d", resolution->pixelResolution);
         
         // Convert dsVideoPortResolution_t to ResolutionChange structure - based on dsVideoPort.c
         ResolutionChange resolutionChange;
@@ -1568,7 +1565,7 @@ public:
             default:
                 resolutionChange.width = 1280;
                 resolutionChange.height = 720;
-                LOGERR("Unknown pixel resolution: %d, defaulting to 720p", resolution->pixelResolution);
+                DSLOG_ERR("Unknown pixel resolution: %d, defaulting to 720p", resolution->pixelResolution);
                 break;
         }
         
@@ -1581,11 +1578,11 @@ public:
     static void VideoPortPostResolutionChange(dsVideoPortResolution_t* resolution)
     {
         if (!resolution) {
-            LOGERR("VideoPortPostResolutionChange: Invalid resolution parameter");
+            DSLOG_ERR(" Invalid resolution parameter");
             return;
         }
 
-        LOGINFO("VideoPortPostResolutionChange: pixelResolution=%d", resolution->pixelResolution);
+        DSLOG_INFO(" pixelResolution=%d", resolution->pixelResolution);
 
         ResolutionChange resolutionChange;
         switch(resolution->pixelResolution) {
@@ -1620,7 +1617,7 @@ public:
             default:
                 resolutionChange.width = 1280;
                 resolutionChange.height = 720;
-                LOGERR("Unknown pixel resolution: %d, defaulting to 720p", resolution->pixelResolution);
+                DSLOG_ERR("Unknown pixel resolution: %d, defaulting to 720p", resolution->pixelResolution);
                 break;
         }
 
@@ -1661,7 +1658,7 @@ public:
             default:
                 resolutionChange.width = 1920;
                 resolutionChange.height = 1080;
-                LOGERR("Unknown pixel resolution: %d, defaulting to 1920x1080", dsResolution->pixelResolution);
+                DSLOG_ERR("Unknown pixel resolution: %d, defaulting to 1920x1080", dsResolution->pixelResolution);
                 break;
         }
         
@@ -1785,7 +1782,7 @@ private:
                                : VideoFrameRate::DS_VIDEO_FRAMERATE_UNKNOWN;
         resolution.interlaced = dsResolution.interlaced;
 
-        LOGINFO("convertVideoPortResolution: name='%s', pixelRes=%d, frameRate=%d, interlaced=%d",
+        DSLOG_INFO(" name='%s', pixelRes=%d, frameRate=%d, interlaced=%d",
                 resolution.name.c_str(), static_cast<int>(resolution.pixelResolution),
                 static_cast<int>(resolution.frameRate), resolution.interlaced);
         return resolution;
@@ -1920,7 +1917,7 @@ private:
 
     void persistVideoPortResolution(const int32_t handle, const dsVideoPortResolution_t& resolution, const bool forceCompatible)
     {
-        LOGINFO("persistVideoPortResolution: handle=%d, forceCompatible=%s", handle, forceCompatible ? "true" : "false");
+        DSLOG_INFO(" handle=%d, forceCompatible=%s", handle, forceCompatible ? "true" : "false");
         
         try {
             std::string resolutionName(resolution.name);
@@ -1941,7 +1938,7 @@ private:
             
             if (portType == dsVIDEOPORT_TYPE_HDMI || portType == dsVIDEOPORT_TYPE_INTERNAL) {
                 device::HostPersistence::getInstance().persistHostProperty("HDMI0.resolution", resolutionName);
-                LOGINFO("Persisted HDMI resolution: %s", resolutionName.c_str());
+                DSLOG_INFO("Persisted HDMI resolution: %s", resolutionName.c_str());
                 _dsHDMIResolution = resolutionName;
                 
                 if (forceCompatible) {
@@ -1953,7 +1950,7 @@ private:
                             device::HostPersistence::getInstance().persistHostProperty("COMPONENT0.resolution", compatibleResolution);
                         #endif
                         _dsCompResolution = compatibleResolution;
-                        LOGINFO("Force compatible: Updated analog resolution to %s", compatibleResolution.c_str());
+                        DSLOG_INFO("Force compatible: Updated analog resolution to %s", compatibleResolution.c_str());
                     }
                 }
             } else if (portType == dsVIDEOPORT_TYPE_COMPONENT) {
@@ -1962,7 +1959,7 @@ private:
                 #else
                     device::HostPersistence::getInstance().persistHostProperty("COMPONENT0.resolution", resolutionName);
                 #endif
-                LOGINFO("Persisted Component resolution: %s", resolutionName.c_str());
+                DSLOG_INFO("Persisted Component resolution: %s", resolutionName.c_str());
                 _dsCompResolution = resolutionName;
                 
                 if (forceCompatible) {
@@ -1970,23 +1967,23 @@ private:
                     if (!compatibleResolution.empty() && compatibleResolution != _dsHDMIResolution) {
                         device::HostPersistence::getInstance().persistHostProperty("HDMI0.resolution", compatibleResolution);
                         _dsHDMIResolution = compatibleResolution;
-                        LOGINFO("Force compatible: Updated HDMI resolution to %s", compatibleResolution.c_str());
+                        DSLOG_INFO("Force compatible: Updated HDMI resolution to %s", compatibleResolution.c_str());
                     }
                 }
             } else if (portType == dsVIDEOPORT_TYPE_BB) {
                 /* dsVideoPort.c: _dsSetResolution BB case persists Baseband0.resolution */
                 device::HostPersistence::getInstance().persistHostProperty("Baseband0.resolution", resolutionName);
-                LOGINFO("Persisted Baseband resolution: %s", resolutionName.c_str());
+                DSLOG_INFO("Persisted Baseband resolution: %s", resolutionName.c_str());
                 _dsBBResolution = resolutionName;
             } else if (portType == dsVIDEOPORT_TYPE_RF) {
                 /* dsVideoPort.c: _dsSetResolution RF case persists RF0.resolution */
                 device::HostPersistence::getInstance().persistHostProperty("RF0.resolution", resolutionName);
-                LOGINFO("Persisted RF resolution: %s", resolutionName.c_str());
+                DSLOG_INFO("Persisted RF resolution: %s", resolutionName.c_str());
                 _dsRFResolution = resolutionName;
             }
             
         } catch(...) {
-            LOGERR("Exception in persistVideoPortResolution");
+            DSLOG_ERR("Exception in persistVideoPortResolution");
         }
     }
 
@@ -2039,10 +2036,10 @@ private:
             colorDepthStr = device::HostPersistence::getInstance().getProperty("HDMI0.colorDepth", colorDepthStr);
             int colorDepthValue = std::stoi(colorDepthStr);
             DisplayColorDepth persistentColorDepth = static_cast<DisplayColorDepth>(colorDepthValue);
-            LOGINFO("Reading HDMI persistent color depth: %d", colorDepthValue);
+            DSLOG_INFO("Reading HDMI persistent color depth: %d", colorDepthValue);
             return persistentColorDepth;
         } catch(...) {
-            LOGERR("Reading HDMI persistent color depth %s conversion failed", colorDepthStr.c_str());
+            DSLOG_ERR("Reading HDMI persistent color depth %s conversion failed", colorDepthStr.c_str());
             return defaultColorDepth;
         }
     }

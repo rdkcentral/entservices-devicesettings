@@ -69,14 +69,14 @@ class dCompositeInImpl : public hal::dCompositeIn::IPlatform {
 public:
     dCompositeInImpl()
     {
-        LOGINFO("dCompositeInImpl Constructor");
+        DSLOG_INFO("Constructor");
         getInstance() = this; // Set static instance for callback access
         InitialiseHAL();
     }
 
     virtual ~dCompositeInImpl()
     {
-        LOGINFO("dCompositeInImpl Destructor");
+        DSLOG_INFO("Destructor");
         DeInitialiseHAL();
         getInstance() = nullptr; // Clear static instance
     }
@@ -95,19 +95,18 @@ public:
 
     void InitialiseHAL()
     {
-        LOGINFO("InitialiseHAL");
         
         // Check TV profile - following dHdmiInImpl.h pattern
         profileType = searchRdkProfile();
-        LOGINFO("profileType %d", profileType);
+        DSLOG_INFO("profileType %d", profileType);
         
         if (TV != profileType) {
-            LOGINFO("InitialiseHAL: Not TV profile - profileType=%d", static_cast<int>(profileType));
+            DSLOG_INFO(" Not TV profile - profileType=%d", static_cast<int>(profileType));
             return;
         }
         
         if (!compositeIn_isPlatInitialized) {
-            LOGINFO("InitialiseHAL <dsCompositeIn> - TV Profile");
+            DSLOG_INFO("<dsCompositeIn> - TV Profile");
             
             // Initialize DS HAL CompositeIn using resolve() method - matches dsCompositeIn.c pattern
             typedef dsError_t (*dsCompositeInInit_t)(void);
@@ -118,15 +117,15 @@ public:
             }
 
             if (initFunc) {
-                LOGINFO("Invoking dsCompositeInInit()");
+                DSLOG_INFO("Invoking dsCompositeInInit()");
                 dsError_t eError = initFunc();
                 if (dsERR_NONE != eError) {
-                    LOGERR("InitialiseHAL: dsCompositeInInit failed with error: %d", eError);
+                    DSLOG_ERR(" dsCompositeInInit failed with error: %d", eError);
                     return;
                 }
-                LOGINFO("InitialiseHAL: dsCompositeInInit succeeded");
+                DSLOG_INFO(" dsCompositeInInit succeeded");
             } else {
-                LOGERR("InitialiseHAL: dsCompositeInInit function not available");
+                DSLOG_ERR(" dsCompositeInInit function not available");
                 return;
             }
             
@@ -134,17 +133,16 @@ public:
             getPersistenceValue();
             
             compositeIn_isPlatInitialized = 1;
-            LOGINFO("InitialiseHAL completed: compositeIn_isPlatInitialized=%d, compositeIn_isInitialized=%d", 
+            DSLOG_INFO("completed: compositeIn_isPlatInitialized=%d, compositeIn_isInitialized=%d",
                     compositeIn_isPlatInitialized, compositeIn_isInitialized);
         }
     }
 
     void DeInitialiseHAL()
     {
-        LOGINFO("DeInitialiseHAL");
         
         if (TV != profileType) {
-            LOGINFO("DeInitialiseHAL: Not TV profile - profileType=%d", static_cast<int>(profileType));
+            DSLOG_INFO(" Not TV profile - profileType=%d", static_cast<int>(profileType));
             return;
         }
         
@@ -160,13 +158,13 @@ public:
                 }
                 
                 if (termFunc) {
-                    LOGINFO("Invoking dsCompositeInTerm()");
+                    DSLOG_INFO("Invoking dsCompositeInTerm()");
                     dsError_t eError = termFunc();
                     if (dsERR_NONE != eError) {
-                        LOGERR("DeInitialiseHAL: dsCompositeInTerm failed with error: %d", eError);
+                        DSLOG_ERR(" dsCompositeInTerm failed with error: %d", eError);
                     }
                 } else {
-                    LOGERR("DeInitialiseHAL: dsCompositeInTerm function not available");
+                    DSLOG_ERR(" dsCompositeInTerm function not available");
                 }
             }
         }
@@ -175,7 +173,7 @@ public:
 
     void setAllCallbacks(const CallbackBundle& bundle) override
     {
-        LOGINFO("dCompositeInImpl setAllCallbacks");
+        DSLOG_INFO("dCompositeInImpl setAllCallbacks");
         
         if (!compositeIn_isInitialized) {
             // Set the global callback function pointers from CallbackBundle
@@ -188,15 +186,15 @@ public:
             registerCompositeInEventCallbacks();
             
             compositeIn_isInitialized = 1;
-            LOGINFO("dCompositeInImpl setAllCallbacks: CompositeIn callbacks registered successfully");
+            DSLOG_INFO("dCompositeInImpl setAllCallbacks: CompositeIn callbacks registered successfully");
         } else {
-            LOGINFO("dCompositeInImpl setAllCallbacks: CompositeIn already initialized, skipping callback registration");
+            DSLOG_INFO("dCompositeInImpl setAllCallbacks: CompositeIn already initialized, skipping callback registration");
         }
     }
 
     void getPersistenceValue() override
     {
-        LOGINFO("dCompositeInImpl getPersistenceValue - CompositeIn persistence loading");
+        DSLOG_INFO("dCompositeInImpl getPersistenceValue - CompositeIn persistence loading");
         // Load any CompositeIn-specific persistence values here
         // This would be similar to VideoPort persistence loading but for CompositeIn settings
     }
@@ -205,7 +203,6 @@ public:
     uint32_t GetNrOfCompositeInputs(int32_t& nrCompositeInputs) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetNrOfCompositeInputs");
         
         pthread_mutex_lock(&dsCompositeInLock);
         
@@ -222,12 +219,12 @@ public:
             if (eError == dsERR_NONE) {
                 nrCompositeInputs = static_cast<int32_t>(nrInputs);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetNrOfCompositeInputs: SUCCESS - nrCompositeInputs=%d", nrCompositeInputs);
+                DSLOG_INFO(" SUCCESS - nrCompositeInputs=%d", nrCompositeInputs);
             } else {
-                LOGERR("GetNrOfCompositeInputs: FAILED - dsCompositeInGetNumberOfInputs error=%d", eError);
+                DSLOG_ERR(" FAILED - dsCompositeInGetNumberOfInputs error=%d", eError);
             }
         } else {
-            LOGERR("GetNrOfCompositeInputs: FAILED - dsCompositeInGetNumberOfInputs not available");
+            DSLOG_ERR(" FAILED - dsCompositeInGetNumberOfInputs not available");
         }
         
         pthread_mutex_unlock(&dsCompositeInLock);
@@ -237,7 +234,6 @@ public:
     uint32_t GetCompositeInStatus(CompositeInStatus& status) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetCompositeInStatus");
         
         pthread_mutex_lock(&dsCompositeInLock);
         
@@ -257,13 +253,13 @@ public:
                 status.isPresented = dsStatus.isPresented;
                 
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetCompositeInStatus: SUCCESS - activePort=%d, isPresented=%s", 
+                DSLOG_INFO(" SUCCESS - activePort=%d, isPresented=%s",
                         static_cast<int>(status.activePort), status.isPresented ? "true" : "false");
             } else {
-                LOGERR("GetCompositeInStatus: FAILED - dsCompositeInGetStatus error=%d", eError);
+                DSLOG_ERR(" FAILED - dsCompositeInGetStatus error=%d", eError);
             }
         } else {
-            LOGERR("GetCompositeInStatus: FAILED - dsCompositeInGetStatus not available");
+            DSLOG_ERR(" FAILED - dsCompositeInGetStatus not available");
         }
         
         pthread_mutex_unlock(&dsCompositeInLock);
@@ -273,7 +269,7 @@ public:
     uint32_t SelectCompositeInPort(const CompositeInPort port) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SelectCompositeInPort: port=%d", static_cast<int>(port));
+        DSLOG_INFO(" port=%d", static_cast<int>(port));
         
         pthread_mutex_lock(&dsCompositeInLock);
         
@@ -289,12 +285,12 @@ public:
             dsError_t eError = func(dsPort);
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("SelectCompositeInPort: SUCCESS - port=%d", static_cast<int>(port));
+                DSLOG_INFO(" SUCCESS - port=%d", static_cast<int>(port));
             } else {
-                LOGERR("SelectCompositeInPort: FAILED - dsCompositeInSelectPort error=%d", eError);
+                DSLOG_ERR(" FAILED - dsCompositeInSelectPort error=%d", eError);
             }
         } else {
-            LOGERR("SelectCompositeInPort: FAILED - dsCompositeInSelectPort not available");
+            DSLOG_ERR(" FAILED - dsCompositeInSelectPort not available");
         }
         
         pthread_mutex_unlock(&dsCompositeInLock);
@@ -304,7 +300,7 @@ public:
     uint32_t ScaleCompositeInVideo(const CompositeInVideoRectangle videoRect) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("ScaleCompositeInVideo: x=%d, y=%d, width=%d, height=%d", 
+        DSLOG_INFO(" x=%d, y=%d, width=%d, height=%d",
                 videoRect.x, videoRect.y, videoRect.width, videoRect.height);
         
         pthread_mutex_lock(&dsCompositeInLock);
@@ -320,12 +316,12 @@ public:
             dsError_t eError = func(videoRect.x, videoRect.y, videoRect.width, videoRect.height);
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("ScaleCompositeInVideo: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else {
-                LOGERR("ScaleCompositeInVideo: FAILED - dsCompositeInScaleVideo error=%d", eError);
+                DSLOG_ERR(" FAILED - dsCompositeInScaleVideo error=%d", eError);
             }
         } else {
-            LOGERR("ScaleCompositeInVideo: FAILED - dsCompositeInScaleVideo not available");
+            DSLOG_ERR(" FAILED - dsCompositeInScaleVideo not available");
         }
         
         pthread_mutex_unlock(&dsCompositeInLock);
@@ -398,7 +394,6 @@ public:
 private:
     void registerCompositeInEventCallbacks()
     {
-        LOGINFO("registerCompositeInEventCallbacks");
         
         // Register CompositeIn event callbacks using resolve method - matches dsCompositeIn.c pattern
         typedef dsError_t (*dsCompositeInRegisterConnectCB_t)(dsCompositeInConnectCB_t callback);
@@ -423,16 +418,16 @@ private:
             funcSignal(dsCompositeInSignalChangeCallback);
             funcStatus(dsCompositeInStatusChangeCallback);
             funcVideoMode(dsCompositeInVideoModeUpdateCallback);
-            LOGINFO("registerCompositeInEventCallbacks: SUCCESS");
+            DSLOG_INFO(" SUCCESS");
         } else {
-            LOGERR("registerCompositeInEventCallbacks: FAILED - callbacks not available");
+            DSLOG_ERR(" FAILED - callbacks not available");
         }
     }
 
     // Static callback functions to handle CompositeIn events from HAL
     static void dsCompositeInConnectCallback(dsCompositeInPort_t port, bool isPortConnected)
     {
-        LOGINFO("dsCompositeInConnectCallback: port=%d, isPortConnected=%s", static_cast<int>(port), isPortConnected ? "true" : "false");
+        DSLOG_INFO(" port=%d, isPortConnected=%s", static_cast<int>(port), isPortConnected ? "true" : "false");
         
         if (g_CompositeInHotPlugCallback) {
             // Convert DS HAL type directly to WPE Framework type
@@ -443,7 +438,7 @@ private:
 
     static void dsCompositeInSignalChangeCallback(dsCompositeInPort_t port, dsCompInSignalStatus_t sigStatus)
     {
-        LOGINFO("dsCompositeInSignalChangeCallback: port=%d, sigStatus=%d", static_cast<int>(port), static_cast<int>(sigStatus));
+        DSLOG_INFO(" port=%d, sigStatus=%d", static_cast<int>(port), static_cast<int>(sigStatus));
         
         if (g_CompositeInSignalStatusCallback) {
             // Convert DS HAL types directly to WPE Framework types
@@ -455,7 +450,7 @@ private:
 
     static void dsCompositeInStatusChangeCallback(dsCompositeInStatus_t inputStatus)
     {
-        LOGINFO("dsCompositeInStatusChangeCallback: activePort=%d, isPresented=%s", 
+        DSLOG_INFO(" activePort=%d, isPresented=%s",
                 static_cast<int>(inputStatus.activePort), inputStatus.isPresented ? "true" : "false");
         
         if (g_CompositeInStatusCallback) {
@@ -467,8 +462,8 @@ private:
 
     static void dsCompositeInVideoModeUpdateCallback(dsCompositeInPort_t port, dsVideoPortResolution_t videoResolution)
     {
-        LOGINFO("dsCompositeInVideoModeUpdateCallback: port=%d", static_cast<int>(port));
-        LOGINFO("Video Mode: %s pixelResolution %d aspectRatio %d stereoScopicMode %d frameRate %d", 
+        DSLOG_INFO(" port=%d", static_cast<int>(port));
+        DSLOG_INFO("Video Mode: %s pixelResolution %d aspectRatio %d stereoScopicMode %d frameRate %d",
                 videoResolution.name, videoResolution.pixelResolution, videoResolution.aspectRatio, 
                 videoResolution.stereoScopicMode, videoResolution.frameRate);
         

@@ -62,13 +62,13 @@ class dVideoDeviceImpl : public hal::dVideoDevice::IPlatform {
 public:
     dVideoDeviceImpl()
     {
-        LOGINFO("dVideoDeviceImpl Constructor");
+        DSLOG_INFO("Constructor");
         InitialiseHAL();
     }
 
     virtual ~dVideoDeviceImpl()
     {
-        LOGERR("dVideoDeviceImpl Destructor");
+        DSLOG_ERR("Destructor");
         DeInitialiseHAL();
     }
 
@@ -81,31 +81,29 @@ public:
 
     void InitialiseHAL()
     {
-        LOGINFO("InitialiseHAL");
         // Note: videoDevice_isInitialized should only be set in setAllCallbacks after callback registration
         // Don't set it here as it prevents callback registration condition from working
 
         if (!videoDevice_isPlatInitialized) {
-            LOGINFO("InitialiseHAL <dsVideoDevice>");
+            DSLOG_INFO("<dsVideoDevice>");
             dsError_t eError = dsVideoDeviceInit();
             if (dsERR_NONE != eError) {
-                LOGERR("InitialiseHAL: dsVideoDeviceInit failed with error: %d", eError);
+                DSLOG_ERR(" dsVideoDeviceInit failed with error: %d", eError);
                 return;
             }
-            LOGINFO("InitialiseHAL: dsVideoDeviceInit succeeded");
+            DSLOG_INFO(" dsVideoDeviceInit succeeded");
             
             // Load persistence values after successful initialization - following dsVideoDevice.c pattern
             getPersistenceValue();
             
             videoDevice_isPlatInitialized = 1;
-            LOGINFO("InitialiseHAL completed: videoDevice_isPlatInitialized=%d, videoDevice_isInitialized=%d", 
+            DSLOG_INFO("completed: videoDevice_isPlatInitialized=%d, videoDevice_isInitialized=%d",
                     videoDevice_isPlatInitialized, videoDevice_isInitialized);
         }
     }
 
     void DeInitialiseHAL()
     {
-        LOGINFO("DeInitialiseHAL");
         if (videoDevice_isPlatInitialized)
         {
             dsVideoDeviceTerm();
@@ -117,18 +115,18 @@ public:
     static void* resolve(const std::string& libName, const std::string& symbolName) {
         void* handle = dlopen(libName.c_str(), RTLD_LAZY);
         if (!handle) {
-            LOGERR("resolve: Failed to load library %s: %s", libName.c_str(), dlerror());
+            DSLOG_ERR(" Failed to load library %s: %s", libName.c_str(), dlerror());
             return nullptr;
         }
         
         void* symbol = dlsym(handle, symbolName.c_str());
         if (!symbol) {
-            LOGERR("resolve: Failed to find symbol %s in %s: %s", symbolName.c_str(), libName.c_str(), dlerror());
+            DSLOG_ERR(" Failed to find symbol %s in %s: %s", symbolName.c_str(), libName.c_str(), dlerror());
             dlclose(handle);
             return nullptr;
         }
         
-        LOGINFO("resolve: Successfully resolved %s from %s", symbolName.c_str(), libName.c_str());
+        DSLOG_INFO(" Successfully resolved %s from %s", symbolName.c_str(), libName.c_str());
         dlclose(handle);
         return symbol;
     }
@@ -137,7 +135,7 @@ public:
     uint32_t GetVideoDeviceHandle(const int32_t index, int32_t& handle) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetVideoDeviceHandle: index=%d", index);
+        DSLOG_INFO(" index=%d", index);
         
         // Use intptr_t locally for HAL call - dsGetVideoDevice expects intptr_t*
         intptr_t halHandle = 0;
@@ -145,9 +143,9 @@ public:
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
             handle = static_cast<int32_t>(halHandle);  // Cast result back to int32_t for interface
-            LOGINFO("GetVideoDeviceHandle: SUCCESS - handle=%d", handle);
+            DSLOG_INFO(" SUCCESS - handle=%d", handle);
         } else {
-            LOGERR("GetVideoDeviceHandle: dsGetVideoDevice failed with error: %d", eError);
+            DSLOG_ERR(" dsGetVideoDevice failed with error: %d", eError);
         }
         
         return retCode;
@@ -156,14 +154,14 @@ public:
     uint32_t SetVideoDeviceDFC(const int32_t handle, const VideoDeviceZoom zoomSetting) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetVideoDeviceDFC: handle=%d, zoomSetting=%d", handle, static_cast<int>(zoomSetting));
+        DSLOG_INFO(" handle=%d, zoomSetting=%d", handle, static_cast<int>(zoomSetting));
         
         // Convert VideoDeviceZoom to dsVideoZoom_t
         dsVideoZoom_t dsZoom = convertVideoDeviceZoom(zoomSetting);
         
         try {
             if (dsZoom == dsVIDEO_ZOOM_NONE) {
-                LOGINFO("Call Zoom setting NONE");
+                DSLOG_INFO("Call Zoom setting NONE");
                 dsError_t eError = dsSetDFC(handle, dsZoom);
                 if (eError == dsERR_NONE) {
                     srv_dfc = dsZoom;
@@ -175,12 +173,12 @@ public:
                         g_VideoDeviceZoomSettingsChangedCallback(VideoDeviceZoom::DS_VIDEO_DEVICE_ZOOM_NONE);
                     }
                     
-                    LOGINFO("SetVideoDeviceDFC: SUCCESS (NONE)");
+                    DSLOG_INFO(" SUCCESS (NONE)");
                 } else {
-                    LOGERR("SetVideoDeviceDFC: dsSetDFC failed with error: %d", eError);
+                    DSLOG_ERR(" dsSetDFC failed with error: %d", eError);
                 }
             } else if (dsZoom == dsVIDEO_ZOOM_FULL) {
-                LOGINFO("Call Zoom setting FULL");
+                DSLOG_INFO("Call Zoom setting FULL");
                 dsError_t eError = dsSetDFC(handle, dsZoom);
                 if (eError == dsERR_NONE) {
                     srv_dfc = dsZoom;
@@ -192,12 +190,12 @@ public:
                         g_VideoDeviceZoomSettingsChangedCallback(VideoDeviceZoom::DS_VIDEO_DEVICE_ZOOM_FULL);
                     }
                     
-                    LOGINFO("SetVideoDeviceDFC: SUCCESS (FULL)");
+                    DSLOG_INFO(" SUCCESS (FULL)");
                 } else {
-                    LOGERR("SetVideoDeviceDFC: dsSetDFC failed with error: %d", eError);
+                    DSLOG_ERR(" dsSetDFC failed with error: %d", eError);
                 }
             } else if (dsZoom == dsVIDEO_ZOOM_16_9_ZOOM) {
-                LOGINFO("Call Zoom setting dsVIDEO_ZOOM_16_9_ZOOM");
+                DSLOG_INFO("Call Zoom setting dsVIDEO_ZOOM_16_9_ZOOM");
                 dsError_t eError = dsSetDFC(handle, dsZoom);
                 if (eError == dsERR_NONE) {
                     srv_dfc = dsZoom;
@@ -209,20 +207,20 @@ public:
                         g_VideoDeviceZoomSettingsChangedCallback(VideoDeviceZoom::DS_VIDEO_DEVICE_ZOOM_16_9_ZOOM);
                     }
                     
-                    LOGINFO("SetVideoDeviceDFC: SUCCESS (16_9_ZOOM)");
+                    DSLOG_INFO(" SUCCESS (16_9_ZOOM)");
                 } else {
-                    LOGERR("SetVideoDeviceDFC: dsSetDFC failed with error: %d", eError);
+                    DSLOG_ERR(" dsSetDFC failed with error: %d", eError);
                 }
             } else {
-                LOGERR("ERROR: unsupported Zoom setting %d", static_cast<int>(zoomSetting));
+                DSLOG_ERR("ERROR: unsupported Zoom setting %d", static_cast<int>(zoomSetting));
             }
 
             if (profileType == TV) {
-                LOGINFO("TV Profile - setting HDMI In zoom mode");
+                DSLOG_INFO("TV Profile - setting HDMI In zoom mode");
                 dsHdmiInSelectZoomMode(srv_dfc);
             }
         } catch (...) {
-            LOGERR("Error in Setting the Video Device DFC");
+            DSLOG_ERR("Error in Setting the Video Device DFC");
         }
         
         return retCode;
@@ -231,12 +229,12 @@ public:
     uint32_t GetVideoDeviceDFC(const int32_t handle, VideoDeviceZoom& zoomSetting) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetVideoDeviceDFC: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         // Return the cached zoom setting
         zoomSetting = convertDSVideoZoom(srv_dfc);
         retCode = WPEFramework::Core::ERROR_NONE;
-        LOGINFO("GetVideoDeviceDFC: SUCCESS - zoomSetting=%d", static_cast<int>(zoomSetting));
+        DSLOG_INFO(" SUCCESS - zoomSetting=%d", static_cast<int>(zoomSetting));
         
         return retCode;
     }
@@ -244,16 +242,16 @@ public:
     uint32_t GetHDRCapabilities(const int32_t handle, int32_t& capabilities) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetHDRCapabilities: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetHDRCapabilitiesFunc_t)(intptr_t handle, int *capabilities);
         static dsGetHDRCapabilitiesFunc_t func = 0;
         if (func == 0) {
             func = (dsGetHDRCapabilitiesFunc_t)resolve(RDK_DSHAL_NAME, "dsGetHDRCapabilities");
             if (func) {
-                LOGINFO("dsGetHDRCapabilities() is defined and loaded");
+                DSLOG_INFO("dsGetHDRCapabilities() is defined and loaded");
             } else {
-                LOGINFO("dsGetHDRCapabilities() is not defined");
+                DSLOG_INFO("dsGetHDRCapabilities() is not defined");
             }
         }
         
@@ -263,14 +261,14 @@ public:
             if (eError == dsERR_NONE) {
                 capabilities = static_cast<int32_t>(dsCapabilities);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetHDRCapabilities: SUCCESS - capabilities=0x%x", capabilities);
+                DSLOG_INFO(" SUCCESS - capabilities=0x%x", capabilities);
             } else {
-                LOGERR("GetHDRCapabilities: dsGetHDRCapabilities failed with error: %d", eError);
+                DSLOG_ERR(" dsGetHDRCapabilities failed with error: %d", eError);
             }
         } else {
             capabilities = dsHDRSTANDARD_NONE;
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("GetHDRCapabilities: HDR disabled or function not available - capabilities=0x%x", capabilities);
+            DSLOG_INFO(" HDR disabled or function not available - capabilities=0x%x", capabilities);
         }
         
         return retCode;
@@ -279,16 +277,16 @@ public:
     uint32_t GetSupportedVideoCodingFormats(const int32_t handle, int32_t& supportedFormats) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetSupportedVideoCodingFormats: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetSupportedVideoCodingFormatsFunc_t)(intptr_t handle, unsigned int *supported_formats);
         static dsGetSupportedVideoCodingFormatsFunc_t func = 0;
         if (func == 0) {
             func = (dsGetSupportedVideoCodingFormatsFunc_t)resolve(RDK_DSHAL_NAME, "dsGetSupportedVideoCodingFormats");
             if (func) {
-                LOGINFO("dsGetSupportedVideoCodingFormats() is defined and loaded");
+                DSLOG_INFO("dsGetSupportedVideoCodingFormats() is defined and loaded");
             } else {
-                LOGINFO("dsGetSupportedVideoCodingFormats() is not defined");
+                DSLOG_INFO("dsGetSupportedVideoCodingFormats() is not defined");
             }
         }
         
@@ -298,14 +296,14 @@ public:
             if (eError == dsERR_NONE) {
                 supportedFormats = static_cast<int32_t>(dsFormats);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetSupportedVideoCodingFormats: SUCCESS - supportedFormats=0x%x", supportedFormats);
+                DSLOG_INFO(" SUCCESS - supportedFormats=0x%x", supportedFormats);
             } else {
-                LOGERR("GetSupportedVideoCodingFormats: dsGetSupportedVideoCodingFormats failed with error: %d", eError);
+                DSLOG_ERR(" dsGetSupportedVideoCodingFormats failed with error: %d", eError);
             }
         } else {
             supportedFormats = 0x0; // Safe default: no formats supported
             retCode = WPEFramework::Core::ERROR_NONE;
-            LOGINFO("GetSupportedVideoCodingFormats: Function not available - supportedFormats=0x%x", supportedFormats);
+            DSLOG_INFO(" Function not available - supportedFormats=0x%x", supportedFormats);
         }
         
         return retCode;
@@ -314,16 +312,16 @@ public:
     uint32_t GetCodecInfo(const int32_t handle, const VideoDeviceCodec videoCodec, IDeviceSettingsVideoCodecProfileSupportIterator*& codecInfo) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetCodecInfo: handle=%d, videoCodec=%d", handle, static_cast<int>(videoCodec));
+        DSLOG_INFO(" handle=%d, videoCodec=%d", handle, static_cast<int>(videoCodec));
         
         typedef dsError_t (*dsGetVideoCodecInfoFunc_t)(intptr_t handle, dsVideoCodingFormat_t codec, dsVideoCodecInfo_t * info);
         static dsGetVideoCodecInfoFunc_t func = 0;
         if (func == 0) {
             func = (dsGetVideoCodecInfoFunc_t)resolve(RDK_DSHAL_NAME, "dsGetVideoCodecInfo");
             if (func) {
-                LOGINFO("dsGetVideoCodecInfo() is defined and loaded");
+                DSLOG_INFO("dsGetVideoCodecInfo() is defined and loaded");
             } else {
-                LOGINFO("dsGetVideoCodecInfo() is not defined");
+                DSLOG_INFO("dsGetVideoCodecInfo() is not defined");
             }
         }
         
@@ -335,13 +333,13 @@ public:
                 // Convert dsVideoCodecInfo_t to iterator
                 codecInfo = createCodecInfoIterator(info);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetCodecInfo: SUCCESS - codecInfo created");
+                DSLOG_INFO(" SUCCESS - codecInfo created");
             } else {
-                LOGERR("GetCodecInfo: dsGetVideoCodecInfo failed with error: %d", eError);
+                DSLOG_ERR(" dsGetVideoCodecInfo failed with error: %d", eError);
             }
         } else {
             retCode = WPEFramework::Core::ERROR_UNAVAILABLE;
-            LOGERR("GetCodecInfo: Function not available");
+            DSLOG_ERR(" Function not available");
         }
         
         return retCode;
@@ -350,16 +348,16 @@ public:
     uint32_t DisableHDR(const int32_t handle, const bool disable) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("DisableHDR: handle=%d, disable=%s", handle, disable ? "true" : "false");
+        DSLOG_INFO(" handle=%d, disable=%s", handle, disable ? "true" : "false");
         
         typedef dsError_t (*dsDisableHDRSupportFunc_t)(intptr_t handle, bool enable);
         static dsDisableHDRSupportFunc_t func = 0;
         if (func == 0) {
             func = (dsDisableHDRSupportFunc_t)resolve(RDK_DSHAL_NAME, "dsForceDisableHDRSupport");
             if (func) {
-                LOGINFO("dsForceDisableHDRSupport() is defined and loaded");
+                DSLOG_INFO("dsForceDisableHDRSupport() is defined and loaded");
             } else {
-                LOGINFO("dsForceDisableHDRSupport() is not defined");
+                DSLOG_INFO("dsForceDisableHDRSupport() is not defined");
             }
         }
         
@@ -369,9 +367,9 @@ public:
             dsError_t eError = func(handle, disable);
             if (eError != dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_GENERAL;
-                LOGERR("DisableHDR: dsForceDisableHDRSupport failed with error: %d", eError);
+                DSLOG_ERR(" dsForceDisableHDRSupport failed with error: %d", eError);
             } else {
-                LOGINFO("DisableHDR: dsForceDisableHDRSupport succeeded - disable=%s", disable ? "true" : "false");
+                DSLOG_INFO(" dsForceDisableHDRSupport succeeded - disable=%s", disable ? "true" : "false");
             }
         }
         
@@ -388,16 +386,16 @@ public:
     uint32_t SetFRFMode(const int32_t handle, const int32_t frfmode) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetFRFMode: handle=%d, frfmode=%d", handle, frfmode);
+        DSLOG_INFO(" handle=%d, frfmode=%d", handle, frfmode);
         
         typedef dsError_t (*dsSetFRFModeFunc_t)(intptr_t handle, int frfmode);
         static dsSetFRFModeFunc_t func = 0;
         if (func == 0) {
             func = (dsSetFRFModeFunc_t)resolve(RDK_DSHAL_NAME, "dsSetFRFMode");
             if (func) {
-                LOGINFO("dsSetFRFMode is defined and loaded");
+                DSLOG_INFO("dsSetFRFMode is defined and loaded");
             } else {
-                LOGINFO("dsSetFRFMode is not defined");
+                DSLOG_INFO("dsSetFRFMode is not defined");
             }
         }
         
@@ -405,9 +403,9 @@ public:
             dsError_t eError = func(handle, frfmode);
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("SetFRFMode: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else {
-                LOGERR("SetFRFMode: dsSetFRFMode failed with error: %d", eError);
+                DSLOG_ERR(" dsSetFRFMode failed with error: %d", eError);
             }
         }
         
@@ -417,16 +415,16 @@ public:
     uint32_t GetFRFMode(const int32_t handle, int32_t& frfmode) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetFRFMode: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetFRFModeFunc_t)(intptr_t handle, int *frfmode);
         static dsGetFRFModeFunc_t func = 0;
         if (func == 0) {
             func = (dsGetFRFModeFunc_t)resolve(RDK_DSHAL_NAME, "dsGetFRFMode");
             if (func) {
-                LOGINFO("dsGetFRFMode() is defined and loaded");
+                DSLOG_INFO("dsGetFRFMode() is defined and loaded");
             } else {
-                LOGINFO("dsGetFRFMode() is not defined");
+                DSLOG_INFO("dsGetFRFMode() is not defined");
             }
         }
         
@@ -436,9 +434,9 @@ public:
             if (eError == dsERR_NONE) {
                 frfmode = static_cast<int32_t>(dsFrfMode);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetFRFMode: SUCCESS - frfmode=%d", frfmode);
+                DSLOG_INFO(" SUCCESS - frfmode=%d", frfmode);
             } else {
-                LOGERR("GetFRFMode: dsGetFRFMode failed with error: %d", eError);
+                DSLOG_ERR(" dsGetFRFMode failed with error: %d", eError);
             }
         }
         
@@ -448,16 +446,16 @@ public:
     uint32_t GetCurrentDisplayFrameRate(const int32_t handle, string& framerate) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("GetCurrentDisplayFrameRate: handle=%d", handle);
+        DSLOG_INFO(" handle=%d", handle);
         
         typedef dsError_t (*dsGetCurrentDisframerateFunc_t)(intptr_t handle, char *framerate);
         static dsGetCurrentDisframerateFunc_t func = 0;
         if (func == 0) {
             func = (dsGetCurrentDisframerateFunc_t)resolve(RDK_DSHAL_NAME, "dsGetCurrentDisplayframerate");
             if (func) {
-                LOGINFO("dsGetCurrentDisframerate() is defined and loaded");
+                DSLOG_INFO("dsGetCurrentDisframerate() is defined and loaded");
             } else {
-                LOGINFO("dsGetCurrentDisframerate() is not defined");
+                DSLOG_INFO("dsGetCurrentDisframerate() is not defined");
             }
         }
         
@@ -467,9 +465,9 @@ public:
             if (eError == dsERR_NONE) {
                 framerate = string(dsFramerate);
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("GetCurrentDisplayFrameRate: SUCCESS - framerate=%s", framerate.c_str());
+                DSLOG_INFO(" SUCCESS - framerate=%s", framerate.c_str());
             } else {
-                LOGERR("GetCurrentDisplayFrameRate: dsGetCurrentDisplayframerate failed with error: %d", eError);
+                DSLOG_ERR(" dsGetCurrentDisplayframerate failed with error: %d", eError);
             }
         }
         
@@ -479,16 +477,16 @@ public:
     uint32_t SetDisplayFrameRate(const int32_t handle, const string framerate) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        LOGINFO("SetDisplayFrameRate: handle=%d, framerate=%s", handle, framerate.c_str());
+        DSLOG_INFO(" handle=%d, framerate=%s", handle, framerate.c_str());
         
         typedef dsError_t (*dsSetDisplayframerateFunc_t)(intptr_t handle, char *frfmode);
         static dsSetDisplayframerateFunc_t func = 0;
         if (func == 0) {
             func = (dsSetDisplayframerateFunc_t)resolve(RDK_DSHAL_NAME, "dsSetDisplayframerate");
             if (func) {
-                LOGINFO("dsSetDisplayframerate() is defined and loaded");
+                DSLOG_INFO("dsSetDisplayframerate() is defined and loaded");
             } else {
-                LOGINFO("dsSetDisplayframerate() is not defined");
+                DSLOG_INFO("dsSetDisplayframerate() is not defined");
             }
         }
         
@@ -513,9 +511,9 @@ public:
             result = func(handle, dsFramerate);
             if (result == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
-                LOGINFO("SetDisplayFrameRate: SUCCESS");
+                DSLOG_INFO(" SUCCESS");
             } else {
-                LOGERR("SetDisplayFrameRate: dsSetDisplayframerate failed with error: %d", result);
+                DSLOG_ERR(" dsSetDisplayframerate failed with error: %d", result);
             }
         }
         
@@ -531,59 +529,59 @@ public:
     void setAllCallbacks(const CallbackBundle& bundle) override
     {
         ENTRY_LOG;
-        LOGINFO("VideoDevice::setAllCallbacks - Registering event callbacks with DS HAL");
+        DSLOG_INFO("Registering event callbacks with DS HAL");
         
         // Debug logging to diagnose condition failure
-        LOGINFO("VideoDevice callback registration check: videoDevice_isInitialized=%d, videoDevice_isPlatInitialized=%d", 
+        DSLOG_INFO("VideoDevice callback registration check: videoDevice_isInitialized=%d, videoDevice_isPlatInitialized=%d",
                 videoDevice_isInitialized, videoDevice_isPlatInitialized);
         
         if (videoDevice_isPlatInitialized && !videoDevice_isInitialized) {
-            LOGINFO("VideoDevice platform callback Initialization");
+            DSLOG_INFO("VideoDevice platform callback Initialization");
             
             // Register Zoom Settings Changed Callback
             if (bundle.OnZoomSettingsChanged) {
-                LOGINFO("VideoDevice Zoom Settings Changed Event Callback Registered");
+                DSLOG_INFO("VideoDevice Zoom Settings Changed Event Callback Registered");
                 g_VideoDeviceZoomSettingsChangedCallback = bundle.OnZoomSettingsChanged;
                 // Zoom callbacks are triggered manually during DFC setting
             }
             
             // Register Display Framerate Pre-Change Callback - following dsVideoDevice.c pattern
             if (bundle.OnDisplayFrameratePreChange) {
-                LOGINFO("VideoDevice Display Framerate Pre-Change Event Callback Registered");
+                DSLOG_INFO("VideoDevice Display Framerate Pre-Change Event Callback Registered");
                 g_VideoDeviceDisplayFrameratePreChangeCallback = bundle.OnDisplayFrameratePreChange;
                 
                 // Register framerate pre-change callback with DS HAL - exact pattern from dsVideoDevice.c
                 dsError_t eRet = VideoDeviceRegisterFrameratePreChangeCB(VideoDeviceFramerateStatusPreChangeCB);
                 if (dsERR_NONE != eRet) {
-                    LOGERR("VideoDeviceRegisterFrameratePreChangeCB failed with error: %d", eRet);
+                    DSLOG_ERR("VideoDeviceRegisterFrameratePreChangeCB failed with error: %d", eRet);
                 } else {
-                    LOGINFO("Framerate pre-change callback registered successfully with DS HAL");
+                    DSLOG_INFO("Framerate pre-change callback registered successfully with DS HAL");
                 }
             }
             
             // Register Display Framerate Post-Change Callback - following dsVideoDevice.c pattern
             if (bundle.OnDisplayFrameratePostChange) {
-                LOGINFO("VideoDevice Display Framerate Post-Change Event Callback Registered");
+                DSLOG_INFO("VideoDevice Display Framerate Post-Change Event Callback Registered");
                 g_VideoDeviceDisplayFrameratePostChangeCallback = bundle.OnDisplayFrameratePostChange;
                 
                 // Register framerate post-change callback with DS HAL - exact pattern from dsVideoDevice.c
                 dsError_t eRet = VideoDeviceRegisterFrameratePostChangeCB(VideoDeviceFramerateStatusPostChangeCB);
                 if (dsERR_NONE != eRet) {
-                    LOGERR("VideoDeviceRegisterFrameratePostChangeCB failed with error: %d", eRet);
+                    DSLOG_ERR("VideoDeviceRegisterFrameratePostChangeCB failed with error: %d", eRet);
                 } else {
-                    LOGINFO("Framerate post-change callback registered successfully with DS HAL");
+                    DSLOG_INFO("Framerate post-change callback registered successfully with DS HAL");
                 }
             }
             
             videoDevice_isInitialized = 1;
-            LOGINFO("VideoDevice platform callback Initialization done");
+            DSLOG_INFO("VideoDevice platform callback Initialization done");
         } else {
             if (!videoDevice_isPlatInitialized) {
-                LOGERR("VideoDevice callback registration FAILED: Platform not initialized (videoDevice_isPlatInitialized=%d)", 
+                DSLOG_ERR("VideoDevice callback registration FAILED: Platform not initialized (videoDevice_isPlatInitialized=%d)",
                        videoDevice_isPlatInitialized);
             }
             if (videoDevice_isInitialized) {
-                LOGWARN("VideoDevice callback registration SKIPPED: Callbacks already initialized (videoDevice_isInitialized=%d)", 
+                DSLOG_WARN("VideoDevice callback registration SKIPPED: Callbacks already initialized (videoDevice_isInitialized=%d)",
                         videoDevice_isInitialized);
             }
         }
@@ -594,7 +592,7 @@ public:
     void getPersistenceValue()
     {
         ENTRY_LOG;
-        LOGINFO("VideoDevice::getPersistenceValue - Loading persistence settings");
+        DSLOG_INFO("Loading persistence settings");
         
         try {
             std::string _ZoomSettings("Full");
@@ -603,14 +601,14 @@ public:
             if (_ZoomSettings.compare("None") == 0) {
                 srv_dfc = dsVIDEO_ZOOM_NONE;
             }
-            LOGINFO("Persistent VideoDevice DFC read: %s", _ZoomSettings.c_str());
+            DSLOG_INFO("Persistent VideoDevice DFC read: %s", _ZoomSettings.c_str());
             
             if (profileType == TV) {
-                LOGINFO("TV Profile - setting persistent zoom mode");
+                DSLOG_INFO("TV Profile - setting persistent zoom mode");
                 dsHdmiInSelectZoomMode(srv_dfc);
             }
         } catch (...) {
-            LOGINFO("Exception in Getting the Zoom settings on Startup");
+            DSLOG_INFO("Exception in Getting the Zoom settings on Startup");
         }
         
         try {
@@ -620,10 +618,10 @@ public:
                 force_disable_hdr = false;
             } else {
                 force_disable_hdr = true;
-                LOGINFO("HDR support in disabled configuration");
+                DSLOG_INFO("HDR support in disabled configuration");
             }
         } catch (...) {
-            LOGINFO("Exception in getting force-disable-HDR setting at start up");
+            DSLOG_INFO("Exception in getting force-disable-HDR setting at start up");
         }
         
         EXIT_LOG;
@@ -632,7 +630,7 @@ public:
     // Static callback functions for DS HAL integration - following HdmiIn pattern
     static void VideoDeviceFramerateStatusPreChangeCB(unsigned int inputStatus)
     {
-        LOGINFO("VideoDeviceFramerateStatusPreChangeCB: inputStatus=%u", inputStatus);
+        DSLOG_INFO(" inputStatus=%u", inputStatus);
         
         // Call the stored global callback if available
         if (g_VideoDeviceDisplayFrameratePreChangeCallback) {
@@ -643,7 +641,7 @@ public:
 
     static void VideoDeviceFramerateStatusPostChangeCB(unsigned int inputStatus)
     {
-        LOGINFO("VideoDeviceFramerateStatusPostChangeCB: inputStatus=%u", inputStatus);
+        DSLOG_INFO(" inputStatus=%u", inputStatus);
         
         // Call the stored global callback if available
         if (g_VideoDeviceDisplayFrameratePostChangeCallback) {
@@ -656,7 +654,7 @@ public:
     static dsError_t VideoDeviceRegisterFrameratePreChangeCB(dsRegisterFrameratePreChangeCB_t cbFunc)
     {
         dsError_t eRet = dsERR_GENERAL;
-        LOGINFO("VideoDeviceRegisterFrameratePreChangeCB: Registering framerate pre-change callback");
+        DSLOG_INFO(" Registering framerate pre-change callback");
         
         typedef dsError_t (*_dsFramerateStatusPreChangeCB_t)(dsRegisterFrameratePreChangeCB_t CBFunc);
         static _dsFramerateStatusPreChangeCB_t frameratePreChangeCB = 0;
@@ -666,13 +664,13 @@ public:
             if (dllib) {
                 frameratePreChangeCB = (_dsFramerateStatusPreChangeCB_t) dlsym(dllib, "dsRegisterFrameratePreChangeCB");
                 if (frameratePreChangeCB == 0) {
-                    LOGINFO("dsRegisterFrameratePreChangeCB is not defined");
+                    DSLOG_INFO("dsRegisterFrameratePreChangeCB is not defined");
                 } else {
-                    LOGINFO("dsRegisterFrameratePreChangeCB loaded");
+                    DSLOG_INFO("dsRegisterFrameratePreChangeCB loaded");
                 }
                 dlclose(dllib);
             } else {
-                LOGERR("Failed to open RDK_DSHAL_NAME [%s]: %s", RDK_DSHAL_NAME, dlerror());
+                DSLOG_ERR("Failed to open RDK_DSHAL_NAME [%s]: %s", RDK_DSHAL_NAME, dlerror());
                 eRet = dsERR_GENERAL;
             }
         }
@@ -680,9 +678,9 @@ public:
         if (frameratePreChangeCB) {
             eRet = frameratePreChangeCB(cbFunc);
             if (dsERR_NONE == eRet) {
-                LOGINFO("Framerate pre-change callback registered successfully");
+                DSLOG_INFO("Framerate pre-change callback registered successfully");
             } else {
-                LOGERR("Failed to register framerate pre-change callback: %d", eRet);
+                DSLOG_ERR("Failed to register framerate pre-change callback: %d", eRet);
             }
         }
         
@@ -692,7 +690,7 @@ public:
     static dsError_t VideoDeviceRegisterFrameratePostChangeCB(dsRegisterFrameratePostChangeCB_t cbFunc)
     {
         dsError_t eRet = dsERR_GENERAL;
-        LOGINFO("VideoDeviceRegisterFrameratePostChangeCB: Registering framerate post-change callback");
+        DSLOG_INFO(" Registering framerate post-change callback");
         
         typedef dsError_t (*_dsFramerateStatusPostChangeCB_t)(dsRegisterFrameratePostChangeCB_t CBFunc);
         static _dsFramerateStatusPostChangeCB_t frameratePostChangeCB = 0;
@@ -702,13 +700,13 @@ public:
             if (dllib) {
                 frameratePostChangeCB = (_dsFramerateStatusPostChangeCB_t) dlsym(dllib, "dsRegisterFrameratePostChangeCB");
                 if (frameratePostChangeCB == 0) {
-                    LOGINFO("dsRegisterFrameratePostChangeCB is not defined");
+                    DSLOG_INFO("dsRegisterFrameratePostChangeCB is not defined");
                 } else {
-                    LOGINFO("dsRegisterFrameratePostChangeCB loaded");
+                    DSLOG_INFO("dsRegisterFrameratePostChangeCB loaded");
                 }
                 dlclose(dllib);
             } else {
-                LOGERR("Failed to open RDK_DSHAL_NAME [%s]: %s", RDK_DSHAL_NAME, dlerror());
+                DSLOG_ERR("Failed to open RDK_DSHAL_NAME [%s]: %s", RDK_DSHAL_NAME, dlerror());
                 eRet = dsERR_GENERAL;
             }
         }
@@ -716,9 +714,9 @@ public:
         if (frameratePostChangeCB) {
             eRet = frameratePostChangeCB(cbFunc);
             if (dsERR_NONE == eRet) {
-                LOGINFO("Framerate post-change callback registered successfully");
+                DSLOG_INFO("Framerate post-change callback registered successfully");
             } else {
-                LOGERR("Failed to register framerate post-change callback: %d", eRet);
+                DSLOG_ERR("Failed to register framerate post-change callback: %d", eRet);
             }
         }
         
@@ -810,7 +808,7 @@ private:
     {
         // This is a placeholder implementation
         // In a real implementation, this would create an iterator from the codec info
-        LOGWARN("createCodecInfoIterator: Not implemented - returning nullptr");
+        DSLOG_WARN(" Not implemented - returning nullptr");
         return nullptr;
     }
 };

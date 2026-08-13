@@ -31,7 +31,6 @@ Audio::Audio(INotification& parent, std::shared_ptr<IPlatform> platform)
     : _platform(std::move(platform))
     , _parent(parent)
 {
-    LOGINFO("Audio Constructor");
     Platform_init();
 }
 
@@ -76,28 +75,28 @@ void Audio::Platform_init()
 
 void Audio::OnAudioOutHotPlug(AudioPortType portType, uint32_t portNumber, bool isConnected)
 {
-    LOGINFO("OnAudioOutHotPlug: portType=%d, portNumber=%u, connected=%s", static_cast<int>(portType), portNumber, isConnected ? "true" : "false");
+    DSLOG_INFO("portType=%d, portNumber=%u, connected=%s", static_cast<int>(portType), portNumber, isConnected ? "true" : "false");
     // Trigger notification to parent for callback dispatch
     _parent.OnAudioOutHotPlug(portType, portNumber, isConnected);
 }
 
 void Audio::OnAudioFormatUpdate(AudioFormat audioFormat)
 {
-    LOGINFO("OnAudioFormatUpdate: format=%d", static_cast<int>(audioFormat));
+    DSLOG_INFO("format=%d", static_cast<int>(audioFormat));
     // Trigger notification to parent for callback dispatch  
     _parent.OnAudioFormatUpdate(audioFormat);
 }
 
 void Audio::OnDolbyAtmosCapabilitiesChanged(DolbyAtmosCapability atmosCaps, bool status)
 {
-    LOGINFO("OnDolbyAtmosCapabilitiesChanged: caps=%d, status=%s", static_cast<int>(atmosCaps), status ? "true" : "false");
+    DSLOG_INFO("caps=%d, status=%s", static_cast<int>(atmosCaps), status ? "true" : "false");
     // Trigger notification to parent for callback dispatch
     _parent.OnDolbyAtmosCapabilitiesChanged(atmosCaps, status);
 }
 
 void Audio::OnAudioModeChanged(AudioPortType portType, AudioStereoMode mode)
 {
-    LOGINFO("OnAudioModeChanged: portType=%d, mode=%d", static_cast<int>(portType), static_cast<int>(mode));
+    DSLOG_INFO("portType=%d, mode=%d", static_cast<int>(portType), static_cast<int>(mode));
     // Trigger notification to parent for callback dispatch
     _parent.OnAudioModeEvent(portType, mode);
 }
@@ -105,393 +104,393 @@ void Audio::OnAudioModeChanged(AudioPortType portType, AudioStereoMode mode)
 // Event handler methods for audio state changes
 void Audio::OnAssociatedAudioMixingChanged(bool mixing)
 {
-    LOGINFO("OnAssociatedAudioMixingChanged: mixing=%s", mixing ? "enabled" : "disabled");
+    DSLOG_INFO("mixing=%s", mixing ? "enabled" : "disabled");
     // Trigger notification to parent for callback dispatch
     _parent.OnAssociatedAudioMixingChanged(mixing);
 }
 
 void Audio::OnAudioFaderControlChanged(int32_t mixerBalance)
 {
-    LOGINFO("OnAudioFaderControlChanged: mixerBalance=%d", mixerBalance);
+    DSLOG_INFO("mixerBalance=%d", mixerBalance);
     // Trigger notification to parent for callback dispatch
     _parent.OnAudioFaderControlChanged(mixerBalance);
 }
 
 void Audio::OnAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
 {
-    LOGINFO("OnAudioPrimaryLanguageChanged: primaryLanguage=%s", primaryLanguage.c_str());
+    DSLOG_INFO("primaryLanguage=%s", primaryLanguage.c_str());
     // Trigger notification to parent for callback dispatch
     _parent.OnAudioPrimaryLanguageChanged(primaryLanguage);
 }
 
 void Audio::OnAudioSecondaryLanguageChanged(const std::string& secondaryLanguage)
 {
-    LOGINFO("OnAudioSecondaryLanguageChanged: secondaryLanguage=%s", secondaryLanguage.c_str());
+    DSLOG_INFO("secondaryLanguage=%s", secondaryLanguage.c_str());
     // Trigger notification to parent for callback dispatch
     _parent.OnAudioSecondaryLanguageChanged(secondaryLanguage);
 }
 
 void Audio::OnAudioPortStateChanged(AudioPortState audioPortState)
 {
-    LOGINFO("OnAudioPortStateChanged: audioPortState=%d", static_cast<int>(audioPortState));
+    DSLOG_INFO("audioPortState=%d", static_cast<int>(audioPortState));
     // Trigger notification to parent for callback dispatch
     _parent.OnAudioPortStateChanged(audioPortState);
 }
 
 void Audio::OnAudioLevelChanged(float audioLevel)
 {
-    LOGINFO("OnAudioLevelChanged: audioLevel=%.2f", audioLevel);
+    DSLOG_INFO("audioLevel=%.2f", audioLevel);
     // Trigger notification to parent for callback dispatch
     _parent.OnAudioLevelChanged(static_cast<int32_t>(audioLevel));
 }
 
 uint32_t Audio::GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) {
-    LOGINFO("GetAudioPort: type=%d, index=%d", type, index);
+    DSLOG_INFO("type=%d, index=%d", type, index);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioPort(type, index, handle);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioPort: SUCCESS - type=%d, index=%d, handle=%d", type, index, handle);
+        DSLOG_INFO("SUCCESS - type=%d, index=%d, handle=%d", type, index, handle);
     } else {
-        LOGERR("GetAudioPort: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioCapabilities(const int32_t handle, int32_t &capabilities) {
-    LOGINFO("GetAudioCapabilities: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioCapabilities(handle, capabilities);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioCapabilities: SUCCESS - handle=%d, capabilities=%d", handle, capabilities);
+        DSLOG_INFO("SUCCESS - handle=%d, capabilities=%d", handle, capabilities);
     } else {
-        LOGERR("GetAudioCapabilities: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities) {
-    LOGINFO("GetAudioMS12Capabilities: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioMS12Capabilities(handle, capabilities);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioMS12Capabilities: SUCCESS - handle=%d, capabilities=%d", handle, capabilities);
+        DSLOG_INFO("SUCCESS - handle=%d, capabilities=%d", handle, capabilities);
     } else {
-        LOGERR("GetAudioMS12Capabilities: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) {
-    LOGINFO("GetAudioFormat: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioFormat(handle, audioFormat);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioFormat: SUCCESS - handle=%d, audioFormat=%d", handle, audioFormat);
+        DSLOG_INFO("SUCCESS - handle=%d, audioFormat=%d", handle, audioFormat);
     } else {
-        LOGERR("GetAudioFormat: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioEncoding(const int32_t handle, AudioEncoding &encoding) {
-    LOGINFO("GetAudioEncoding: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioEncoding(handle, encoding);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioEncoding: SUCCESS - handle=%d, encoding=%d", handle, encoding);
+        DSLOG_INFO("SUCCESS - handle=%d, encoding=%d", handle, encoding);
     } else {
-        LOGERR("GetAudioEncoding: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetAudioLevel(const int32_t handle, const float audioLevel) {
-    LOGINFO("SetAudioLevel: handle=%d, audioLevel=%.2f", handle, audioLevel);
+    DSLOG_INFO("handle=%d, audioLevel=%.2f", handle, audioLevel);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetAudioLevel(handle, audioLevel);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetAudioLevel: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetAudioLevel: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioLevel(const int32_t handle, float &audioLevel) {
-    LOGINFO("GetAudioLevel: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioLevel(handle, audioLevel);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioLevel: SUCCESS - handle=%d, audioLevel=%.2f", handle, audioLevel);
+        DSLOG_INFO("SUCCESS - handle=%d, audioLevel=%.2f", handle, audioLevel);
     } else {
-        LOGERR("GetAudioLevel: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetAudioGain(const int32_t handle, const float gainLevel) {
-    LOGINFO("SetAudioGain: handle=%d, gainLevel=%.2f", handle, gainLevel);
+    DSLOG_INFO("handle=%d, gainLevel=%.2f", handle, gainLevel);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetAudioGain(handle, gainLevel);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetAudioGain: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetAudioGain: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioGain(const int32_t handle, float &gainLevel) {
-    LOGINFO("GetAudioGain: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioGain(handle, gainLevel);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioGain: SUCCESS - handle=%d, gainLevel=%.2f", handle, gainLevel);
+        DSLOG_INFO("SUCCESS - handle=%d, gainLevel=%.2f", handle, gainLevel);
     } else {
-        LOGERR("GetAudioGain: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetAudioMute(const int32_t handle, const bool mute) {
-    LOGINFO("SetAudioMute: handle=%d, mute=%s", handle, mute ? "true" : "false");
+    DSLOG_INFO("handle=%d, mute=%s", handle, mute ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetAudioMute(handle, mute);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetAudioMute: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetAudioMute: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::IsAudioMuted(const int32_t handle, bool &muted) {
-    LOGINFO("IsAudioMuted: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().IsAudioMuted(handle, muted);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("IsAudioMuted: SUCCESS - handle=%d, muted=%s", handle, muted ? "true" : "false");
+        DSLOG_INFO("SUCCESS - handle=%d, muted=%s", handle, muted ? "true" : "false");
     } else {
-        LOGERR("IsAudioMuted: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level) {
-    LOGINFO("SetAudioDucking: handle=%d, duckingType=%d, duckingAction=%d, level=%d", handle, duckingType, duckingAction, level);
+    DSLOG_INFO("handle=%d, duckingType=%d, duckingAction=%d, level=%d", handle, duckingType, duckingAction, level);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetAudioDucking(handle, duckingType, duckingAction, level);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetAudioDucking: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetAudioDucking: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetStereoMode(const int32_t handle, AudioStereoMode &mode) {
-    LOGINFO("GetStereoMode: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetStereoMode(handle, mode);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetStereoMode: SUCCESS - handle=%d, mode=%d", handle, mode);
+        DSLOG_INFO("SUCCESS - handle=%d, mode=%d", handle, mode);
     } else {
-        LOGERR("GetStereoMode: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) {
-    LOGINFO("SetStereoMode: handle=%d, mode=%d, persist=%s", handle, mode, persist ? "true" : "false");
+    DSLOG_INFO("handle=%d, mode=%d, persist=%s", handle, mode, persist ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetStereoMode(handle, mode, persist);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetStereoMode: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetStereoMode: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetAssociatedAudioMixing(const int32_t handle, const bool mixing) {
-    LOGINFO("SetAssociatedAudioMixing: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
+    DSLOG_INFO("handle=%d, mixing=%s", handle, mixing ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetAssociatedAudioMixing(handle, mixing);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetAssociatedAudioMixing: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetAssociatedAudioMixing: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAssociatedAudioMixing(const int32_t handle, bool &mixing) {
-    LOGINFO("GetAssociatedAudioMixing: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAssociatedAudioMixing(handle, mixing);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAssociatedAudioMixing: SUCCESS - handle=%d, mixing=%s", handle, mixing ? "true" : "false");
+        DSLOG_INFO("SUCCESS - handle=%d, mixing=%s", handle, mixing ? "true" : "false");
     } else {
-        LOGERR("GetAssociatedAudioMixing: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetAudioFaderControl(const int32_t handle, const int32_t mixerBalance) {
-    LOGINFO("SetAudioFaderControl: handle=%d, mixerBalance=%d", handle, mixerBalance);
+    DSLOG_INFO("handle=%d, mixerBalance=%d", handle, mixerBalance);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetAudioFaderControl(handle, mixerBalance);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetAudioFaderControl: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetAudioFaderControl: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance) {
-    LOGINFO("GetAudioFaderControl: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioFaderControl(handle, mixerBalance);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioFaderControl: SUCCESS - handle=%d, mixerBalance=%d", handle, mixerBalance);
+        DSLOG_INFO("SUCCESS - handle=%d, mixerBalance=%d", handle, mixerBalance);
     } else {
-        LOGERR("GetAudioFaderControl: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetAudioPrimaryLanguage(const int32_t handle, const std::string& primaryAudioLanguage) {
-    LOGINFO("SetAudioPrimaryLanguage: handle=%d, primaryAudioLanguage=%s", handle, primaryAudioLanguage.c_str());
+    DSLOG_INFO("handle=%d, primaryAudioLanguage=%s", handle, primaryAudioLanguage.c_str());
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetAudioPrimaryLanguage(handle, primaryAudioLanguage);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetAudioPrimaryLanguage: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetAudioPrimaryLanguage: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioPrimaryLanguage(const int32_t handle, std::string &primaryAudioLanguage) {
-    LOGINFO("GetAudioPrimaryLanguage: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioPrimaryLanguage(handle, primaryAudioLanguage);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioPrimaryLanguage: SUCCESS - handle=%d, primaryAudioLanguage=%s", handle, primaryAudioLanguage.c_str());
+        DSLOG_INFO("SUCCESS - handle=%d, primaryAudioLanguage=%s", handle, primaryAudioLanguage.c_str());
     } else {
-        LOGERR("GetAudioPrimaryLanguage: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetAudioSecondaryLanguage(const int32_t handle, const std::string& secondaryAudioLanguage) {
-    LOGINFO("SetAudioSecondaryLanguage: handle=%d, secondaryAudioLanguage=%s", handle, secondaryAudioLanguage.c_str());
+    DSLOG_INFO("handle=%d, secondaryAudioLanguage=%s", handle, secondaryAudioLanguage.c_str());
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetAudioSecondaryLanguage(handle, secondaryAudioLanguage);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetAudioSecondaryLanguage: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetAudioSecondaryLanguage: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioSecondaryLanguage(const int32_t handle, std::string &secondaryAudioLanguage) {
-    LOGINFO("GetAudioSecondaryLanguage: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioSecondaryLanguage(handle, secondaryAudioLanguage);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioSecondaryLanguage: SUCCESS - handle=%d, secondaryAudioLanguage=%s", handle, secondaryAudioLanguage.c_str());
+        DSLOG_INFO("SUCCESS - handle=%d, secondaryAudioLanguage=%s", handle, secondaryAudioLanguage.c_str());
     } else {
-        LOGERR("GetAudioSecondaryLanguage: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 // Additional key methods - implementing the most commonly used ones
 uint32_t Audio::IsAudioOutputConnected(const int32_t handle, bool &isConnected) {
-    LOGINFO("IsAudioOutputConnected: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().IsAudioOutputConnected(handle, isConnected);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("IsAudioOutputConnected: SUCCESS - handle=%d, isConnected=%s", handle, isConnected ? "true" : "false");
+        DSLOG_INFO("SUCCESS - handle=%d, isConnected=%s", handle, isConnected ? "true" : "false");
     } else {
-        LOGERR("IsAudioOutputConnected: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::GetAudioSinkDeviceAtmosCapability(const int32_t handle, DolbyAtmosCapability &atmosCapability) {
-    LOGINFO("GetAudioSinkDeviceAtmosCapability: handle=%d", handle);
+    DSLOG_INFO("handle=%d", handle);
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().GetAudioSinkDeviceAtmosCapability(handle, atmosCapability);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("GetAudioSinkDeviceAtmosCapability: SUCCESS - handle=%d, atmosCapability=%d", handle, atmosCapability);
+        DSLOG_INFO("SUCCESS - handle=%d, atmosCapability=%d", handle, atmosCapability);
     } else {
-        LOGERR("GetAudioSinkDeviceAtmosCapability: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }
 
 uint32_t Audio::SetAudioAtmosOutputMode(const int32_t handle, const bool enable) {
-    LOGINFO("SetAudioAtmosOutputMode: handle=%d, enable=%s", handle, enable ? "true" : "false");
+    DSLOG_INFO("handle=%d, enable=%s", handle, enable ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
         result = this->platform().SetAudioAtmosOutputMode(handle, enable);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        LOGINFO("SetAudioAtmosOutputMode: SUCCESS - platform call completed successfully");
+        DSLOG_INFO("SUCCESS - platform call completed successfully");
     } else {
-        LOGERR("SetAudioAtmosOutputMode: FAILED - result=%u", result);
+        DSLOG_ERR("FAILED - result=%u", result);
     }
     return result;
 }

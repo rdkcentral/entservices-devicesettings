@@ -110,156 +110,147 @@ namespace Plugin {
 
             void OnFPDTimeFormatChanged(const FPDTimeFormat timeFormat) override
             {
-                LOGINFO("OnFPDTimeFormatChanged: timeFormat %d", timeFormat);
+                DSLOG_INFO("timeFormat %d", timeFormat);
             }
 
             // Audio notification handlers
             void OnAssociatedAudioMixingChanged(bool mixing) override
             {
-                LOGINFO("OnAssociatedAudioMixingChanged: mixing %d", mixing);
+                DSLOG_INFO("mixing %d", mixing);
             }
 
             void OnAudioFaderControlChanged(int32_t mixerBalance) override
             {
-                LOGINFO("OnAudioFaderControlChanged: mixerBalance %d", mixerBalance);
+                DSLOG_INFO("mixerBalance %d", mixerBalance);
             }
 
             void OnAudioPrimaryLanguageChanged(const string& primaryLanguage) override
             {
-                LOGINFO("OnAudioPrimaryLanguageChanged: primaryLanguage %s", primaryLanguage.c_str());
+                DSLOG_INFO("primaryLanguage %s", primaryLanguage.c_str());
             }
 
             void OnAudioSecondaryLanguageChanged(const string& secondaryLanguage) override
             {
-                LOGINFO("OnAudioSecondaryLanguageChanged: secondaryLanguage %s", secondaryLanguage.c_str());
+                DSLOG_INFO("secondaryLanguage %s", secondaryLanguage.c_str());
             }
 
             void OnAudioOutHotPlug(AudioPortType portType, uint32_t uiPortNumber, bool isPortConnected) override
             {
-                LOGINFO("OnAudioOutHotPlug: portType %d, port %d, connected %d", portType, uiPortNumber, isPortConnected);
+                DSLOG_INFO("portType %d, port %d, connected %d", portType, uiPortNumber, isPortConnected);
             }
 
             void OnAudioFormatUpdate(AudioFormat audioFormat) override
             {
-                LOGINFO("OnAudioFormatUpdate: audioFormat %d", audioFormat);
+                DSLOG_INFO("audioFormat %d", audioFormat);
             }
 
             void OnDolbyAtmosCapabilitiesChanged(DolbyAtmosCapability atmosCapability, bool status) override
             {
-                LOGINFO("OnDolbyAtmosCapabilitiesChanged: capability %d, status %d", atmosCapability, status);
+                DSLOG_INFO("capability %d, status %d", atmosCapability, status);
             }
 
             void OnAudioPortStateChanged(AudioPortState audioPortState) override
             {
-                LOGINFO("OnAudioPortStateChanged: state %d", audioPortState);
+                DSLOG_INFO("state %d", audioPortState);
             }
 
             void OnAudioLevelChanged(int32_t audioLevel) override
             {
-                LOGINFO("OnAudioLevelChanged: level %d", audioLevel);
+                DSLOG_INFO("level %d", audioLevel);
             }
 
             void OnAudioModeEvent(AudioPortType audioPortType, AudioStereoMode audioMode) override
             {
-                LOGINFO("OnAudioModeEvent: portType %d, mode %d", audioPortType, audioMode);
+                DSLOG_INFO("portType %d, mode %d", audioPortType, audioMode);
             }
 
             void OnHDMIInEventHotPlug(const HDMIInPort port, const bool isConnected) override 
             {
-                LOGINFO("OnHDMIInEventHotPlug:");
+                DSLOG_INFO(");
             }
 
             void OnHDMIInEventSignalStatus(const HDMIInPort port, const HDMIInSignalStatus signalStatus) override
             {
-                LOGINFO("OnHDMIInEventSignalStatus");
             }
 
             void OnHDMIInEventStatus(const HDMIInPort activePort, const bool isPresented) override
             {
-                LOGINFO("OnHDMIInEventStatus");
             }
 
             void OnHDMIInVideoModeUpdate(const HDMIInPort port, const HDMIVideoPortResolution& videoPortResolution) override
             {
-                LOGINFO("OnHDMIInVideoModeUpdate");
             }
 
             void OnHDMIInAllmStatus(const HDMIInPort port, const bool allmStatus) override
             {
-                LOGINFO("OnHDMIInAllmStatus");
             }
 
             void OnHDMIInAVIContentType(const HDMIInPort port, const HDMIInAviContentType aviContentType) override
             {
-                LOGINFO("OnHDMIInAVIContentType");
             }
 
             void OnHDMIInAVLatency(const int32_t audioDelay, const int32_t videoDelay) override
             {
-                LOGINFO("OnHDMIInAVLatency");
             }
 
             void OnHDMIInVRRStatus(const HDMIInPort port, const HDMIInVRRType vrrType) override
             {
-                LOGINFO("OnHDMIInVRRStatus");
             }
 
             // VideoPort notification handlers matching WPE interface
             void OnResolutionPostChange(const ResolutionChange& resolution) override
             {
-                LOGINFO("OnResolutionPostChange");
             }
 
             void OnResolutionPreChange(const ResolutionChange& resolution) override
             {
-                LOGINFO("OnResolutionPreChange");
             }
 
             void OnHDCPStatusChange(const Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus) override
             {
-                LOGINFO("OnHDCPStatusChange: status=%d", (int)hdcpStatus);
+                DSLOG_INFO("status=%d", (int)hdcpStatus);
             }
 
             void OnVideoFormatUpdate(const Exchange::IDeviceSettingsVideoPort::HDRStandard videoFormatHDR) override
             {
-                LOGINFO("OnVideoFormatUpdate: hdrStandard=%d", (int)videoFormatHDR);
+                DSLOG_INFO("hdrStandard=%d", (int)videoFormatHDR);
             }
 
             // CompositeIn notification handlers matching WPE interface
             void OnCompositeInHotPlug(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const bool isConnected) override
             {
-                LOGINFO("OnCompositeInHotPlug: port=%d, isConnected=%s", (int)port, isConnected ? "true" : "false");
+                DSLOG_INFO("port=%d, isConnected=%s", (int)port, isConnected ? "true" : "false");
             }
 
             void OnCompositeInSignalStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort port, const Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus signalStatus) override
             {
-                LOGINFO("OnCompositeInSignalStatus: port=%d, signalStatus=%d", (int)port, (int)signalStatus);
+                DSLOG_INFO("port=%d, signalStatus=%d", (int)port, (int)signalStatus);
             }
 
             void OnCompositeInStatus(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const bool isPresented) override
             {
-                LOGINFO("OnCompositeInStatus: activePort=%d, isPresented=%s", (int)activePort, isPresented ? "true" : "false");
+                DSLOG_INFO("activePort=%d, isPresented=%s", (int)activePort, isPresented ? "true" : "false");
             }
 
             void OnCompositeInVideoModeUpdate(const Exchange::IDeviceSettingsCompositeIn::CompositeInPort activePort, const Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution& videoResolution) override
             {
-                LOGINFO("OnCompositeInVideoModeUpdate: activePort=%d, resolution=%s", (int)activePort, videoResolution.name.c_str());
+                DSLOG_INFO("activePort=%d, resolution=%s", (int)activePort, videoResolution.name.c_str());
             }
 
             // VideoDevice event handlers (matching actual IDeviceSettingsVideoDevice::INotification interface)
             void OnZoomSettingsChanged(const Exchange::IDeviceSettingsVideoDevice::VideoZoom zoomSetting) override
             {
-                LOGINFO("OnZoomSettingsChanged: zoomSetting=%d", static_cast<int>(zoomSetting));
+                DSLOG_INFO("zoomSetting=%d", static_cast<int>(zoomSetting));
             }
 
             void OnDisplayFrameratePreChange(const string& frameRate) override
             {
-                LOGINFO("OnDisplayFrameratePreChange: frameRate=%s", frameRate.c_str());
+                DSLOG_INFO("frameRate=%s", frameRate.c_str());
             }
 
             void OnDisplayFrameratePostChange(const string& frameRate) override
             {
-                LOGINFO("OnDisplayFrameratePostChange: frameRate=%s", frameRate.c_str());
+                DSLOG_INFO("frameRate=%s", frameRate.c_str());
             }
 
         private:

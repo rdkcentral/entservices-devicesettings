@@ -94,7 +94,7 @@ private:
             }
         }
         
-        LOGWARN("The requested audio port is not part of platform port configuration");
+        DSLOG_WARN("The requested audio port is not part of platform port configuration");
         return dsAUDIOPORT_TYPE_MAX;
     }
     
@@ -111,7 +111,7 @@ private:
             if (dsGetAudioLevelFunc == 0) {
                 dsGetAudioLevelFunc = (dsGetAudioLevel_t)resolve(RDK_DSHAL_NAME, "dsGetAudioLevel");
                 if (dsGetAudioLevelFunc == 0) {
-                    LOGERR("dsGetAudioLevel is not defined");
+                    DSLOG_ERR("dsGetAudioLevel is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -121,10 +121,10 @@ private:
                 ret = dsGetAudioLevelFunc(handle, &volume);
             }
             if (ret != dsERR_NONE) {
-                LOGERR("dsGetAudioLevel failed with error: %d", ret);
+                DSLOG_ERR("dsGetAudioLevel failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
-            LOGINFO("Current audio level: %f", volume);
+            DSLOG_INFO("Current audio level: %f", volume);
         }
         
         // Use resolve function for dsSetAudioLevel
@@ -133,7 +133,7 @@ private:
         if (dsSetAudioLevelFunc == 0) {
             dsSetAudioLevelFunc = (dsSetAudioLevel_t)resolve(RDK_DSHAL_NAME, "dsSetAudioLevel");
             if (dsSetAudioLevelFunc == 0) {
-                LOGERR("dsSetAudioLevel is not defined");
+                DSLOG_ERR("dsSetAudioLevel is not defined");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         }
@@ -144,7 +144,7 @@ private:
         }
         
         if (ret != dsERR_NONE) {
-            LOGERR("dsSetAudioLevel failed with error: %d", ret);
+            DSLOG_ERR("dsSetAudioLevel failed with error: %d", ret);
             return WPEFramework::Core::ERROR_GENERAL;
         }
         
@@ -164,7 +164,7 @@ private:
                     }
                     catch(...) {
                             try {
-                                LOGINFO("SPDIF0.audio.Delay not found in persistence store. Try system default");
+                                DSLOG_INFO("SPDIF0.audio.Delay not found in persistence store. Try system default");
                                 audioDelayMs = device::HostPersistence::getInstance().getDefaultProperty("SPDIF0.audio.Delay");
                             }
                             catch(...) {
@@ -180,7 +180,7 @@ private:
                     }
                     catch(...) {
                             try {
-                                LOGINFO("HDMI0.audio.Delay not found in persistence store. Try system default");
+                                DSLOG_INFO("HDMI0.audio.Delay not found in persistence store. Try system default");
                                 audioDelayMs = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.audio.Delay");
                             }
                             catch(...) {
@@ -196,7 +196,7 @@ private:
                     }
                     catch(...) {
                             try {
-                                LOGINFO("SPEAKER0.audio.Delay not found in persistence store. Try system default");
+                                DSLOG_INFO("SPEAKER0.audio.Delay not found in persistence store. Try system default");
                                 audioDelayMs = device::HostPersistence::getInstance().getDefaultProperty("SPEAKER0.audio.Delay");
                             }
                             catch(...) {
@@ -212,7 +212,7 @@ private:
                     }
                     catch(...) {
                             try {
-                                LOGINFO("HDMI_ARC0.audio.Delay not found in persistence store. Try system default");
+                                DSLOG_INFO("HDMI_ARC0.audio.Delay not found in persistence store. Try system default");
                                 audioDelayMs = device::HostPersistence::getInstance().getDefaultProperty("HDMI_ARC0.audio.Delay");
                             }
                             catch(...) {
@@ -222,16 +222,16 @@ private:
                 }
                 break;
             default:
-                LOGINFO("Port type: UNKNOWN, persist audio delay: %s : NOT SET", audioDelayMs.c_str());
+                DSLOG_INFO("Port type: UNKNOWN, persist audio delay: %s : NOT SET", audioDelayMs.c_str());
                 break;
         }
         
         try {
             returnAudioDelayMs = std::stoul(audioDelayMs);
-            LOGINFO("Audio delay value returnAudioDelayMs: %d", returnAudioDelayMs);
+            DSLOG_INFO("Audio delay value returnAudioDelayMs: %d", returnAudioDelayMs);
         }
         catch(...) {
-            LOGINFO("Exception in getting the audio delay from persistence storage, returning default value 0");
+            DSLOG_INFO("Exception in getting the audio delay from persistence storage, returning default value 0");
             returnAudioDelayMs = 0;
         }
         
@@ -247,7 +247,7 @@ private:
             if (dsSetAudioDelayFunc == 0) {
                 dsSetAudioDelayFunc = (dsSetAudioDelay_t)resolve(RDK_DSHAL_NAME, "dsSetAudioDelay");
                 if (dsSetAudioDelayFunc == 0) {
-                    LOGERR("dsSetAudioDelay is not defined");
+                    DSLOG_ERR("dsSetAudioDelay is not defined");
                     return false;
                 }
             }
@@ -258,17 +258,17 @@ private:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("Audio delay set successfully: handle=%ld, delay=%u", (long)handle, audioDelay);
+                DSLOG_INFO("Audio delay set successfully: handle=%ld, delay=%u", (long)handle, audioDelay);
                 return true;
             } else {
                 if (ret == dsERR_OPERATION_NOT_SUPPORTED)
-                    LOGWARN("dsSetAudioDelay not supported for this port (error=%d)", ret);
+                    DSLOG_WARN("dsSetAudioDelay not supported for this port (error=%d)", ret);
                 else
-                    LOGERR("dsSetAudioDelay failed with error: %d", ret);
+                    DSLOG_ERR("dsSetAudioDelay failed with error: %d", ret);
                 return false;
             }
         } catch (...) {
-            LOGERR("Exception in setAudioDelayInternal");
+            DSLOG_ERR("Exception in setAudioDelayInternal");
             return false;
         }
     }
@@ -283,29 +283,29 @@ private:
             // Register audio output port connect callback
             ret = dsAudioOutRegisterConnectCB(audioOutPortConnectCallback);
             if (ret != dsERR_NONE) {
-                LOGWARN("dsAudioOutRegisterConnectCB failed with error: %d", ret);
+                DSLOG_WARN("dsAudioOutRegisterConnectCB failed with error: %d", ret);
             } else {
-                LOGINFO("Audio output port connect callback registered successfully");
+                DSLOG_INFO("Audio output port connect callback registered successfully");
             }
             
             // Register audio format update callback  
             ret = dsAudioFormatUpdateRegisterCB(audioFormatUpdateCallback);
             if (ret != dsERR_NONE) {
-                LOGWARN("dsAudioFormatUpdateRegisterCB failed with error: %d", ret);
+                DSLOG_WARN("dsAudioFormatUpdateRegisterCB failed with error: %d", ret);
             } else {
-                LOGINFO("Audio format update callback registered successfully");
+                DSLOG_INFO("Audio format update callback registered successfully");
             }
             
             // Register atmos capability change callback
             ret = dsAudioAtmosCapsChangeRegisterCB(audioAtmosCapsChangeCallback);
             if (ret != dsERR_NONE) {
-                LOGWARN("dsAudioAtmosCapsChangeRegisterCB failed with error: %d", ret);
+                DSLOG_WARN("dsAudioAtmosCapsChangeRegisterCB failed with error: %d", ret);
             } else {
-                LOGINFO("Audio atmos caps change callback registered successfully");
+                DSLOG_INFO("Audio atmos caps change callback registered successfully");
             }
             
         } catch (...) {
-            LOGERR("Exception in registerHALCallbacks");
+            DSLOG_ERR("Exception in registerHALCallbacks");
             ret = dsERR_GENERAL;
         }
         
@@ -328,7 +328,7 @@ public:
     {
         if (_isInitialized) return;
         ENTRY_LOG;
-        LOGINFO("InitialiseHAL <dsAudio>");
+        DSLOG_INFO("<dsAudio>");
         try {
             // Root cause fix #2: load ALL persistence into memory in ONE file read
             // before audioConfigInit() makes 30-40 getProperty() calls.
@@ -338,17 +338,17 @@ public:
 
             dsError_t ret = dsAudioPortInit();
             if (ret != dsERR_NONE) {
-                LOGERR("dsAudioPortInit failed with error: %d", ret);
+                DSLOG_ERR("dsAudioPortInit failed with error: %d", ret);
             } else {
                 _isInitialized = true;
-                LOGINFO("Audio platform initialized successfully");
+                DSLOG_INFO("Audio platform initialized successfully");
                 initializeAudioSettings();
                 audioConfigInit();
                 registerHALCallbacks();
                 notifyAudioPortStateChanged(AudioPortState::AUDIO_PORT_STATE_INITIALIZED);
             }
         } catch (...) {
-            LOGERR("Exception during Audio platform initialization");
+            DSLOG_ERR("Exception during Audio platform initialization");
         }
         EXIT_LOG;
     }
@@ -361,10 +361,10 @@ public:
             try {
                 dsError_t ret = dsAudioPortTerm();
                 if (ret != dsERR_NONE) {
-                    LOGERR("dsAudioPortTerm failed with error: %d", ret);
+                    DSLOG_ERR("dsAudioPortTerm failed with error: %d", ret);
                 }
             } catch (...) {
-                LOGERR("Exception during Audio platform termination");
+                DSLOG_ERR("Exception during Audio platform termination");
             }
             _isInitialized = false;
         }
@@ -417,7 +417,7 @@ public:
     uint32_t GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -429,16 +429,16 @@ public:
             
             if (ret == dsERR_NONE) {
                 handle = static_cast<int32_t>(dsHandle);
-                LOGINFO("GetAudioPort success: type=%d, index=%d, handle=%d", type, index, handle);
+                DSLOG_INFO("success: type=%d, index=%d, handle=%d", type, index, handle);
             } else {
                 if (ret == dsERR_OPERATION_NOT_SUPPORTED)
-                    LOGWARN("GetAudioPort: port type=%d not supported on this platform (error=%d)", type, ret);
+                    DSLOG_WARN(" port type=%d not supported on this platform (error=%d)", type, ret);
                 else
-                    LOGERR("dsGetAudioPort failed with error: %d", ret);
+                    DSLOG_ERR("dsGetAudioPort failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioPort");
+            DSLOG_ERR("Exception in GetAudioPort");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -448,7 +448,7 @@ public:
     uint32_t GetAudioCapabilities(const int32_t handle, int32_t &capabilities) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -462,7 +462,7 @@ public:
             if (dsGetAudioCapabilitiesFunc == 0) {
                 dsGetAudioCapabilitiesFunc = (dsGetAudioCapabilities_t)resolve(RDK_DSHAL_NAME, "dsGetAudioCapabilities");
                 if (dsGetAudioCapabilitiesFunc == 0) {
-                    LOGERR("dsGetAudioCapabilities is not defined");
+                    DSLOG_ERR("dsGetAudioCapabilities is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -474,13 +474,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 capabilities = dsCapabilities;
-                LOGINFO("GetAudioCapabilities success: handle=%d, capabilities=%d", handle, capabilities);
+                DSLOG_INFO("success: handle=%d, capabilities=%d", handle, capabilities);
             } else {
-                LOGERR("dsGetAudioCapabilities failed with error: %d", ret);
+                DSLOG_ERR("dsGetAudioCapabilities failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioCapabilities");
+            DSLOG_ERR("Exception in GetAudioCapabilities");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -490,7 +490,7 @@ public:
     uint32_t GetAudioMS12Capabilities(const int32_t handle, int32_t &capabilities) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -500,13 +500,13 @@ public:
             dsError_t ret = dsGetMS12Capabilities(dsHandle, &dsCapabilities);
             if (ret == dsERR_NONE) {
                 capabilities = dsCapabilities;
-                LOGINFO("GetAudioMS12Capabilities success: handle=%d, capabilities=%d", handle, capabilities);
+                DSLOG_INFO("success: handle=%d, capabilities=%d", handle, capabilities);
             } else {
-                LOGERR("dsGetMS12Capabilities failed with error: %d", ret);
+                DSLOG_ERR("dsGetMS12Capabilities failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioMS12Capabilities");
+            DSLOG_ERR("Exception in GetAudioMS12Capabilities");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -516,7 +516,7 @@ public:
     uint32_t GetAudioFormat(const int32_t handle, AudioFormat &audioFormat) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -530,7 +530,7 @@ public:
             if (dsGetAudioFormatFunc == 0) {
                 dsGetAudioFormatFunc = (dsGetAudioFormat_t)resolve(RDK_DSHAL_NAME, "dsGetAudioFormat");
                 if (dsGetAudioFormatFunc == 0) {
-                    LOGERR("dsGetAudioFormat is not defined");
+                    DSLOG_ERR("dsGetAudioFormat is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -542,13 +542,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 audioFormat = static_cast<AudioFormat>(dsFormat);
-                LOGINFO("GetAudioFormat success: handle=%d, format=%d", handle, audioFormat);
+                DSLOG_INFO("success: handle=%d, format=%d", handle, audioFormat);
             } else {
-                LOGERR("dsGetAudioFormat failed with error: %d", ret);
+                DSLOG_ERR("dsGetAudioFormat failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioFormat");
+            DSLOG_ERR("Exception in GetAudioFormat");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -558,7 +558,7 @@ public:
     uint32_t GetAudioEncoding(const int32_t handle, AudioEncoding &encoding) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -567,7 +567,7 @@ public:
             dsAudioStereoMode_t stereoMode = dsAUDIO_STEREO_UNKNOWN;
             dsError_t ret = dsGetStereoMode(static_cast<intptr_t>(handle), &stereoMode);
             if (ret != dsERR_NONE) {
-                LOGERR("GetAudioEncoding: dsGetStereoMode failed: %d", ret);
+                DSLOG_ERR(" dsGetStereoMode failed: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
             switch (stereoMode) {
@@ -589,9 +589,9 @@ public:
                     encoding = AudioEncoding::AUDIO_ENCODING_NONE;
                     break;
             }
-            LOGINFO("GetAudioEncoding: handle=%d stereoMode=%d encoding=%d", handle, stereoMode, static_cast<int>(encoding));
+            DSLOG_INFO(" handle=%d stereoMode=%d encoding=%d", handle, stereoMode, static_cast<int>(encoding));
         } catch (...) {
-            LOGERR("Exception in GetAudioEncoding");
+            DSLOG_ERR("Exception in GetAudioEncoding");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -601,7 +601,7 @@ public:
     uint32_t GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -636,10 +636,10 @@ public:
             using CompressionIterator = WPEFramework::RPC::IteratorType<IDeviceSettingsAudioCompressionIterator>;
             compressions = WPEFramework::Core::Service<CompressionIterator>::Create<IDeviceSettingsAudioCompressionIterator>(compressionList);
 
-            LOGINFO("GetSupportedCompressions success: handle=%d, count=%zu, caps=0x%x",
+            DSLOG_INFO("success: handle=%d, count=%zu, caps=0x%x",
                     handle, compressionList.size(), caps);
         } catch (...) {
-            LOGERR("Exception in GetSupportedCompressions");
+            DSLOG_ERR("Exception in GetSupportedCompressions");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -649,7 +649,7 @@ public:
     uint32_t GetAudioCompression(const int32_t handle, AudioCompression &compression) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -663,7 +663,7 @@ public:
             if (dsGetAudioCompressionFunc == 0) {
                 dsGetAudioCompressionFunc = (dsGetAudioCompression_t)resolve(RDK_DSHAL_NAME, "dsGetAudioCompression");
                 if (dsGetAudioCompressionFunc == 0) {
-                    LOGERR("dsGetAudioCompression is not defined");
+                    DSLOG_ERR("dsGetAudioCompression is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -675,13 +675,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 compression = static_cast<AudioCompression>(dsCompression);
-                LOGINFO("GetAudioCompression success: handle=%d, compression=%d", handle, static_cast<int>(compression));
+                DSLOG_INFO("success: handle=%d, compression=%d", handle, static_cast<int>(compression));
             } else {
-                LOGERR("dsGetAudioCompression failed with error: %d", ret);
+                DSLOG_ERR("dsGetAudioCompression failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioCompression");
+            DSLOG_ERR("Exception in GetAudioCompression");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -691,7 +691,7 @@ public:
     uint32_t SetAudioCompression(const int32_t handle, const AudioCompression compression) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -704,7 +704,7 @@ public:
             if (dsSetAudioCompressionFunc == 0) {
                 dsSetAudioCompressionFunc = (dsSetAudioCompression_t)resolve(RDK_DSHAL_NAME, "dsSetAudioCompression");
                 if (dsSetAudioCompressionFunc == 0) {
-                    LOGERR("dsSetAudioCompression is not defined");
+                    DSLOG_ERR("dsSetAudioCompression is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -715,16 +715,16 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioCompression success: handle=%d, compression=%d", handle, static_cast<int>(compression));
+                DSLOG_INFO("success: handle=%d, compression=%d", handle, static_cast<int>(compression));
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.Compression", std::to_string(static_cast<int>(compression)));
 #endif
             } else {
-                LOGERR("dsSetAudioCompression failed with error: %d", ret);
+                DSLOG_ERR("dsSetAudioCompression failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioCompression");
+            DSLOG_ERR("Exception in SetAudioCompression");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -734,7 +734,7 @@ public:
     uint32_t SetAudioLevel(const int32_t handle, const float audioLevel) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -747,7 +747,7 @@ public:
             if (dsSetAudioLevelFunc == 0) {
                 dsSetAudioLevelFunc = (dsSetAudioLevel_t)resolve(RDK_DSHAL_NAME, "dsSetAudioLevel");
                 if (dsSetAudioLevelFunc == 0) {
-                    LOGERR("dsSetAudioLevel is not defined");
+                    DSLOG_ERR("dsSetAudioLevel is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -762,12 +762,12 @@ public:
                     dsGetAudioLevel(dsHandle, &currentLevel);
                     if (_isDuckingInProgress && currentLevel != static_cast<float>(_volumeDuckingLevel)) {
                         // Ducking active and current level diverged — re-apply ducking level
-                        LOGINFO("SetAudioLevel: ducking in progress, applying ducking level %d instead of %f",
+                        DSLOG_INFO(" ducking in progress, applying ducking level %d instead of %f",
                                 _volumeDuckingLevel, audioLevel);
                         ret = dsSetAudioLevelFunc(dsHandle, static_cast<float>(_volumeDuckingLevel));
                     } else if (_isDuckingInProgress) {
                         // Already at ducking level — skip (dsAudio.c: returns SUCCESS without calling HAL)
-                        LOGINFO("SetAudioLevel: ducking in progress, skipping level change for SPEAKER");
+                        DSLOG_INFO(" ducking in progress, skipping level change for SPEAKER");
                         ret = dsERR_NONE;
                     } else {
                         ret = dsSetAudioLevelFunc(dsHandle, audioLevel);
@@ -778,7 +778,7 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioLevel success: handle=%d, level=%f", handle, audioLevel);
+                DSLOG_INFO("success: handle=%d, level=%f", handle, audioLevel);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 std::string _audioLevel = std::to_string(audioLevel);
                 dsAudioPortType_t _portType = getAudioPortType(dsHandle);
@@ -793,11 +793,11 @@ public:
                 // Notify about audio level change
                 notifyAudioLevelChanged(static_cast<int32_t>(audioLevel));
             } else {
-                LOGERR("dsSetAudioLevel failed with error: %d", ret);
+                DSLOG_ERR("dsSetAudioLevel failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioLevel");
+            DSLOG_ERR("Exception in SetAudioLevel");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -807,7 +807,7 @@ public:
     uint32_t GetAudioLevel(const int32_t handle, float &audioLevel) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -821,7 +821,7 @@ public:
             if (dsGetAudioLevelFunc == 0) {
                 dsGetAudioLevelFunc = (dsGetAudioLevel_t)resolve(RDK_DSHAL_NAME, "dsGetAudioLevel");
                 if (dsGetAudioLevelFunc == 0) {
-                    LOGERR("dsGetAudioLevel is not defined");
+                    DSLOG_ERR("dsGetAudioLevel is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -833,13 +833,13 @@ public:
 
             if (ret == dsERR_NONE) {
                 audioLevel = dsLevel;
-                LOGINFO("GetAudioLevel success: handle=%d, level=%f", handle, audioLevel);
+                DSLOG_INFO("success: handle=%d, level=%f", handle, audioLevel);
             } else {
-                LOGERR("dsGetAudioLevel failed with error: %d", ret);
+                DSLOG_ERR("dsGetAudioLevel failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioLevel");
+            DSLOG_ERR("Exception in GetAudioLevel");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -849,7 +849,7 @@ public:
     uint32_t SetAudioGain(const int32_t handle, const float gainLevel) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -862,7 +862,7 @@ public:
             if (dsSetAudioGainFunc == 0) {
                 dsSetAudioGainFunc = (dsSetAudioGain_t)resolve(RDK_DSHAL_NAME, "dsSetAudioGain");
                 if (dsSetAudioGainFunc == 0) {
-                    LOGERR("dsSetAudioGain is not defined");
+                    DSLOG_ERR("dsSetAudioGain is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -872,7 +872,7 @@ public:
                 ret = dsSetAudioGainFunc(dsHandle, gainLevel);
             }
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioGain success: handle=%d, gain=%f", handle, gainLevel);
+                DSLOG_INFO("success: handle=%d, gain=%f", handle, gainLevel);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 std::string _gain = std::to_string(gainLevel);
                 dsAudioPortType_t _portType = getAudioPortType(dsHandle);
@@ -884,11 +884,11 @@ public:
                 }
 #endif
             } else {
-                LOGERR("dsSetAudioGain failed with error: %d", ret);
+                DSLOG_ERR("dsSetAudioGain failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioGain");
+            DSLOG_ERR("Exception in SetAudioGain");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -898,7 +898,7 @@ public:
     uint32_t GetAudioGain(const int32_t handle, float &gainLevel) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -912,7 +912,7 @@ public:
             if (dsGetAudioGainFunc == 0) {
                 dsGetAudioGainFunc = (dsGetAudioGain_t)resolve(RDK_DSHAL_NAME, "dsGetAudioGain");
                 if (dsGetAudioGainFunc == 0) {
-                    LOGERR("dsGetAudioGain is not defined");
+                    DSLOG_ERR("dsGetAudioGain is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -924,13 +924,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 gainLevel = dsGain;
-                LOGINFO("GetAudioGain success: handle=%d, gain=%f", handle, gainLevel);
+                DSLOG_INFO("success: handle=%d, gain=%f", handle, gainLevel);
             } else {
-                LOGERR("dsGetAudioGain failed with error: %d", ret);
+                DSLOG_ERR("dsGetAudioGain failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioGain");
+            DSLOG_ERR("Exception in GetAudioGain");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -940,7 +940,7 @@ public:
     uint32_t SetAudioMute(const int32_t handle, const bool mute) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -951,7 +951,7 @@ public:
             dsAudioPortType_t portType = getAudioPortType(dsHandle);
             if (!mute && portType == dsAUDIOPORT_TYPE_SPEAKER) {
                 if (setAudioDuckingAudioLevel(dsHandle) != WPEFramework::Core::ERROR_NONE) {
-                    LOGERR("SetAudioMute: failed to restore audio ducking level for Speaker port");
+                    DSLOG_ERR(" failed to restore audio ducking level for Speaker port");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -959,7 +959,7 @@ public:
             dsError_t ret = dsSetAudioMute(dsHandle, mute);
             if (ret == dsERR_NONE) {
                 _muteStatus = mute;
-                LOGINFO("SetAudioMute success: handle=%d, mute=%d", handle, mute);
+                DSLOG_INFO("success: handle=%d, mute=%d", handle, mute);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 std::string _mute = mute ? "TRUE" : "FALSE";
                 dsAudioPortType_t _portType = getAudioPortType(dsHandle);
@@ -973,11 +973,11 @@ public:
                 }
 #endif
             } else {
-                LOGERR("dsSetAudioMute failed with error: %d", ret);
+                DSLOG_ERR("dsSetAudioMute failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioMute");
+            DSLOG_ERR("Exception in SetAudioMute");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -987,7 +987,7 @@ public:
     uint32_t IsAudioMuted(const int32_t handle, bool &muted) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         
@@ -1001,7 +1001,7 @@ public:
             if (dsIsAudioMuteFunc == 0) {
                 dsIsAudioMuteFunc = (dsIsAudioMute_t)resolve(RDK_DSHAL_NAME, "dsIsAudioMute");
                 if (dsIsAudioMuteFunc == 0) {
-                    LOGERR("dsIsAudioMute is not defined");
+                    DSLOG_ERR("dsIsAudioMute is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1013,13 +1013,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 muted = dsMuted;
-                LOGINFO("IsAudioMuted success: handle=%d, muted=%d", handle, muted);
+                DSLOG_INFO("success: handle=%d, muted=%d", handle, muted);
             } else {
-                LOGERR("dsIsAudioMute failed with error: %d", ret);
+                DSLOG_ERR("dsIsAudioMute failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in IsAudioMuted");
+            DSLOG_ERR("Exception in IsAudioMuted");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1029,7 +1029,7 @@ public:
     uint32_t SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1039,22 +1039,22 @@ public:
             float volumeLevel = 0;
             bool portEnabled = false;
             
-            LOGINFO("SetAudioDucking: action=%d, type=%d, level=%d", static_cast<int>(duckingAction), static_cast<int>(duckingType), level);
+            DSLOG_INFO(" action=%d, type=%d, level=%d", static_cast<int>(duckingAction), static_cast<int>(duckingType), level);
 
             // Check if audio port is enabled
             dsError_t ret = dsIsAudioPortEnabled(dsHandle, &portEnabled);
             if (ret != dsERR_NONE) {
-                LOGWARN("dsIsAudioPortEnabled failed with error: %d", ret);
+                DSLOG_WARN("dsIsAudioPortEnabled failed with error: %d", ret);
             }
 
             // Get current audio level
             ret = dsGetAudioLevel(dsHandle, &volumeLevel);
             if (ret != dsERR_NONE) {
-                LOGERR("dsGetAudioLevel failed with error: %d", ret);
+                DSLOG_ERR("dsGetAudioLevel failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
 
-            LOGINFO("Current volumeLevel: %f", volumeLevel);
+            DSLOG_INFO("Current volumeLevel: %f", volumeLevel);
 
             // Calculate ducking volume based on action and type
             if (duckingAction == AudioDuckingAction::AUDIO_DUCKINGACTION_START) {
@@ -1075,13 +1075,13 @@ public:
 
             // If muted or port disabled, store volume but don't apply
             if (_muteStatus || !portEnabled) {
-                LOGWARN("Mute on or port disabled, ignoring ducking request");
+                DSLOG_WARN("Mute on or port disabled, ignoring ducking request");
                 _volumeDuckingLevel = volume;
                 EXIT_LOG;
                 return WPEFramework::Core::ERROR_NONE;
             }
 
-            LOGINFO("Adjusted volume: %d, previous ducking level: %d", volume, _volumeDuckingLevel);
+            DSLOG_INFO("Adjusted volume: %d, previous ducking level: %d", volume, _volumeDuckingLevel);
 
             // Apply volume to HAL layer and send event if changed
             if (volume != _volumeDuckingLevel) {
@@ -1091,7 +1091,7 @@ public:
                 if (dsSetAudioLevelFunc == 0) {
                     dsSetAudioLevelFunc = (dsSetAudioLevel_t)resolve(RDK_DSHAL_NAME, "dsSetAudioLevel");
                     if (dsSetAudioLevelFunc == 0) {
-                        LOGERR("dsSetAudioLevel is not defined");
+                        DSLOG_ERR("dsSetAudioLevel is not defined");
                         return WPEFramework::Core::ERROR_GENERAL;
                     }
                 }
@@ -1103,22 +1103,22 @@ public:
                 
                 if (ret == dsERR_NONE) {
                     _volumeDuckingLevel = volume;
-                    LOGINFO("SetAudioDucking applied successfully: handle=%d, volume=%d", handle, volume);
+                    DSLOG_INFO("applied successfully: handle=%d, volume=%d", handle, volume);
                     
                     // Send audio level change event through callback if available
                     if (g_AudioLevelChangedCallback) {
                         g_AudioLevelChangedCallback(static_cast<float>(volume));
                     }
                 } else {
-                    LOGERR("dsSetAudioLevel failed with error: %d", ret);
+                    DSLOG_ERR("dsSetAudioLevel failed with error: %d", ret);
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
             
-            LOGINFO("SetAudioDucking success: handle=%d, type=%d, action=%d, level=%d, final_volume=%d", 
+            DSLOG_INFO("success: handle=%d, type=%d, action=%d, level=%d, final_volume=%d",
                    handle, static_cast<int>(duckingType), static_cast<int>(duckingAction), level, volume);
         } catch (...) {
-            LOGERR("Exception in SetAudioDucking");
+            DSLOG_ERR("Exception in SetAudioDucking");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1128,7 +1128,7 @@ public:
     uint32_t GetStereoMode(const int32_t handle, AudioStereoMode &mode) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         
@@ -1140,13 +1140,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 mode = convertFromDS(dsMode);
-                LOGINFO("GetStereoMode success: handle=%d, mode=%d", handle, static_cast<int>(mode));
+                DSLOG_INFO("success: handle=%d, mode=%d", handle, static_cast<int>(mode));
             } else {
-                LOGERR("dsGetStereoMode failed with error: %d", ret);
+                DSLOG_ERR("dsGetStereoMode failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetStereoMode");
+            DSLOG_ERR("Exception in GetStereoMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1156,7 +1156,7 @@ public:
     uint32_t SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1167,7 +1167,7 @@ public:
             dsError_t ret = dsSetStereoMode(dsHandle, dsMode);
 
             if (ret == dsERR_NONE) {
-                LOGINFO("SetStereoMode success: handle=%d, mode=%d, persist=%s", handle, static_cast<int>(mode), persist ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, mode=%d, persist=%s", handle, static_cast<int>(mode), persist ? "true" : "false");
 
                 // Determine actual port type from handle
                 dsAudioPortType_t dsPortType = getAudioPortType(dsHandle);
@@ -1216,7 +1216,7 @@ public:
                 // Handle persistence based on port type and mode
                 if (persist) {
                     try {
-                        LOGINFO("Setting Audio Mode %s with persistent value: %s", modeString.c_str(), persist ? "true" : "false");
+                        DSLOG_INFO("Setting Audio Mode %s with persistent value: %s", modeString.c_str(), persist ? "true" : "false");
                         
                         switch (dsPortType) {
                             case dsAUDIOPORT_TYPE_HDMI:
@@ -1232,11 +1232,11 @@ public:
                                 device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.AudioMode", modeString.c_str());
                                 break;
                             default:
-                                LOGWARN("Unknown port type %d, skipping persistence", dsPortType);
+                                DSLOG_WARN("Unknown port type %d, skipping persistence", dsPortType);
                                 break;
                         }
                     } catch (...) {
-                        LOGERR("Error in persisting audio mode setting");
+                        DSLOG_ERR("Error in persisting audio mode setting");
                     }
                 }
 
@@ -1244,13 +1244,13 @@ public:
                 notifyAudioModeChanged(portType, mode);
             } else {
                 if (ret == dsERR_OPERATION_NOT_SUPPORTED)
-                    LOGWARN("dsSetStereoMode not supported on this port (error=%d)", ret);
+                    DSLOG_WARN("dsSetStereoMode not supported on this port (error=%d)", ret);
                 else
-                    LOGERR("dsSetStereoMode failed with error: %d", ret);
+                    DSLOG_ERR("dsSetStereoMode failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetStereoMode");
+            DSLOG_ERR("Exception in SetStereoMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1260,7 +1260,7 @@ public:
     uint32_t SetAssociatedAudioMixing(const int32_t handle, const bool mixing) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1273,7 +1273,7 @@ public:
             if (dsSetAssociatedAudioMixingFunc == 0) {
                 dsSetAssociatedAudioMixingFunc = (dsSetAssociatedAudioMixing_t)resolve(RDK_DSHAL_NAME, "dsSetAssociatedAudioMixing");
                 if (dsSetAssociatedAudioMixingFunc == 0) {
-                    LOGERR("dsSetAssociatedAudioMixing is not defined");
+                    DSLOG_ERR("dsSetAssociatedAudioMixing is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1284,18 +1284,18 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAssociatedAudioMixing success: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.AssociatedAudioMixing", mixing ? "Enabled" : "Disabled");
 #endif
                 // Notify about associated audio mixing change
                 notifyAssociatedAudioMixingChanged(mixing);
             } else {
-                LOGERR("dsSetAssociatedAudioMixing failed with error: %d", ret);
+                DSLOG_ERR("dsSetAssociatedAudioMixing failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAssociatedAudioMixing");
+            DSLOG_ERR("Exception in SetAssociatedAudioMixing");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1305,7 +1305,7 @@ public:
     uint32_t GetAssociatedAudioMixing(const int32_t handle, bool &mixing) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1319,7 +1319,7 @@ public:
             if (dsGetAssociatedAudioMixingFunc == 0) {
                 dsGetAssociatedAudioMixingFunc = (dsGetAssociatedAudioMixing_t)resolve(RDK_DSHAL_NAME, "dsGetAssociatedAudioMixing");
                 if (dsGetAssociatedAudioMixingFunc == 0) {
-                    LOGERR("dsGetAssociatedAudioMixing is not defined");
+                    DSLOG_ERR("dsGetAssociatedAudioMixing is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1331,13 +1331,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 mixing = dsMixing;
-                LOGINFO("GetAssociatedAudioMixing success: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, mixing=%s", handle, mixing ? "true" : "false");
             } else {
-                LOGERR("dsGetAssociatedAudioMixing failed with error: %d", ret);
+                DSLOG_ERR("dsGetAssociatedAudioMixing failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAssociatedAudioMixing");
+            DSLOG_ERR("Exception in GetAssociatedAudioMixing");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1347,7 +1347,7 @@ public:
     uint32_t SetAudioFaderControl(const int32_t handle, const int32_t mixerBalance) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1360,7 +1360,7 @@ public:
             if (dsSetFaderControlFunc == 0) {
                 dsSetFaderControlFunc = (dsSetFaderControl_t)resolve(RDK_DSHAL_NAME, "dsSetFaderControl");
                 if (dsSetFaderControlFunc == 0) {
-                    LOGERR("dsSetFaderControl is not defined");
+                    DSLOG_ERR("dsSetFaderControl is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1371,18 +1371,18 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioFaderControl success: handle=%d, balance=%d", handle, mixerBalance);
+                DSLOG_INFO("success: handle=%d, balance=%d", handle, mixerBalance);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.FaderControl", std::to_string(mixerBalance));
 #endif
                 // Notify about fader control change
                 notifyAudioFaderControlChanged(mixerBalance);
             } else {
-                LOGERR("dsSetFaderControl failed with error: %d", ret);
+                DSLOG_ERR("dsSetFaderControl failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioFaderControl");
+            DSLOG_ERR("Exception in SetAudioFaderControl");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1392,7 +1392,7 @@ public:
     uint32_t GetAudioFaderControl(const int32_t handle, int32_t &mixerBalance) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1406,7 +1406,7 @@ public:
             if (dsGetFaderControlFunc == 0) {
                 dsGetFaderControlFunc = (dsGetFaderControl_t)resolve(RDK_DSHAL_NAME, "dsGetFaderControl");
                 if (dsGetFaderControlFunc == 0) {
-                    LOGERR("dsGetFaderControl is not defined");
+                    DSLOG_ERR("dsGetFaderControl is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1418,13 +1418,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 mixerBalance = dsBalance;
-                LOGINFO("GetAudioFaderControl success: handle=%d, balance=%d", handle, mixerBalance);
+                DSLOG_INFO("success: handle=%d, balance=%d", handle, mixerBalance);
             } else {
-                LOGERR("dsGetFaderControl failed with error: %d", ret);
+                DSLOG_ERR("dsGetFaderControl failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioFaderControl");
+            DSLOG_ERR("Exception in GetAudioFaderControl");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1434,7 +1434,7 @@ public:
     uint32_t SetAudioPrimaryLanguage(const int32_t handle, const std::string& primaryAudioLanguage) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1447,7 +1447,7 @@ public:
             if (dsSetPrimaryLanguageFunc == 0) {
                 dsSetPrimaryLanguageFunc = (dsSetPrimaryLanguage_t)resolve(RDK_DSHAL_NAME, "dsSetPrimaryLanguage");
                 if (dsSetPrimaryLanguageFunc == 0) {
-                    LOGERR("dsSetPrimaryLanguage is not defined");
+                    DSLOG_ERR("dsSetPrimaryLanguage is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1458,18 +1458,18 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioPrimaryLanguage success: handle=%d, language=%s", handle, primaryAudioLanguage.c_str());
+                DSLOG_INFO("success: handle=%d, language=%s", handle, primaryAudioLanguage.c_str());
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.PrimaryLanguage", primaryAudioLanguage);
 #endif
                 // Notify about primary language change
                 notifyAudioPrimaryLanguageChanged(primaryAudioLanguage);
             } else {
-                LOGERR("dsSetPrimaryLanguage failed with error: %d", ret);
+                DSLOG_ERR("dsSetPrimaryLanguage failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioPrimaryLanguage");
+            DSLOG_ERR("Exception in SetAudioPrimaryLanguage");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1479,7 +1479,7 @@ public:
     uint32_t GetAudioPrimaryLanguage(const int32_t handle, std::string &primaryAudioLanguage) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1493,7 +1493,7 @@ public:
             if (dsGetPrimaryLanguageFunc == 0) {
                 dsGetPrimaryLanguageFunc = (dsGetPrimaryLanguage_t)resolve(RDK_DSHAL_NAME, "dsGetPrimaryLanguage");
                 if (dsGetPrimaryLanguageFunc == 0) {
-                    LOGERR("dsGetPrimaryLanguage is not defined");
+                    DSLOG_ERR("dsGetPrimaryLanguage is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1505,13 +1505,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 primaryAudioLanguage = std::string(langStr);
-                LOGINFO("GetAudioPrimaryLanguage success: handle=%d, language=%s", handle, primaryAudioLanguage.c_str());
+                DSLOG_INFO("success: handle=%d, language=%s", handle, primaryAudioLanguage.c_str());
             } else {
-                LOGERR("dsGetPrimaryLanguage failed with error: %d", ret);
+                DSLOG_ERR("dsGetPrimaryLanguage failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioPrimaryLanguage");
+            DSLOG_ERR("Exception in GetAudioPrimaryLanguage");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1521,7 +1521,7 @@ public:
     uint32_t SetAudioSecondaryLanguage(const int32_t handle, const std::string& secondaryAudioLanguage) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1534,7 +1534,7 @@ public:
             if (dsSetSecondaryLanguageFunc == 0) {
                 dsSetSecondaryLanguageFunc = (dsSetSecondaryLanguage_t)resolve(RDK_DSHAL_NAME, "dsSetSecondaryLanguage");
                 if (dsSetSecondaryLanguageFunc == 0) {
-                    LOGERR("dsSetSecondaryLanguage is not defined");
+                    DSLOG_ERR("dsSetSecondaryLanguage is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1545,18 +1545,18 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioSecondaryLanguage success: handle=%d, language=%s", handle, secondaryAudioLanguage.c_str());
+                DSLOG_INFO("success: handle=%d, language=%s", handle, secondaryAudioLanguage.c_str());
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.SecondaryLanguage", secondaryAudioLanguage);
 #endif
                 // Notify about secondary language change
                 notifyAudioSecondaryLanguageChanged(secondaryAudioLanguage);
             } else {
-                LOGERR("dsSetSecondaryLanguage failed with error: %d", ret);
+                DSLOG_ERR("dsSetSecondaryLanguage failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioSecondaryLanguage");
+            DSLOG_ERR("Exception in SetAudioSecondaryLanguage");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1566,7 +1566,7 @@ public:
     uint32_t GetAudioSecondaryLanguage(const int32_t handle, std::string &secondaryAudioLanguage) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1580,7 +1580,7 @@ public:
             if (dsGetSecondaryLanguageFunc == 0) {
                 dsGetSecondaryLanguageFunc = (dsGetSecondaryLanguage_t)resolve(RDK_DSHAL_NAME, "dsGetSecondaryLanguage");
                 if (dsGetSecondaryLanguageFunc == 0) {
-                    LOGERR("dsGetSecondaryLanguage is not defined");
+                    DSLOG_ERR("dsGetSecondaryLanguage is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1592,13 +1592,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 secondaryAudioLanguage = std::string(langStr);
-                LOGINFO("GetAudioSecondaryLanguage success: handle=%d, language=%s", handle, secondaryAudioLanguage.c_str());
+                DSLOG_INFO("success: handle=%d, language=%s", handle, secondaryAudioLanguage.c_str());
             } else {
-                LOGERR("dsGetSecondaryLanguage failed with error: %d", ret);
+                DSLOG_ERR("dsGetSecondaryLanguage failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioSecondaryLanguage");
+            DSLOG_ERR("Exception in GetAudioSecondaryLanguage");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1608,7 +1608,7 @@ public:
     uint32_t IsAudioOutputConnected(const int32_t handle, bool &isConnected) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1622,7 +1622,7 @@ public:
             if (dsAudioOutIsConnectedFunc == 0) {
                 dsAudioOutIsConnectedFunc = (dsAudioOutIsConnected_t)resolve(RDK_DSHAL_NAME, "dsAudioOutIsConnected");
                 if (dsAudioOutIsConnectedFunc == 0) {
-                    LOGERR("dsAudioOutIsConnected is not defined");
+                    DSLOG_ERR("dsAudioOutIsConnected is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1634,13 +1634,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 isConnected = dsConnected;
-                LOGINFO("IsAudioOutputConnected success: handle=%d, connected=%s", handle, isConnected ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, connected=%s", handle, isConnected ? "true" : "false");
             } else {
-                LOGERR("dsAudioOutIsConnected failed with error: %d", ret);
+                DSLOG_ERR("dsAudioOutIsConnected failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in IsAudioOutputConnected");
+            DSLOG_ERR("Exception in IsAudioOutputConnected");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1650,7 +1650,7 @@ public:
     uint32_t GetAudioSinkDeviceAtmosCapability(const int32_t handle, DolbyAtmosCapability &atmosCapability) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1665,7 +1665,7 @@ public:
             if (dsGetSinkDeviceAtmosCapabilityFunc == 0) {
                 dsGetSinkDeviceAtmosCapabilityFunc = (dsGetSinkDeviceAtmosCapability_t)resolve(RDK_DSHAL_NAME, "dsGetSinkDeviceAtmosCapability");
                 if (dsGetSinkDeviceAtmosCapabilityFunc == 0) {
-                    LOGERR("dsGetSinkDeviceAtmosCapability is not defined");
+                    DSLOG_ERR("dsGetSinkDeviceAtmosCapability is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1677,13 +1677,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 atmosCapability = static_cast<DolbyAtmosCapability>(dsCapability);
-                LOGINFO("GetAudioSinkDeviceAtmosCapability success: handle=%d, capability=%d", handle, static_cast<int>(atmosCapability));
+                DSLOG_INFO("success: handle=%d, capability=%d", handle, static_cast<int>(atmosCapability));
             } else {
-                LOGERR("dsGetSinkDeviceAtmosCapability failed with error: %d", ret);
+                DSLOG_ERR("dsGetSinkDeviceAtmosCapability failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioSinkDeviceAtmosCapability");
+            DSLOG_ERR("Exception in GetAudioSinkDeviceAtmosCapability");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1693,7 +1693,7 @@ public:
     uint32_t SetAudioAtmosOutputMode(const int32_t handle, const bool enable) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1706,7 +1706,7 @@ public:
             if (dsSetAudioAtmosOutputModeFunc == 0) {
                 dsSetAudioAtmosOutputModeFunc = (dsSetAudioAtmosOutputMode_t)resolve(RDK_DSHAL_NAME, "dsSetAudioAtmosOutputMode");
                 if (dsSetAudioAtmosOutputModeFunc == 0) {
-                    LOGERR("dsSetAudioAtmosOutputMode is not defined");
+                    DSLOG_ERR("dsSetAudioAtmosOutputMode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1717,13 +1717,13 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioAtmosOutputMode success: handle=%d, enable=%s", handle, enable ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, enable=%s", handle, enable ? "true" : "false");
             } else {
-                LOGERR("dsSetAudioAtmosOutputMode failed with error: %d", ret);
+                DSLOG_ERR("dsSetAudioAtmosOutputMode failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioAtmosOutputMode");
+            DSLOG_ERR("Exception in SetAudioAtmosOutputMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1743,7 +1743,7 @@ public:
             if (dsIsAudioPortEnabledFunc == 0) {
                 dsIsAudioPortEnabledFunc = (dsIsAudioPortEnabled_t)resolve(RDK_DSHAL_NAME, "dsIsAudioPortEnabled");
                 if (dsIsAudioPortEnabledFunc == 0) {
-                    LOGERR("dsIsAudioPortEnabled is not defined");
+                    DSLOG_ERR("dsIsAudioPortEnabled is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1755,13 +1755,13 @@ public:
             
             if (dsResult == dsERR_NONE) {
                 enabled = portEnabled;
-                LOGINFO("IsAudioPortEnabled success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
             } else {
-                LOGERR("dsIsAudioPortEnabled failed with error: %d", dsResult);
+                DSLOG_ERR("dsIsAudioPortEnabled failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in IsAudioPortEnabled");
+            DSLOG_ERR("Exception in IsAudioPortEnabled");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1771,7 +1771,7 @@ public:
     uint32_t EnableAudioPort(const int32_t handle, const bool enable) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1784,16 +1784,16 @@ public:
                 bool muted = false;
                 dsError_t ret = dsIsAudioMute(dsHandle, &muted);
                 if (ret != dsERR_NONE) {
-                    LOGWARN("Failed to get the mute status of Speaker port");
+                    DSLOG_WARN("Failed to get the mute status of Speaker port");
                 }
 
                 if (enable && !muted) {
                     if (setAudioDuckingAudioLevel(dsHandle) != WPEFramework::Core::ERROR_NONE) {
-                        LOGERR("Failed to set audio ducking level for Speaker port");
+                        DSLOG_ERR("Failed to set audio ducking level for Speaker port");
                         return WPEFramework::Core::ERROR_GENERAL;
                     }
                 } else {
-                    LOGINFO("Not setting audio ducking level as mute status is %s", muted ? "true" : "false");
+                    DSLOG_INFO("Not setting audio ducking level as mute status is %s", muted ? "true" : "false");
                 }
             }
 
@@ -1804,7 +1804,7 @@ public:
             if (dsEnableAudioPortFunc == 0) {
                 dsEnableAudioPortFunc = (dsEnableAudioPort_t)resolve(RDK_DSHAL_NAME, "dsEnableAudioPort");
                 if (dsEnableAudioPortFunc == 0) {
-                    LOGERR("dsEnableAudioPort is not defined");
+                    DSLOG_ERR("dsEnableAudioPort is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1814,7 +1814,7 @@ public:
                 dsResult = dsEnableAudioPortFunc(dsHandle, enable);
             }
             if (dsResult != dsERR_NONE) {
-                LOGERR("dsEnableAudioPort failed with error: %d", dsResult);
+                DSLOG_ERR("dsEnableAudioPort failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
 
@@ -1823,34 +1823,34 @@ public:
             dsResult = dsIsAudioPortEnabled(dsHandle, &portEnabled);
             if (dsResult == dsERR_NONE) {
                 if (portEnabled != enable) {
-                    LOGERR("Audio port enable verification failed. Expected: %s, Actual: %s", 
+                    DSLOG_ERR("Audio port enable verification failed. Expected: %s, Actual: %s",
                            enable ? "enabled" : "disabled", portEnabled ? "enabled" : "disabled");
                     return WPEFramework::Core::ERROR_GENERAL;
                 } else {
-                    LOGINFO("Audio port enable verification passed: %s", enable ? "enabled" : "disabled");
+                    DSLOG_INFO("Audio port enable verification passed: %s", enable ? "enabled" : "disabled");
 
                     // Update port state tracking
                     if (portType < dsAUDIOPORT_TYPE_MAX) {
                         _audioPortEnabled[portType] = enable;
-                        LOGINFO("Port type %d enabled status: %s", portType, enable ? "true" : "false");
+                        DSLOG_INFO("Port type %d enabled status: %s", portType, enable ? "true" : "false");
 
                         // Set audio delay when enabling port
                         if (enable) {
                             uint32_t audioDelay = getAudioDelayInternal(portType);
                             bool delaySet = setAudioDelayInternal(dsHandle, audioDelay);
-                            LOGINFO("Updated audio delay for port enable - port type: %d, delay: %u, success: %s", 
+                            DSLOG_INFO("Updated audio delay for port enable - port type: %d, delay: %u, success: %s",
                                    portType, audioDelay, delaySet ? "true" : "false");
                         }
                     }
                 }
             } else {
-                LOGWARN("Audio port status verification failed - dsIsAudioPortEnabled call failed with error: %d", dsResult);
+                DSLOG_WARN("Audio port status verification failed - dsIsAudioPortEnabled call failed with error: %d", dsResult);
             }
 
-            LOGINFO("EnableAudioPort success: handle=%d, enable=%s", handle, enable ? "true" : "false");
+            DSLOG_INFO("success: handle=%d, enable=%s", handle, enable ? "true" : "false");
 
         } catch (...) {
-            LOGERR("Exception in EnableAudioPort");
+            DSLOG_ERR("Exception in EnableAudioPort");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1868,7 +1868,7 @@ public:
             if (dsGetSupportedARCTypesFunc == 0) {
                 dsGetSupportedARCTypesFunc = (dsGetSupportedARCTypes_t)resolve(RDK_DSHAL_NAME, "dsGetSupportedARCTypes");
                 if (dsGetSupportedARCTypesFunc == 0) {
-                    LOGERR("dsGetSupportedARCTypes is not defined");
+                    DSLOG_ERR("dsGetSupportedARCTypes is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1881,11 +1881,11 @@ public:
             if (dsResult == dsERR_NONE) {
                 types = arcTypes;
             } else {
-                LOGERR("dsGetSupportedARCTypes failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetSupportedARCTypes failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetSupportedARCTypes");
+            DSLOG_ERR("Exception in GetSupportedARCTypes");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1895,7 +1895,7 @@ public:
     uint32_t SetSAD(const int32_t handle, const uint8_t sadList[], const uint8_t count) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1908,7 +1908,7 @@ public:
             if (dsAudioSetSADFunc == 0) {
                 dsAudioSetSADFunc = (dsAudioSetSAD_t)resolve(RDK_DSHAL_NAME, "dsAudioSetSAD");
                 if(dsAudioSetSADFunc == 0) {
-                    LOGERR("dsAudioSetSAD is not defined");
+                    DSLOG_ERR("dsAudioSetSAD is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1922,13 +1922,13 @@ public:
             }
 
             if (ret == dsERR_NONE) {
-                LOGINFO("SetSAD success: handle=%d, count=%d", handle, count);
+                DSLOG_INFO("success: handle=%d, count=%d", handle, count);
             } else {
-                LOGERR("dsSetSAD failed with error: %d", ret);
+                DSLOG_ERR("dsSetSAD failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetSAD");
+            DSLOG_ERR("Exception in SetSAD");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1938,7 +1938,7 @@ public:
     uint32_t EnableARC(const int32_t handle, const WPEFramework::Exchange::IDeviceSettingsAudio::AudioARCStatus arcStatus) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1954,7 +1954,7 @@ public:
             if (dsAudioEnableARCFunc == 0) {
                 dsAudioEnableARCFunc = (dsAudioEnableARC_t)resolve(RDK_DSHAL_NAME, "dsAudioEnableARC");
                 if(dsAudioEnableARCFunc == 0) {
-                    LOGERR("dsAudioEnableARC is not defined");
+                    DSLOG_ERR("dsAudioEnableARC is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -1965,13 +1965,13 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("EnableARC success: handle=%d, arcStatus type=%d status=%d", handle, static_cast<int>(arcStatus.arcType), static_cast<int>(arcStatus.status));
+                DSLOG_INFO("success: handle=%d, arcStatus type=%d status=%d", handle, static_cast<int>(arcStatus.arcType), static_cast<int>(arcStatus.status));
             } else {
-                LOGERR("dsEnableARC failed with error: %d", ret);
+                DSLOG_ERR("dsEnableARC failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in EnableARC");
+            DSLOG_ERR("Exception in EnableARC");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -1981,7 +1981,7 @@ public:
     uint32_t GetAudioEnablePersist(const int32_t handle, bool &enabled, string &portName) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -1999,7 +1999,7 @@ public:
             }
             catch(...) {
                 try {
-                    LOGINFO("GetAudioEnablePersist: %s port enable settings not found in persistence store. Try system default", isEnabledAudioPortKey.c_str());
+                    DSLOG_INFO(" %s port enable settings not found in persistence store. Try system default", isEnabledAudioPortKey.c_str());
                     _AudioPortEnable = device::HostPersistence::getInstance().getDefaultProperty(isEnabledAudioPortKey);
                 }
                 catch(...) {
@@ -2009,18 +2009,18 @@ public:
             }
 
             if ("FALSE" == _AudioPortEnable) { 
-                LOGINFO("GetAudioEnablePersist: persist dsEnableAudioPort value: %s", _AudioPortEnable.c_str());
+                DSLOG_INFO(" persist dsEnableAudioPort value: %s", _AudioPortEnable.c_str());
                 enabled = false;
             }
             else {
-                LOGINFO("GetAudioEnablePersist: persist dsEnableAudioPort value: %s", _AudioPortEnable.c_str());
+                DSLOG_INFO(" persist dsEnableAudioPort value: %s", _AudioPortEnable.c_str());
                 enabled = true;
             }
 
-            LOGINFO("GetAudioEnablePersist success: handle=%d, portName=%s, enabled=%s, key=%s, value=%s", 
+            DSLOG_INFO("success: handle=%d, portName=%s, enabled=%s, key=%s, value=%s",
                    handle, portName.c_str(), enabled ? "TRUE" : "FALSE", isEnabledAudioPortKey.c_str(), _AudioPortEnable.c_str());
         } catch (...) {
-            LOGERR("Exception in GetAudioEnablePersist");
+            DSLOG_ERR("Exception in GetAudioEnablePersist");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2030,7 +2030,7 @@ public:
     uint32_t SetAudioEnablePersist(const int32_t handle, const bool enable, const string portName) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2042,10 +2042,10 @@ public:
             std::string enableValue = enable ? "TRUE" : "FALSE";
             device::HostPersistence::getInstance().persistHostProperty(isEnabledAudioPortKey.c_str(), enableValue.c_str());
 
-            LOGINFO("SetAudioEnablePersist success: handle=%d, portName=%s, enable=%s, key=%s", 
+            DSLOG_INFO("success: handle=%d, portName=%s, enable=%s, key=%s",
                    handle, portName.c_str(), enableValue.c_str(), isEnabledAudioPortKey.c_str());
         } catch (...) {
-            LOGERR("Exception in SetAudioEnablePersist");
+            DSLOG_ERR("Exception in SetAudioEnablePersist");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2063,7 +2063,7 @@ public:
             if (dsIsAudioMSDecodeFunc == 0) {
                 dsIsAudioMSDecodeFunc = (dsIsAudioMSDecode_t)resolve(RDK_DSHAL_NAME, "dsIsAudioMSDecode");
                 if (dsIsAudioMSDecodeFunc == 0) {
-                    LOGERR("dsIsAudioMSDecode is not defined");
+                    DSLOG_ERR("dsIsAudioMSDecode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2076,11 +2076,11 @@ public:
             if (dsResult == dsERR_NONE) {
                 hasms11Decode = ms11Decoded;
             } else {
-                LOGERR("dsIsAudioMSDecode failed with error: %d", dsResult);
+                DSLOG_ERR("dsIsAudioMSDecode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in IsAudioMSDecoded");
+            DSLOG_ERR("Exception in IsAudioMSDecoded");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2095,11 +2095,11 @@ public:
             if (dsResult == dsERR_NONE) {
                 hasms12Decode = ms12Decoded;
             } else {
-                LOGERR("dsIsAudioMS12Decode failed with error: %d", dsResult);
+                DSLOG_ERR("dsIsAudioMS12Decode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in IsAudioMS12Decoded");
+            DSLOG_ERR("Exception in IsAudioMS12Decoded");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2109,7 +2109,7 @@ public:
     uint32_t GetAudioLEConfig(const int32_t handle, bool &enabled) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2122,7 +2122,7 @@ public:
             if (dsGetLEConfigFunc == 0) {
                 dsGetLEConfigFunc = (dsGetLEConfig_t)resolve(RDK_DSHAL_NAME, "dsGetLEConfig");
                 if (dsGetLEConfigFunc == 0) {
-                    LOGERR("dsGetLEConfig is not defined");
+                    DSLOG_ERR("dsGetLEConfig is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2133,13 +2133,13 @@ public:
             }
             if (ret == dsERR_NONE) {
                 enabled = leEnabled;
-                LOGINFO("GetAudioLEConfig success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
             } else {
-                LOGERR("dsGetLEConfig failed with error: %d", ret);
+                DSLOG_ERR("dsGetLEConfig failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioLEConfig");
+            DSLOG_ERR("Exception in GetAudioLEConfig");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2155,7 +2155,7 @@ public:
             if (dsEnableLEConfigFunc == nullptr) {
                 dsEnableLEConfigFunc = (dsEnableLEConfig_t)resolve(RDK_DSHAL_NAME, "dsEnableLEConfig");
                 if (dsEnableLEConfigFunc == nullptr) {
-                    LOGERR("dsEnableLEConfig is not defined");
+                    DSLOG_ERR("dsEnableLEConfig is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2168,12 +2168,12 @@ public:
 #endif
                 dsError_t dsResult = dsEnableLEConfigFunc(static_cast<intptr_t>(handle), enable);
                 if (dsResult != dsERR_NONE) {
-                    LOGERR("dsEnableLEConfig failed with error: %d", dsResult);
+                    DSLOG_ERR("dsEnableLEConfig failed with error: %d", dsResult);
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
         } catch (...) {
-            LOGERR("Exception in EnableAudioLEConfig");
+            DSLOG_ERR("Exception in EnableAudioLEConfig");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2189,7 +2189,7 @@ public:
             if (dsSetAudioDelayFunc == 0) {
                 dsSetAudioDelayFunc = (dsSetAudioDelay_t)resolve(RDK_DSHAL_NAME, "dsSetAudioDelay");
                 if (dsSetAudioDelayFunc == 0) {
-                    LOGERR("dsSetAudioDelay is not defined");
+                    DSLOG_ERR("dsSetAudioDelay is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2200,7 +2200,7 @@ public:
             }
             
             if (dsResult == dsERR_NONE) {
-                LOGINFO("SetAudioDelay success: handle=%d, delay=%u", handle, audioDelay);
+                DSLOG_INFO("success: handle=%d, delay=%u", handle, audioDelay);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 std::string _delay = std::to_string(audioDelay);
                 dsAudioPortType_t _portType = getAudioPortType(static_cast<intptr_t>(handle));
@@ -2213,11 +2213,11 @@ public:
                 }
 #endif
             } else {
-                LOGERR("dsSetAudioDelay failed with error: %d", dsResult);
+                DSLOG_ERR("dsSetAudioDelay failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioDelay");
+            DSLOG_ERR("Exception in SetAudioDelay");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2234,7 +2234,7 @@ public:
             if (dsGetAudioDelayFunc == 0) {
                 dsGetAudioDelayFunc = (dsGetAudioDelay_t)resolve(RDK_DSHAL_NAME, "dsGetAudioDelay");
                 if (dsGetAudioDelayFunc == 0) {
-                    LOGERR("dsGetAudioDelay is not defined");
+                    DSLOG_ERR("dsGetAudioDelay is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2245,13 +2245,13 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 audioDelay = delay;
-                LOGINFO("GetAudioDelay success: handle=%d, delay=%u", handle, audioDelay);
+                DSLOG_INFO("success: handle=%d, delay=%u", handle, audioDelay);
             } else {
-                LOGERR("dsGetAudioDelay failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetAudioDelay failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioDelay");
+            DSLOG_ERR("Exception in GetAudioDelay");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2261,7 +2261,7 @@ public:
     uint32_t SetAudioDelayOffset(const int32_t handle, const uint32_t delayOffset) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2273,7 +2273,7 @@ public:
             if (dsSetAudioDelayOffsetFunc == 0) {
                 dsSetAudioDelayOffsetFunc = (dsSetAudioDelayOffset_t)resolve(RDK_DSHAL_NAME, "dsSetAudioDelayOffset");
                 if(dsSetAudioDelayOffsetFunc == 0) {
-                    LOGERR("dsSetAudioDelayOffset is not defined");
+                    DSLOG_ERR("dsSetAudioDelayOffset is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2284,13 +2284,13 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioDelayOffset success: handle=%d, offset=%u", handle, delayOffset);
+                DSLOG_INFO("success: handle=%d, offset=%u", handle, delayOffset);
             } else {
-                LOGERR("dsSetAudioDelayOffset failed with error: %d", ret);
+                DSLOG_ERR("dsSetAudioDelayOffset failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioDelayOffset");
+            DSLOG_ERR("Exception in SetAudioDelayOffset");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2300,7 +2300,7 @@ public:
     uint32_t GetAudioDelayOffset(const int32_t handle, uint32_t &delayOffset) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2313,7 +2313,7 @@ public:
             if (dsGetAudioDelayOffsetFunc == 0) {
                 dsGetAudioDelayOffsetFunc = (dsGetAudioDelayOffset_t)resolve(RDK_DSHAL_NAME, "dsGetAudioDelayOffset");
                 if(dsGetAudioDelayOffsetFunc == 0) {
-                    LOGERR("dsGetAudioDelayOffset is not defined");
+                    DSLOG_ERR("dsGetAudioDelayOffset is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2325,13 +2325,13 @@ public:
             
             if (ret == dsERR_NONE) {
                 delayOffset = dsOffset;
-                LOGINFO("GetAudioDelayOffset success: handle=%d, offset=%u", handle, delayOffset);
+                DSLOG_INFO("success: handle=%d, offset=%u", handle, delayOffset);
             } else {
-                LOGERR("dsGetAudioDelayOffset failed with error: %d", ret);
+                DSLOG_ERR("dsGetAudioDelayOffset failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioDelayOffset");
+            DSLOG_ERR("Exception in GetAudioDelayOffset");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2347,7 +2347,7 @@ public:
             if (dsSetAudioCompressionFunc == 0) {
                 dsSetAudioCompressionFunc = (dsSetAudioCompression_t)resolve(RDK_DSHAL_NAME, "dsSetAudioCompression");
                 if (dsSetAudioCompressionFunc == 0) {
-                    LOGERR("dsSetAudioCompression is not defined");
+                    DSLOG_ERR("dsSetAudioCompression is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2357,16 +2357,16 @@ public:
                 dsResult = dsSetAudioCompressionFunc(static_cast<intptr_t>(handle), compressionLevel);
             }
             if (dsResult == dsERR_NONE) {
-                LOGINFO("SetAudioCompression success: handle=%d, level=%d", handle, compressionLevel);
+                DSLOG_INFO("success: handle=%d, level=%d", handle, compressionLevel);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.Compression", std::to_string(compressionLevel));
 #endif
             } else {
-                LOGERR("dsSetAudioCompression failed with error: %d", dsResult);
+                DSLOG_ERR("dsSetAudioCompression failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioCompression");
+            DSLOG_ERR("Exception in SetAudioCompression");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2383,7 +2383,7 @@ public:
             if (dsGetAudioCompressionFunc == 0) {
                 dsGetAudioCompressionFunc = (dsGetAudioCompression_t)resolve(RDK_DSHAL_NAME, "dsGetAudioCompression");
                 if (dsGetAudioCompressionFunc == 0) {
-                    LOGERR("dsGetAudioCompression is not defined");
+                    DSLOG_ERR("dsGetAudioCompression is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2394,13 +2394,13 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 compressionLevel = compression;
-                LOGINFO("GetAudioCompression success: handle=%d, level=%d", handle, compressionLevel);
+                DSLOG_INFO("success: handle=%d, level=%d", handle, compressionLevel);
             } else {
-                LOGERR("dsGetAudioCompression failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetAudioCompression failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioCompression");
+            DSLOG_ERR("Exception in GetAudioCompression");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2410,7 +2410,7 @@ public:
     uint32_t SetAudioDialogEnhancement(const int32_t handle, const int32_t level) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2423,7 +2423,7 @@ public:
             if (dsSetDialogEnhancementFunc == 0) {
                 dsSetDialogEnhancementFunc = (dsSetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsSetDialogEnhancement");
                 if (dsSetDialogEnhancementFunc == 0) {
-                    LOGERR("dsSetDialogEnhancement is not defined");
+                    DSLOG_ERR("dsSetDialogEnhancement is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2434,16 +2434,16 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioDialogEnhancement success: handle=%d, level=%d", handle, level);
+                DSLOG_INFO("success: handle=%d, level=%d", handle, level);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("EnhancerLevel"), std::to_string(level));
 #endif
             } else {
-                LOGERR("dsSetDialogEnhancement failed with error: %d", ret);
+                DSLOG_ERR("dsSetDialogEnhancement failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioDialogEnhancement");
+            DSLOG_ERR("Exception in SetAudioDialogEnhancement");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2460,7 +2460,7 @@ public:
             if (dsGetDialogEnhancementFunc == 0) {
                 dsGetDialogEnhancementFunc = (dsGetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsGetDialogEnhancement");
                 if (dsGetDialogEnhancementFunc == 0) {
-                    LOGERR("dsGetDialogEnhancement is not defined");
+                    DSLOG_ERR("dsGetDialogEnhancement is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2471,13 +2471,13 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 level = dialogLevel;
-                LOGINFO("GetAudioDialogEnhancement success: handle=%d, level=%d", handle, level);
+                DSLOG_INFO("success: handle=%d, level=%d", handle, level);
             } else {
-                LOGERR("dsGetDialogEnhancement failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetDialogEnhancement failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioDialogEnhancement");
+            DSLOG_ERR("Exception in GetAudioDialogEnhancement");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2493,7 +2493,7 @@ public:
             if (dsSetDolbyVolumeModeFunc == 0) {
                 dsSetDolbyVolumeModeFunc = (dsSetDolbyVolumeMode_t)resolve(RDK_DSHAL_NAME, "dsSetDolbyVolumeMode");
                 if (dsSetDolbyVolumeModeFunc == 0) {
-                    LOGERR("dsSetDolbyVolumeMode is not defined");
+                    DSLOG_ERR("dsSetDolbyVolumeMode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2503,16 +2503,16 @@ public:
                 dsResult = dsSetDolbyVolumeModeFunc(static_cast<intptr_t>(handle), enable);
             }
             if (dsResult == dsERR_NONE) {
-                LOGINFO("SetAudioDolbyVolumeMode success: handle=%d, enable=%s", handle, enable ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, enable=%s", handle, enable ? "true" : "false");
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.DolbyVolumeMode", enable ? "TRUE" : "FALSE");
 #endif
             } else {
-                LOGERR("dsSetDolbyVolumeMode failed with error: %d", dsResult);
+                DSLOG_ERR("dsSetDolbyVolumeMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioDolbyVolumeMode");
+            DSLOG_ERR("Exception in SetAudioDolbyVolumeMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2529,7 +2529,7 @@ public:
             if (dsGetDolbyVolumeModeFunc == 0) {
                 dsGetDolbyVolumeModeFunc = (dsGetDolbyVolumeMode_t)resolve(RDK_DSHAL_NAME, "dsGetDolbyVolumeMode");
                 if (dsGetDolbyVolumeModeFunc == 0) {
-                    LOGERR("dsGetDolbyVolumeMode is not defined");
+                    DSLOG_ERR("dsGetDolbyVolumeMode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2540,13 +2540,13 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 enabled = dolbyMode;
-                LOGINFO("GetAudioDolbyVolumeMode success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, enabled=%s", handle, enabled ? "true" : "false");
             } else {
-                LOGERR("dsGetDolbyVolumeMode failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetDolbyVolumeMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioDolbyVolumeMode");
+            DSLOG_ERR("Exception in GetAudioDolbyVolumeMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2562,7 +2562,7 @@ public:
             if (dsSetIntelligentEqualizerModeFunc == 0) {
                 dsSetIntelligentEqualizerModeFunc = (dsSetIntelligentEqualizerMode_t)resolve(RDK_DSHAL_NAME, "dsSetIntelligentEqualizerMode");
                 if (dsSetIntelligentEqualizerModeFunc == 0) {
-                    LOGERR("dsSetIntelligentEqualizerMode is not defined");
+                    DSLOG_ERR("dsSetIntelligentEqualizerMode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2572,16 +2572,16 @@ public:
                 dsResult = dsSetIntelligentEqualizerModeFunc(static_cast<intptr_t>(handle), mode);
             }
             if (dsResult == dsERR_NONE) {
-                LOGINFO("SetAudioIntelligentEqualizerMode success: handle=%d, mode=%d", handle, mode);
+                DSLOG_INFO("success: handle=%d, mode=%d", handle, mode);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.IntelligentEQ", std::to_string(mode));
 #endif
             } else {
-                LOGERR("dsSetIntelligentEqualizerMode failed with error: %d", dsResult);
+                DSLOG_ERR("dsSetIntelligentEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioIntelligentEqualizerMode");
+            DSLOG_ERR("Exception in SetAudioIntelligentEqualizerMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2598,7 +2598,7 @@ public:
             if (dsGetIntelligentEqualizerModeFunc == 0) {
                 dsGetIntelligentEqualizerModeFunc = (dsGetIntelligentEqualizerMode_t)resolve(RDK_DSHAL_NAME, "dsGetIntelligentEqualizerMode");
                 if (dsGetIntelligentEqualizerModeFunc == 0) {
-                    LOGERR("dsGetIntelligentEqualizerMode is not defined");
+                    DSLOG_ERR("dsGetIntelligentEqualizerMode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2609,13 +2609,13 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 mode = eqMode;
-                LOGINFO("GetAudioIntelligentEqualizerMode success: handle=%d, mode=%d", handle, mode);
+                DSLOG_INFO("success: handle=%d, mode=%d", handle, mode);
             } else {
-                LOGERR("dsGetIntelligentEqualizerMode failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetIntelligentEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioIntelligentEqualizerMode");
+            DSLOG_ERR("Exception in GetAudioIntelligentEqualizerMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2625,7 +2625,7 @@ public:
     uint32_t SetAudioVolumeLeveller(const int32_t handle, const WPEFramework::Exchange::IDeviceSettingsAudio::VolumeLeveller volumeLeveller) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2640,7 +2640,7 @@ public:
             if (dsSetVolumeLevellerFunc == 0) {
                 dsSetVolumeLevellerFunc = (dsSetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
                 if (dsSetVolumeLevellerFunc == 0) {
-                    LOGERR("dsSetVolumeLeveller is not defined");
+                    DSLOG_ERR("dsSetVolumeLeveller is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2650,7 +2650,7 @@ public:
                 ret = dsSetVolumeLevellerFunc(dsHandle, dsVolLeveller);
             }
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioVolumeLeveller success: handle=%d, mode=%d, level=%d", handle, volumeLeveller.mode, volumeLeveller.level);
+                DSLOG_INFO("success: handle=%d, mode=%d, level=%d", handle, volumeLeveller.mode, volumeLeveller.level);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 std::string _PropertyMode  = getCurrentProfileProperty("VolumeLeveller.mode");
                 std::string _PropertyLevel = getCurrentProfileProperty("VolumeLeveller.level");
@@ -2660,11 +2660,11 @@ public:
                 }
 #endif
             } else {
-                LOGERR("dsSetVolumeLeveller failed with error: %d", ret);
+                DSLOG_ERR("dsSetVolumeLeveller failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioVolumeLeveller");
+            DSLOG_ERR("Exception in SetAudioVolumeLeveller");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2681,7 +2681,7 @@ public:
             if (dsGetVolumeLevellerFunc == 0) {
                 dsGetVolumeLevellerFunc = (dsGetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsGetVolumeLeveller");
                 if (dsGetVolumeLevellerFunc == 0) {
-                    LOGERR("dsGetVolumeLeveller is not defined");
+                    DSLOG_ERR("dsGetVolumeLeveller is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2695,11 +2695,11 @@ public:
                 volumeLeveller.mode = static_cast<uint8_t>(volLeveller.mode);
                 volumeLeveller.level = static_cast<uint8_t>(volLeveller.level);
             } else {
-                LOGERR("dsGetVolumeLeveller failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetVolumeLeveller failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioVolumeLeveller");
+            DSLOG_ERR("Exception in GetAudioVolumeLeveller");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2709,7 +2709,7 @@ public:
     uint32_t SetAudioBassEnhancer(const int32_t handle, const int32_t boost) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2721,7 +2721,7 @@ public:
             if (dsSetBassEnhancerFunc == 0) {
                 dsSetBassEnhancerFunc = (dsSetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer");
                 if (dsSetBassEnhancerFunc == 0) {
-                    LOGERR("dsSetBassEnhancer is not defined");
+                    DSLOG_ERR("dsSetBassEnhancer is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2731,16 +2731,16 @@ public:
                 ret = dsSetBassEnhancerFunc(dsHandle, boost);
             }
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioBassEnhancer success: handle=%d, boost=%d", handle, boost);
+                DSLOG_INFO("success: handle=%d, boost=%d", handle, boost);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", std::to_string(boost));
 #endif
             } else {
-                LOGERR("dsSetBassEnhancer failed with error: %d", ret);
+                DSLOG_ERR("dsSetBassEnhancer failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioBassEnhancer");
+            DSLOG_ERR("Exception in SetAudioBassEnhancer");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2757,7 +2757,7 @@ public:
             if (dsGetBassEnhancerFunc == 0) {
                 dsGetBassEnhancerFunc = (dsGetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsGetBassEnhancer");
                 if (dsGetBassEnhancerFunc == 0) {
-                    LOGERR("dsGetBassEnhancer is not defined");
+                    DSLOG_ERR("dsGetBassEnhancer is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2769,11 +2769,11 @@ public:
             if (dsResult == dsERR_NONE) {
                 boost = bassBoost;
             } else {
-                LOGERR("dsGetBassEnhancer failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetBassEnhancer failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioBassEnhancer");
+            DSLOG_ERR("Exception in GetAudioBassEnhancer");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2783,7 +2783,7 @@ public:
     uint32_t EnableAudioSurroudDecoder(const int32_t handle, const bool enable) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2795,7 +2795,7 @@ public:
             if (dsEnableSurroundDecoderFunc == 0) {
                 dsEnableSurroundDecoderFunc = (dsEnableSurroundDecoder_t)resolve(RDK_DSHAL_NAME, "dsEnableSurroundDecoder");
                 if (dsEnableSurroundDecoderFunc == 0) {
-                    LOGERR("dsEnableSurroundDecoder is not defined");
+                    DSLOG_ERR("dsEnableSurroundDecoder is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2805,16 +2805,16 @@ public:
                 ret = dsEnableSurroundDecoderFunc(dsHandle, enable);
             }
             if (ret == dsERR_NONE) {
-                LOGINFO("EnableAudioSurroudDecoder success: handle=%d, enable=%s", handle, enable ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, enable=%s", handle, enable ? "true" : "false");
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.SurroundDecoderEnabled", enable ? "TRUE" : "FALSE");
 #endif
             } else {
-                LOGERR("dsEnableSurroundDecoder failed with error: %d", ret);
+                DSLOG_ERR("dsEnableSurroundDecoder failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in EnableAudioSurroudDecoder");
+            DSLOG_ERR("Exception in EnableAudioSurroudDecoder");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2831,7 +2831,7 @@ public:
             if (dsIsSurroundDecoderEnabledFunc == 0) {
                 dsIsSurroundDecoderEnabledFunc = (dsIsSurroundDecoderEnabled_t)resolve(RDK_DSHAL_NAME, "dsIsSurroundDecoderEnabled");
                 if (dsIsSurroundDecoderEnabledFunc == 0) {
-                    LOGERR("dsIsSurroundDecoderEnabled is not defined");
+                    DSLOG_ERR("dsIsSurroundDecoderEnabled is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2843,11 +2843,11 @@ public:
             if (dsResult == dsERR_NONE) {
                 enabled = decoderEnabled;
             } else {
-                LOGERR("dsIsSurroundDecoderEnabled failed with error: %d", dsResult);
+                DSLOG_ERR("dsIsSurroundDecoderEnabled failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in IsAudioSurroudDecoderEnabled");
+            DSLOG_ERR("Exception in IsAudioSurroudDecoderEnabled");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2857,7 +2857,7 @@ public:
     uint32_t SetAudioDRCMode(const int32_t handle, const int32_t drcMode) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2869,7 +2869,7 @@ public:
             if (dsSetDRCModeFunc == 0) {
                 dsSetDRCModeFunc = (dsSetDRCMode_t)resolve(RDK_DSHAL_NAME, "dsSetDRCMode");
                 if (dsSetDRCModeFunc == 0) {
-                    LOGERR("dsSetDRCMode is not defined");
+                    DSLOG_ERR("dsSetDRCMode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2879,16 +2879,16 @@ public:
                 ret = dsSetDRCModeFunc(dsHandle, drcMode);
             }
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioDRCMode success: handle=%d, drcMode=%d", handle, drcMode);
+                DSLOG_INFO("success: handle=%d, drcMode=%d", handle, drcMode);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.DRCMode", drcMode ? "RF" : "Line");
 #endif
             } else {
-                LOGERR("dsSetDRCMode failed with error: %d", ret);
+                DSLOG_ERR("dsSetDRCMode failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioDRCMode");
+            DSLOG_ERR("Exception in SetAudioDRCMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2905,7 +2905,7 @@ public:
             if (dsGetDRCModeFunc == 0) {
                 dsGetDRCModeFunc = (dsGetDRCMode_t)resolve(RDK_DSHAL_NAME, "dsGetDRCMode");
                 if (dsGetDRCModeFunc == 0) {
-                    LOGERR("dsGetDRCMode is not defined");
+                    DSLOG_ERR("dsGetDRCMode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2917,11 +2917,11 @@ public:
             if (dsResult == dsERR_NONE) {
                 drcMode = mode;
             } else {
-                LOGERR("dsGetDRCMode failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetDRCMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioDRCMode");
+            DSLOG_ERR("Exception in GetAudioDRCMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2931,7 +2931,7 @@ public:
     uint32_t SetAudioSurroudVirtualizer(const int32_t handle, const WPEFramework::Exchange::IDeviceSettingsAudio::SurroundVirtualizer surroundVirtualizer) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -2946,7 +2946,7 @@ public:
             if (dsSetSurroundVirtualizerFunc == 0) {
                 dsSetSurroundVirtualizerFunc = (dsSetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
                 if (dsSetSurroundVirtualizerFunc == 0) {
-                    LOGERR("dsSetSurroundVirtualizer is not defined");
+                    DSLOG_ERR("dsSetSurroundVirtualizer is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -2956,7 +2956,7 @@ public:
                 ret = dsSetSurroundVirtualizerFunc(dsHandle, dsSurVirtualizer);
             }
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioSurroudVirtualizer success: handle=%d, mode=%d, boost=%d", handle, surroundVirtualizer.mode, surroundVirtualizer.boost);
+                DSLOG_INFO("success: handle=%d, mode=%d, boost=%d", handle, surroundVirtualizer.mode, surroundVirtualizer.boost);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 std::string _PropertyMode  = getCurrentProfileProperty("SurroundVirtualizer.mode");
                 std::string _PropertyBoost = getCurrentProfileProperty("SurroundVirtualizer.boost");
@@ -2966,11 +2966,11 @@ public:
                 }
 #endif
             } else {
-                LOGERR("dsSetSurroundVirtualizer failed with error: %d", ret);
+                DSLOG_ERR("dsSetSurroundVirtualizer failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioSurroudVirtualizer");
+            DSLOG_ERR("Exception in SetAudioSurroudVirtualizer");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -2987,7 +2987,7 @@ public:
             if (dsGetSurroundVirtualizerFunc == 0) {
                 dsGetSurroundVirtualizerFunc = (dsGetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsGetSurroundVirtualizer");
                 if (dsGetSurroundVirtualizerFunc == 0) {
-                    LOGERR("dsGetSurroundVirtualizer is not defined");
+                    DSLOG_ERR("dsGetSurroundVirtualizer is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3001,11 +3001,11 @@ public:
                 surroundVirtualizer.mode = static_cast<uint8_t>(virtualizer.mode);
                 surroundVirtualizer.boost = static_cast<uint8_t>(virtualizer.boost);
             } else {
-                LOGERR("dsGetSurroundVirtualizer failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetSurroundVirtualizer failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioSurroudVirtualizer");
+            DSLOG_ERR("Exception in GetAudioSurroudVirtualizer");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3015,7 +3015,7 @@ public:
     uint32_t SetAudioMISteering(const int32_t handle, const bool enable) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3027,7 +3027,7 @@ public:
             if (dsSetMISteeringFunc == 0) {
                 dsSetMISteeringFunc = (dsSetMISteering_t)resolve(RDK_DSHAL_NAME, "dsSetMISteering");
                 if (dsSetMISteeringFunc == 0) {
-                    LOGERR("dsSetMISteering is not defined");
+                    DSLOG_ERR("dsSetMISteering is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3037,16 +3037,16 @@ public:
                 ret = dsSetMISteeringFunc(dsHandle, enable);
             }
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioMISteering success: handle=%d, enable=%s", handle, enable ? "true" : "false");
+                DSLOG_INFO("success: handle=%d, enable=%s", handle, enable ? "true" : "false");
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.MISteering", enable ? "Enabled" : "Disabled");
 #endif
             } else {
-                LOGERR("dsSetMISteering failed with error: %d", ret);
+                DSLOG_ERR("dsSetMISteering failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioMISteering");
+            DSLOG_ERR("Exception in SetAudioMISteering");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3063,7 +3063,7 @@ public:
             if (dsGetMISteeringFunc == 0) {
                 dsGetMISteeringFunc = (dsGetMISteering_t)resolve(RDK_DSHAL_NAME, "dsGetMISteering");
                 if (dsGetMISteeringFunc == 0) {
-                    LOGERR("dsGetMISteering is not defined");
+                    DSLOG_ERR("dsGetMISteering is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3075,11 +3075,11 @@ public:
             if (dsResult == dsERR_NONE) {
                 enable = miSteering;
             } else {
-                LOGERR("dsGetMISteering failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetMISteering failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioMISteering");
+            DSLOG_ERR("Exception in GetAudioMISteering");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3095,7 +3095,7 @@ public:
             if (dsSetGraphicEqualizerModeFunc == 0) {
                 dsSetGraphicEqualizerModeFunc = (dsSetGraphicEqualizerMode_t)resolve(RDK_DSHAL_NAME, "dsSetGraphicEqualizerMode");
                 if (dsSetGraphicEqualizerModeFunc == 0) {
-                    LOGERR("dsSetGraphicEqualizerMode is not defined");
+                    DSLOG_ERR("dsSetGraphicEqualizerMode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3105,16 +3105,16 @@ public:
                 dsResult = dsSetGraphicEqualizerModeFunc(static_cast<intptr_t>(handle), mode);
             }
             if (dsResult == dsERR_NONE) {
-                LOGINFO("SetAudioGraphicEqualizerMode success: handle=%d, mode=%d", handle, mode);
+                DSLOG_INFO("success: handle=%d, mode=%d", handle, mode);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.GraphicEQ", std::to_string(mode));
 #endif
             } else {
-                LOGERR("dsSetGraphicEqualizerMode failed with error: %d", dsResult);
+                DSLOG_ERR("dsSetGraphicEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioGraphicEqualizerMode");
+            DSLOG_ERR("Exception in SetAudioGraphicEqualizerMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3131,7 +3131,7 @@ public:
             if (dsGetGraphicEqualizerModeFunc == 0) {
                 dsGetGraphicEqualizerModeFunc = (dsGetGraphicEqualizerMode_t)resolve(RDK_DSHAL_NAME, "dsGetGraphicEqualizerMode");
                 if (dsGetGraphicEqualizerModeFunc == 0) {
-                    LOGERR("dsGetGraphicEqualizerMode is not defined");
+                    DSLOG_ERR("dsGetGraphicEqualizerMode is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3142,13 +3142,13 @@ public:
             }
             if (dsResult == dsERR_NONE) {
                 mode = eqMode;
-                LOGINFO("GetAudioGraphicEqualizerMode success: handle=%d, mode=%d", handle, mode);
+                DSLOG_INFO("success: handle=%d, mode=%d", handle, mode);
             } else {
-                LOGERR("dsGetGraphicEqualizerMode failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetGraphicEqualizerMode failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioGraphicEqualizerMode");
+            DSLOG_ERR("Exception in GetAudioGraphicEqualizerMode");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3165,7 +3165,7 @@ public:
             if (dsGetMS12AudioProfileListFunc == 0) {
                 dsGetMS12AudioProfileListFunc = (dsGetMS12AudioProfileList_t)resolve(RDK_DSHAL_NAME, "dsGetMS12AudioProfileList");
                 if (dsGetMS12AudioProfileListFunc == 0) {
-                    LOGERR("GetAudioMS12ProfileList: dsGetMS12AudioProfileList is not defined");
+                    DSLOG_ERR(" dsGetMS12AudioProfileList is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3174,11 +3174,11 @@ public:
             memset(&pList, 0, sizeof(pList));
             dsError_t dsResult = dsGetMS12AudioProfileListFunc(static_cast<intptr_t>(handle), &pList);
             if (dsResult != dsERR_NONE) {
-                LOGERR("GetAudioMS12ProfileList: dsGetMS12AudioProfileList failed, error=%d", dsResult);
+                DSLOG_ERR(" dsGetMS12AudioProfileList failed, error=%d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
 
-            LOGINFO("GetAudioMS12ProfileList: handle=%d, count=%d, profiles=%s",
+            DSLOG_INFO(" handle=%d, count=%d, profiles=%s",
                     handle, pList.audioProfileCount, pList.audioProfileList);
 
             // Parse the comma-separated audioProfileList string into MS12AudioProfile structs
@@ -3200,14 +3200,14 @@ public:
                 token = strtok(nullptr, ",");
             }
 
-            LOGINFO("GetAudioMS12ProfileList: parsed %zu profiles", profileVec.size());
+            DSLOG_INFO(" parsed %zu profiles", profileVec.size());
 
             // Create the COM-RPC iterator
             using MS12ProfileIterator = WPEFramework::RPC::IteratorType<IDeviceSettingsAudioMS12AudioProfileIterator>;
             ms12ProfileList = WPEFramework::Core::Service<MS12ProfileIterator>::Create<IDeviceSettingsAudioMS12AudioProfileIterator>(profileVec);
 
         } catch (...) {
-            LOGERR("Exception in GetAudioMS12ProfileList");
+            DSLOG_ERR("Exception in GetAudioMS12ProfileList");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3222,11 +3222,11 @@ public:
             if (dsResult == dsERR_NONE) {
                 profile = std::string(profileStr);
             } else {
-                LOGERR("dsGetMS12AudioProfile failed with error: %d", dsResult);
+                DSLOG_ERR("dsGetMS12AudioProfile failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetAudioMS12Profile");
+            DSLOG_ERR("Exception in GetAudioMS12Profile");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3236,7 +3236,7 @@ public:
     uint32_t SetAudioMS12Profile(const int32_t handle, const string& profile) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3244,16 +3244,16 @@ public:
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             dsError_t ret = dsSetMS12AudioProfile(dsHandle, profile.c_str());
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioMS12Profile success: handle=%d, profile=%s", handle, profile.c_str());
+                DSLOG_INFO("success: handle=%d, profile=%s", handle, profile.c_str());
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.MS12Profile", profile);
 #endif
             } else {
-                LOGERR("dsSetMS12AudioProfile failed with error: %d", ret);
+                DSLOG_ERR("dsSetMS12AudioProfile failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioMS12Profile");
+            DSLOG_ERR("Exception in SetAudioMS12Profile");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3263,7 +3263,7 @@ public:
     uint32_t SetAudioMixerLevels(const int32_t handle, const WPEFramework::Exchange::IDeviceSettingsAudio::AudioInput audioInput, const int32_t volume) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3276,7 +3276,7 @@ public:
             if (dsSetMixerLevelFunc == 0) {
                 dsSetMixerLevelFunc = (dsSetMixerLevel_t)resolve(RDK_DSHAL_NAME, "dsSetMixerLevel");
                 if(dsSetMixerLevelFunc == 0) {
-                    LOGERR("dsSetMixerLevel is not defined");
+                    DSLOG_ERR("dsSetMixerLevel is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3287,13 +3287,13 @@ public:
             }
             
             if (ret == dsERR_NONE) {
-                LOGINFO("SetAudioMixerLevels success: handle=%d, input=%d, volume=%d", handle, static_cast<int>(audioInput), volume);
+                DSLOG_INFO("success: handle=%d, input=%d, volume=%d", handle, static_cast<int>(audioInput), volume);
             } else {
-                LOGERR("dsSetMixerLevel failed with error: %d", ret);
+                DSLOG_ERR("dsSetMixerLevel failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in SetAudioMixerLevels");
+            DSLOG_ERR("Exception in SetAudioMixerLevels");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3305,7 +3305,7 @@ public:
                                          const string profileState) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3392,7 +3392,7 @@ public:
                         }
                     }
                 } else {
-                    LOGWARN("SetAudioMS12SettingsOverride: Unknown setting name: %s", profileSettingsName.c_str());
+                    DSLOG_WARN(" Unknown setting name: %s", profileSettingsName.c_str());
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             } else {
@@ -3404,7 +3404,7 @@ public:
                 else if (profileSettingsName == "BassEnhancer")            hostProperty = "audio.BassBoost";
                 else if (profileSettingsName == "SurroundVirtualizerMode") hostProperty = generateProfileProperty(profileName, "SurroundVirtualizer.mode");
                 else if (profileSettingsName == "SurroundVirtualizerLevel")hostProperty = generateProfileProperty(profileName, "SurroundVirtualizer.boost");
-                else { LOGWARN("SetAudioMS12SettingsOverride: Unknown setting name: %s", profileSettingsName.c_str()); return WPEFramework::Core::ERROR_GENERAL; }
+                else { DSLOG_WARN(" Unknown setting name: %s", profileSettingsName.c_str()); return WPEFramework::Core::ERROR_GENERAL; }
 
                 if (profileState == "ADD") {
                     device::HostPersistence::getInstance().persistHostProperty(hostProperty, profileSettingValue);
@@ -3413,14 +3413,14 @@ public:
                     device::HostPersistence::getInstance().persistHostProperty(hostProperty, _def);
                 }
             }
-            LOGINFO("SetAudioMS12SettingsOverride success: handle=%d, profile=%s, setting=%s, state=%s",
+            DSLOG_INFO("success: handle=%d, profile=%s, setting=%s, state=%s",
                     handle, profileName.c_str(), profileSettingsName.c_str(), profileState.c_str());
         } catch (...) {
-            LOGERR("Exception in SetAudioMS12SettingsOverride");
+            DSLOG_ERR("Exception in SetAudioMS12SettingsOverride");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 #else
-        LOGINFO("SetAudioMS12SettingsOverride: DS_AUDIO_SETTINGS_PERSISTENCE not enabled");
+        DSLOG_INFO(" DS_AUDIO_SETTINGS_PERSISTENCE not enabled");
 #endif
         EXIT_LOG;
         return WPEFramework::Core::ERROR_NONE;
@@ -3429,7 +3429,7 @@ public:
     uint32_t ResetAudioDialogEnhancement(const int32_t handle) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3441,7 +3441,7 @@ public:
             if (dsSetDialogEnhancementFunc == 0) {
                 dsSetDialogEnhancementFunc = (dsSetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsSetDialogEnhancement");
                 if (dsSetDialogEnhancementFunc == 0) {
-                    LOGERR("dsSetDialogEnhancement is not defined");
+                    DSLOG_ERR("dsSetDialogEnhancement is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3452,21 +3452,21 @@ public:
             try { _EnhancerLevel = device::HostPersistence::getInstance().getDefaultProperty(_Property); } catch(...) { _EnhancerLevel = "0"; }
             int m_enhancerLevel = atoi(_EnhancerLevel.c_str());
             if (dsSetDialogEnhancementFunc(dsHandle, m_enhancerLevel) == dsERR_NONE) {
-                LOGINFO("ResetAudioDialogEnhancement: handle=%d, default level=%d", handle, m_enhancerLevel);
+                DSLOG_INFO(" handle=%d, default level=%d", handle, m_enhancerLevel);
                 device::HostPersistence::getInstance().persistHostProperty(_Property, _EnhancerLevel);
             } else {
-                LOGERR("ResetAudioDialogEnhancement dsSetDialogEnhancement failed");
+                DSLOG_ERR("dsSetDialogEnhancement failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
 #else
             if (dsSetDialogEnhancementFunc(dsHandle, 0) != dsERR_NONE) {
-                LOGERR("ResetAudioDialogEnhancement failed");
+                DSLOG_ERR("failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
-            LOGINFO("ResetAudioDialogEnhancement success: handle=%d", handle);
+            DSLOG_INFO("success: handle=%d", handle);
 #endif
         } catch (...) {
-            LOGERR("Exception in ResetAudioDialogEnhancement");
+            DSLOG_ERR("Exception in ResetAudioDialogEnhancement");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3476,7 +3476,7 @@ public:
     uint32_t ResetAudioBassEnhancer(const int32_t handle) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3488,7 +3488,7 @@ public:
             if (dsSetBassEnhancerFunc == 0) {
                 dsSetBassEnhancerFunc = (dsSetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer");
                 if (dsSetBassEnhancerFunc == 0) {
-                    LOGERR("dsSetBassEnhancer is not defined");
+                    DSLOG_ERR("dsSetBassEnhancer is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3499,21 +3499,21 @@ public:
             try { _BassBoost = device::HostPersistence::getInstance().getDefaultProperty(_Property); } catch(...) { _BassBoost = "0"; }
             int m_bassBoost = atoi(_BassBoost.c_str());
             if (dsSetBassEnhancerFunc(dsHandle, m_bassBoost) == dsERR_NONE) {
-                LOGINFO("ResetAudioBassEnhancer: handle=%d, default boost=%d", handle, m_bassBoost);
+                DSLOG_INFO(" handle=%d, default boost=%d", handle, m_bassBoost);
                 device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", _BassBoost);
             } else {
-                LOGERR("ResetAudioBassEnhancer dsSetBassEnhancer failed");
+                DSLOG_ERR("dsSetBassEnhancer failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
 #else
             if (dsSetBassEnhancerFunc(dsHandle, 0) != dsERR_NONE) {
-                LOGERR("ResetAudioBassEnhancer failed");
+                DSLOG_ERR("failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
-            LOGINFO("ResetAudioBassEnhancer success: handle=%d", handle);
+            DSLOG_INFO("success: handle=%d", handle);
 #endif
         } catch (...) {
-            LOGERR("Exception in ResetAudioBassEnhancer");
+            DSLOG_ERR("Exception in ResetAudioBassEnhancer");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3523,7 +3523,7 @@ public:
     uint32_t ResetAudioSurroundVirtualizer(const int32_t handle) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3535,7 +3535,7 @@ public:
             if (dsSetSurroundVirtualizerFunc == 0) {
                 dsSetSurroundVirtualizerFunc = (dsSetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
                 if (dsSetSurroundVirtualizerFunc == 0) {
-                    LOGERR("dsSetSurroundVirtualizer is not defined");
+                    DSLOG_ERR("dsSetSurroundVirtualizer is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3550,23 +3550,23 @@ public:
             m_virtualizer.mode  = atoi(_SVMode.c_str());
             m_virtualizer.boost = atoi(_SVBoost.c_str());
             if (dsSetSurroundVirtualizerFunc(dsHandle, m_virtualizer) == dsERR_NONE) {
-                LOGINFO("ResetAudioSurroundVirtualizer: handle=%d, mode=%d boost=%d", handle, m_virtualizer.mode, m_virtualizer.boost);
+                DSLOG_INFO(" handle=%d, mode=%d boost=%d", handle, m_virtualizer.mode, m_virtualizer.boost);
                 device::HostPersistence::getInstance().persistHostProperty(_PropertyMode,  _SVMode);
                 device::HostPersistence::getInstance().persistHostProperty(_PropertyBoost, _SVBoost);
             } else {
-                LOGERR("ResetAudioSurroundVirtualizer dsSetSurroundVirtualizer failed");
+                DSLOG_ERR("dsSetSurroundVirtualizer failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
 #else
             dsSurroundVirtualizer_t m_virt = {0, 0};
             if (dsSetSurroundVirtualizerFunc(dsHandle, m_virt) != dsERR_NONE) {
-                LOGERR("ResetAudioSurroundVirtualizer failed");
+                DSLOG_ERR("failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
-            LOGINFO("ResetAudioSurroundVirtualizer success: handle=%d", handle);
+            DSLOG_INFO("success: handle=%d", handle);
 #endif
         } catch (...) {
-            LOGERR("Exception in ResetAudioSurroundVirtualizer");
+            DSLOG_ERR("Exception in ResetAudioSurroundVirtualizer");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3576,7 +3576,7 @@ public:
     uint32_t ResetAudioVolumeLeveller(const int32_t handle) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3588,7 +3588,7 @@ public:
             if (dsSetVolumeLevellerFunc == 0) {
                 dsSetVolumeLevellerFunc = (dsSetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
                 if (dsSetVolumeLevellerFunc == 0) {
-                    LOGERR("dsSetVolumeLeveller is not defined");
+                    DSLOG_ERR("dsSetVolumeLeveller is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3603,23 +3603,23 @@ public:
             m_vl.mode  = atoi(_volLevellerMode.c_str());
             m_vl.level = atoi(_volLevellerLevel.c_str());
             if (dsSetVolumeLevellerFunc(dsHandle, m_vl) == dsERR_NONE) {
-                LOGINFO("ResetAudioVolumeLeveller: handle=%d, mode=%d level=%d", handle, m_vl.mode, m_vl.level);
+                DSLOG_INFO(" handle=%d, mode=%d level=%d", handle, m_vl.mode, m_vl.level);
                 device::HostPersistence::getInstance().persistHostProperty(_PropertyMode,  _volLevellerMode);
                 device::HostPersistence::getInstance().persistHostProperty(_PropertyLevel, _volLevellerLevel);
             } else {
-                LOGERR("ResetAudioVolumeLeveller dsSetVolumeLeveller failed");
+                DSLOG_ERR("dsSetVolumeLeveller failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
 #else
             dsVolumeLeveller_t m_vl = {0, 0};
             if (dsSetVolumeLevellerFunc(dsHandle, m_vl) != dsERR_NONE) {
-                LOGERR("ResetAudioVolumeLeveller failed");
+                DSLOG_ERR("failed");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
-            LOGINFO("ResetAudioVolumeLeveller success: handle=%d", handle);
+            DSLOG_INFO("success: handle=%d", handle);
 #endif
         } catch (...) {
-            LOGERR("Exception in ResetAudioVolumeLeveller");
+            DSLOG_ERR("Exception in ResetAudioVolumeLeveller");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3629,7 +3629,7 @@ public:
     uint32_t GetAudioHDMIARCPortId(const int32_t handle, int32_t &portId) override {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3639,14 +3639,14 @@ public:
             try {
                 hdmiARCPortId = device::HostPersistence::getInstance().getDefaultProperty("HDMIARC.port.Id");
             } catch (...) {
-                LOGWARN("Failed to get HDMIARC.port.Id from persistence, using default value -1");
+                DSLOG_WARN("Failed to get HDMIARC.port.Id from persistence, using default value -1");
                 hdmiARCPortId = "-1";
             }
             
             portId = atoi(hdmiARCPortId.c_str());
-            LOGINFO("GetAudioHDMIARCPortId success: handle=%d, portId=%d", handle, portId);
+            DSLOG_INFO("success: handle=%d, portId=%d", handle, portId);
         } catch (...) {
-            LOGERR("Exception in GetAudioHDMIARCPortId");
+            DSLOG_ERR("Exception in GetAudioHDMIARCPortId");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3657,7 +3657,7 @@ public:
     {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3670,7 +3670,7 @@ public:
             if (dsGetStereoAutoFunc == 0) {
                 dsGetStereoAutoFunc = (dsGetStereoAuto_t)resolve(RDK_DSHAL_NAME, "dsGetStereoAuto");
                 if (dsGetStereoAutoFunc == 0) {
-                    LOGERR("dsGetStereoAuto is not defined");
+                    DSLOG_ERR("dsGetStereoAuto is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
@@ -3681,13 +3681,13 @@ public:
             }
             if (ret == dsERR_NONE) {
                 autoMode = dsAutoMode;
-                LOGINFO("GetStereoAuto success: handle=%d, autoMode=%d", handle, autoMode);
+                DSLOG_INFO("success: handle=%d, autoMode=%d", handle, autoMode);
             } else {
-                LOGERR("dsGetStereoAuto failed with error: %d", ret);
+                DSLOG_ERR("dsGetStereoAuto failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {
-            LOGERR("Exception in GetStereoAuto");
+            DSLOG_ERR("Exception in GetStereoAuto");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3698,7 +3698,7 @@ public:
     {
         ENTRY_LOG;
         if (!_isInitialized) {
-            LOGERR("Audio platform not initialized");
+            DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
@@ -3711,26 +3711,26 @@ public:
                 switch (portType) {
                     case dsAUDIOPORT_TYPE_HDMI:
                         device::HostPersistence::getInstance().persistHostProperty("HDMI0.AudioMode.AUTO", autoMode ? "TRUE" : "FALSE");
-                        LOGINFO("Persisted HDMI stereo auto mode: autoMode=%d", autoMode);
+                        DSLOG_INFO("Persisted HDMI stereo auto mode: autoMode=%d", autoMode);
                         break;
 
                     case dsAUDIOPORT_TYPE_HDMI_ARC:
                         device::HostPersistence::getInstance().persistHostProperty("HDMI_ARC0.AudioMode.AUTO", autoMode ? "TRUE" : "FALSE");
-                        LOGINFO("Persisted HDMI_ARC stereo auto mode: autoMode=%d", autoMode);
+                        DSLOG_INFO("Persisted HDMI_ARC stereo auto mode: autoMode=%d", autoMode);
                         break;
 
                     case dsAUDIOPORT_TYPE_SPDIF:
                         device::HostPersistence::getInstance().persistHostProperty("SPDIF0.AudioMode.AUTO", autoMode ? "TRUE" : "FALSE");
-                        LOGINFO("Persisted SPDIF stereo auto mode: autoMode=%d", autoMode);
+                        DSLOG_INFO("Persisted SPDIF stereo auto mode: autoMode=%d", autoMode);
                         break;
 
                     case dsAUDIOPORT_TYPE_SPEAKER:
                         device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.AudioMode.AUTO", autoMode ? "TRUE" : "FALSE");
-                        LOGINFO("Persisted SPEAKER stereo auto mode: autoMode=%d", autoMode);
+                        DSLOG_INFO("Persisted SPEAKER stereo auto mode: autoMode=%d", autoMode);
                         break;
 
                     default:
-                        LOGWARN("SetStereoAuto persistence not supported for port type: %d", portType);
+                        DSLOG_WARN("persistence not supported for port type: %d", portType);
                         break;
                 }
             }
@@ -3744,7 +3744,7 @@ public:
                 if (dsSetStereoAutoFunc == 0) {
                     dsSetStereoAutoFunc = (dsSetStereoAuto_t)resolve(RDK_DSHAL_NAME, "dsSetStereoAuto");
                     if (dsSetStereoAutoFunc == 0) {
-                        LOGERR("dsSetStereoAuto is not defined");
+                        DSLOG_ERR("dsSetStereoAuto is not defined");
                         return WPEFramework::Core::ERROR_GENERAL;
                     }
                 }
@@ -3754,18 +3754,18 @@ public:
                     ret = dsSetStereoAutoFunc(dsHandle, autoMode);
                 }
                 if (ret == dsERR_NONE) {
-                    LOGINFO("SetStereoAuto success: handle=%d, autoMode=%d, persist=%s", 
+                    DSLOG_INFO("success: handle=%d, autoMode=%d, persist=%s",
                            handle, autoMode, persist ? "true" : "false");
                 } else {
-                    LOGERR("dsSetStereoAuto failed with error: %d", ret);
+                    DSLOG_ERR("dsSetStereoAuto failed with error: %d", ret);
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             } else {
-                LOGINFO("SetStereoAuto HAL call skipped for port type %d (only HDMI_ARC/SPDIF supported): handle=%d, autoMode=%d", 
+                DSLOG_INFO("HAL call skipped for port type %d (only HDMI_ARC/SPDIF supported): handle=%d, autoMode=%d",
                        portType, handle, autoMode);
             }
         } catch (...) {
-            LOGERR("Exception in SetStereoAuto");
+            DSLOG_ERR("Exception in SetStereoAuto");
             return WPEFramework::Core::ERROR_GENERAL;
         }
         EXIT_LOG;
@@ -3781,7 +3781,7 @@ private:
             // Initialize audio configuration settings from persistence
             // This is adapted from dsAudioMgr_init logic in dsAudio.c
             
-            LOGINFO("Initializing comprehensive audio settings from persistence and platform defaults...");
+            DSLOG_INFO("Initializing comprehensive audio settings from persistence and platform defaults...");
             
             // Initialize audio port settings for all supported audio port types
             initializeAudioPortSettings();
@@ -3789,10 +3789,10 @@ private:
             // Initialize MS12 audio processing features if supported
             initializeMS12Settings();
             
-            LOGINFO("Audio platform and settings initialization completed successfully");
+            DSLOG_INFO("Audio platform and settings initialization completed successfully");
                     
         } catch (...) {
-            LOGERR("Exception in initializing audio settings");
+            DSLOG_ERR("Exception in initializing audio settings");
         }
         EXIT_LOG;
     }
@@ -3802,7 +3802,7 @@ private:
     {
         ENTRY_LOG;
         try {
-            LOGINFO("Starting comprehensive audio configuration initialization...");
+            DSLOG_INFO("Starting comprehensive audio configuration initialization...");
             
             void *dllib = nullptr;
             intptr_t handle = 0;
@@ -3814,7 +3814,7 @@ private:
             if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                 dsEnableLEConfigFunc = (dsEnableLEConfig_t) resolve(RDK_DSHAL_NAME, "dsEnableLEConfig");
                 if (dsEnableLEConfigFunc) {
-                    LOGINFO("dsEnableLEConfig(int, bool) is defined and loaded");
+                    DSLOG_INFO("dsEnableLEConfig(int, bool) is defined and loaded");
                     std::string leEnable("FALSE");
                     try {
                         leEnable = device::HostPersistence::getInstance().getProperty("audio.LEEnable");
@@ -3822,19 +3822,19 @@ private:
                         #ifndef DS_LE_DEFAULT_DISABLED
                         leEnable = "TRUE";
                         #endif
-                        LOGINFO("LE : Persisting default LE status: %s", leEnable.c_str());
+                        DSLOG_INFO("LE : Persisting default LE status: %s", leEnable.c_str());
                         device::HostPersistence::getInstance().persistHostProperty("audio.LEEnable", leEnable);
                     }
                     
                     bool leEnabled = (leEnable == "TRUE");
                     dsEnableLEConfigFunc(handle, leEnabled);
                     m_LEEnabled = leEnabled;  // sync static state with what was applied to HAL
-                    LOGINFO("LE (Loudness Equivalence) initialized: %s", leEnabled ? "enabled" : "disabled");
+                    DSLOG_INFO("LE (Loudness Equivalence) initialized: %s", leEnabled ? "enabled" : "disabled");
                 } else {
-                    LOGINFO("dsEnableLEConfig(int, bool) is not available in HAL");
+                    DSLOG_INFO("dsEnableLEConfig(int, bool) is not available in HAL");
                 }
             } else {
-                LOGERR("dsEnableLEConfig failed - HDMI port 0 not available");
+                DSLOG_ERR("dsEnableLEConfig failed - HDMI port 0 not available");
             }
             
             #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
@@ -3844,7 +3844,7 @@ private:
             
             dsSetAudioGainFunc = (dsSetAudioGain_t) resolve(RDK_DSHAL_NAME, "dsSetAudioGain");
             if (dsSetAudioGainFunc) {
-                LOGINFO("dsSetAudioGain_t(int, float) is defined and loaded");
+                DSLOG_INFO("dsSetAudioGain_t(int, float) is defined and loaded");
                 std::string audioGain("0");
                 float audioGainValue = 0;
                 
@@ -3855,7 +3855,7 @@ private:
                         audioGain = device::HostPersistence::getInstance().getProperty("SPEAKER0.audio.Gain");
                     } catch(...) {
                         try {
-                            LOGINFO("SPEAKER0.audio.Gain not found in persistence store. Try system default");
+                            DSLOG_INFO("SPEAKER0.audio.Gain not found in persistence store. Try system default");
                             audioGain = device::HostPersistence::getInstance().getDefaultProperty("SPEAKER0.audio.Gain");
                         } catch(...) {
                             audioGain = "0";
@@ -3863,7 +3863,7 @@ private:
                     }
                     audioGainValue = atof(audioGain.c_str());
                     if (dsSetAudioGainFunc(handle, audioGainValue) == dsERR_NONE) {
-                        LOGINFO("Port SPEAKER0: Initialized audio gain: %f", audioGainValue);
+                        DSLOG_INFO("Port SPEAKER0: Initialized audio gain: %f", audioGainValue);
                     }
                 }
                 
@@ -3874,7 +3874,7 @@ private:
                         audioGain = device::HostPersistence::getInstance().getProperty("HDMI0.audio.Gain");
                     } catch(...) {
                         try {
-                            LOGINFO("HDMI0.audio.Gain not found in persistence store. Try system default");
+                            DSLOG_INFO("HDMI0.audio.Gain not found in persistence store. Try system default");
                             audioGain = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.audio.Gain");
                         } catch(...) {
                             audioGain = "0";
@@ -3882,7 +3882,7 @@ private:
                     }
                     audioGainValue = atof(audioGain.c_str());
                     if (dsSetAudioGainFunc(handle, audioGainValue) == dsERR_NONE) {
-                        LOGINFO("Port HDMI0: Initialized audio gain: %f", audioGainValue);
+                        DSLOG_INFO("Port HDMI0: Initialized audio gain: %f", audioGainValue);
                     }
                 }
                 // SPDIF init
@@ -3892,7 +3892,7 @@ private:
                         audioGain = device::HostPersistence::getInstance().getProperty("SPDIF0.audio.Gain");
                     } catch(...) {
                         try {
-                            LOGINFO("SPDIF0.audio.Gain not found in persistence store. Try system default");
+                            DSLOG_INFO("SPDIF0.audio.Gain not found in persistence store. Try system default");
                             audioGain = device::HostPersistence::getInstance().getDefaultProperty("SPDIF0.audio.Gain");
                         } catch(...) {
                             audioGain = "0";
@@ -3900,11 +3900,11 @@ private:
                     }
                     audioGainValue = atof(audioGain.c_str());
                     if (dsSetAudioGainFunc(handle, audioGainValue) == dsERR_NONE) {
-                        LOGINFO("Port SPDIF0: Initialized audio gain: %f", audioGainValue);
+                        DSLOG_INFO("Port SPDIF0: Initialized audio gain: %f", audioGainValue);
                     }
                 }
             } else {
-                LOGINFO("dsSetAudioGain_t(int, float) is not available in HAL");
+                DSLOG_INFO("dsSetAudioGain_t(int, float) is not available in HAL");
             }
             
             // 3. Initialize Audio Level for SPDIF, SPEAKER, HEADPHONE, and HDMI ports
@@ -3916,7 +3916,7 @@ private:
                 if (dllib) {
                     dsSetAudioLevelFunc = (dsSetAudioLevel_t) dlsym(dllib, "dsSetAudioLevel");
                     if (dsSetAudioLevelFunc) {
-                        LOGINFO("dsSetAudioLevel_t(int, float) is defined and loaded");
+                        DSLOG_INFO("dsSetAudioLevel_t(int, float) is defined and loaded");
                         std::string audioLevel("0");
                         float audioLevelValue = 0;
                         
@@ -3927,7 +3927,7 @@ private:
                                 audioLevel = device::HostPersistence::getInstance().getProperty("SPDIF0.audio.Level");
                             } catch(...) {
                                 try {
-                                    LOGINFO("SPDIF0.audio.Level not found in persistence store. Try system default");
+                                    DSLOG_INFO("SPDIF0.audio.Level not found in persistence store. Try system default");
                                     audioLevel = device::HostPersistence::getInstance().getDefaultProperty("SPDIF0.audio.Level");
                                 } catch(...) {
                                     audioLevel = "40";
@@ -3935,7 +3935,7 @@ private:
                             }
                             audioLevelValue = atof(audioLevel.c_str());
                             if (dsSetAudioLevelFunc(handle, audioLevelValue) == dsERR_NONE) {
-                                LOGINFO("Port SPDIF0: Initialized audio level: %f", audioLevelValue);
+                                DSLOG_INFO("Port SPDIF0: Initialized audio level: %f", audioLevelValue);
                             }
                         }
                         
@@ -3946,7 +3946,7 @@ private:
                                 audioLevel = device::HostPersistence::getInstance().getProperty("SPEAKER0.audio.Level");
                             } catch(...) {
                                 try {
-                                    LOGINFO("SPEAKER0.audio.Level not found in persistence store. Try system default");
+                                    DSLOG_INFO("SPEAKER0.audio.Level not found in persistence store. Try system default");
                                     audioLevel = device::HostPersistence::getInstance().getDefaultProperty("SPEAKER0.audio.Level");
                                 } catch(...) {
                                     audioLevel = "40";
@@ -3954,7 +3954,7 @@ private:
                             }
                             audioLevelValue = atof(audioLevel.c_str());
                             if (dsSetAudioLevelFunc(handle, audioLevelValue) == dsERR_NONE) {
-                                LOGINFO("Port SPEAKER0: Initialized audio level: %f", audioLevelValue);
+                                DSLOG_INFO("Port SPEAKER0: Initialized audio level: %f", audioLevelValue);
                             }
                         }
                         
@@ -3965,7 +3965,7 @@ private:
                                 audioLevel = device::HostPersistence::getInstance().getProperty("HEADPHONE0.audio.Level");
                             } catch(...) {
                                 try {
-                                    LOGINFO("HEADPHONE0.audio.Level not found in persistence store. Try system default");
+                                    DSLOG_INFO("HEADPHONE0.audio.Level not found in persistence store. Try system default");
                                     audioLevel = device::HostPersistence::getInstance().getDefaultProperty("HEADPHONE0.audio.Level");
                                 } catch(...) {
                                     audioLevel = "40";
@@ -3973,7 +3973,7 @@ private:
                             }
                             audioLevelValue = atof(audioLevel.c_str());
                             if (dsSetAudioLevelFunc(handle, audioLevelValue) == dsERR_NONE) {
-                                LOGINFO("Port HEADPHONE0: Initialized audio level: %f", audioLevelValue);
+                                DSLOG_INFO("Port HEADPHONE0: Initialized audio level: %f", audioLevelValue);
                             }
                         }
                         
@@ -3984,7 +3984,7 @@ private:
                                 audioLevel = device::HostPersistence::getInstance().getProperty("HDMI0.audio.Level");
                             } catch(...) {
                                 try {
-                                    LOGINFO("HDMI0.audio.Level not found in persistence store. Try system default");
+                                    DSLOG_INFO("HDMI0.audio.Level not found in persistence store. Try system default");
                                     audioLevel = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.audio.Level");
                                 } catch(...) {
                                     audioLevel = "40";
@@ -3992,16 +3992,16 @@ private:
                             }
                             audioLevelValue = atof(audioLevel.c_str());
                             if (dsSetAudioLevelFunc(handle, audioLevelValue) == dsERR_NONE) {
-                                LOGINFO("Port HDMI0: Initialized audio level: %f", audioLevelValue);
+                                DSLOG_INFO("Port HDMI0: Initialized audio level: %f", audioLevelValue);
                             }
                         }
                     } else {
-                        LOGINFO("dsSetAudioLevel_t(int, float) is not defined");
+                        DSLOG_INFO("dsSetAudioLevel_t(int, float) is not defined");
                     }
                     dlclose(dllib);
                     dllib = nullptr;
                 } else {
-                    LOGERR("Opening libdshal.so failed");
+                    DSLOG_ERR("Opening libdshal.so failed");
                 }
             }
             
@@ -4014,7 +4014,7 @@ private:
                 if (dllib) {
                     dsSetAudioDelayFunc = (dsSetAudioDelay_t) dlsym(dllib, "dsSetAudioDelay");
                     if (dsSetAudioDelayFunc) {
-                        LOGINFO("dsSetAudioDelay_t(int, uint32_t) is defined and loaded");
+                        DSLOG_INFO("dsSetAudioDelay_t(int, uint32_t) is defined and loaded");
                         std::string audioDelay("0");
                         int audioDelayValue = 0;
                         
@@ -4025,7 +4025,7 @@ private:
                                 audioDelay = device::HostPersistence::getInstance().getProperty("SPEAKER0.audio.Delay");
                             } catch(...) {
                                 try {
-                                    LOGINFO("SPEAKER0.audio.Delay not found in persistence store. Try system default");
+                                    DSLOG_INFO("SPEAKER0.audio.Delay not found in persistence store. Try system default");
                                     audioDelay = device::HostPersistence::getInstance().getDefaultProperty("SPEAKER0.audio.Delay");
                                 } catch(...) {
                                     audioDelay = "0";
@@ -4033,7 +4033,7 @@ private:
                             }
                             audioDelayValue = atoi(audioDelay.c_str());
                             if (dsSetAudioDelayFunc(handle, audioDelayValue) == dsERR_NONE) {
-                                LOGINFO("Port SPEAKER0: Initialized audio delay: %d ms", audioDelayValue);
+                                DSLOG_INFO("Port SPEAKER0: Initialized audio delay: %d ms", audioDelayValue);
                             }
                         }
                         
@@ -4044,7 +4044,7 @@ private:
                                 audioDelay = device::HostPersistence::getInstance().getProperty("HDMI0.audio.Delay");
                             } catch(...) {
                                 try {
-                                    LOGINFO("HDMI0.audio.Delay not found in persistence store. Try system default");
+                                    DSLOG_INFO("HDMI0.audio.Delay not found in persistence store. Try system default");
                                     audioDelay = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.audio.Delay");
                                 } catch(...) {
                                     audioDelay = "0";
@@ -4052,7 +4052,7 @@ private:
                             }
                             audioDelayValue = atoi(audioDelay.c_str());
                             if (dsSetAudioDelayFunc(handle, audioDelayValue) == dsERR_NONE) {
-                                LOGINFO("Port HDMI0: Initialized audio delay: %d ms", audioDelayValue);
+                                DSLOG_INFO("Port HDMI0: Initialized audio delay: %d ms", audioDelayValue);
                             }
                         }
                         
@@ -4063,7 +4063,7 @@ private:
                                 audioDelay = device::HostPersistence::getInstance().getProperty("HDMI_ARC0.audio.Delay");
                             } catch(...) {
                                 try {
-                                    LOGINFO("HDMI_ARC0.audio.Delay not found in persistence store. Try system default");
+                                    DSLOG_INFO("HDMI_ARC0.audio.Delay not found in persistence store. Try system default");
                                     audioDelay = device::HostPersistence::getInstance().getDefaultProperty("HDMI_ARC0.audio.Delay");
                                 } catch(...) {
                                     audioDelay = "0";
@@ -4071,16 +4071,16 @@ private:
                             }
                             audioDelayValue = atoi(audioDelay.c_str());
                             if (dsSetAudioDelayFunc(handle, audioDelayValue) == dsERR_NONE) {
-                                LOGINFO("Port HDMI_ARC0: Initialized audio delay: %d ms", audioDelayValue);
+                                DSLOG_INFO("Port HDMI_ARC0: Initialized audio delay: %d ms", audioDelayValue);
                             }
                         }
                     } else {
-                        LOGINFO("dsSetAudioDelay_t(int, uint32_t) is not defined");
+                        DSLOG_INFO("dsSetAudioDelay_t(int, uint32_t) is not defined");
                     }
                     dlclose(dllib);
                     dllib = nullptr;
                 } else {
-                    LOGERR("Opening libdshal.so failed");
+                    DSLOG_ERR("Opening libdshal.so failed");
                 }
             }
             
@@ -4093,7 +4093,7 @@ private:
                 if (dllib) {
                     dsSetPrimaryLanguageFunc = (dsSetPrimaryLanguage_t) dlsym(dllib, "dsSetPrimaryLanguage");
                     if (dsSetPrimaryLanguageFunc) {
-                        LOGINFO("dsSetPrimaryLanguage_t(int, char*) is defined and loaded");
+                        DSLOG_INFO("dsSetPrimaryLanguage_t(int, char*) is defined and loaded");
                         std::string primaryLanguage("eng");
                         handle = 0;
                         
@@ -4101,7 +4101,7 @@ private:
                             primaryLanguage = device::HostPersistence::getInstance().getProperty("audio.PrimaryLanguage");
                         } catch(...) {
                             try {
-                                LOGINFO("audio.PrimaryLanguage not found in persistence store. Try system default");
+                                DSLOG_INFO("audio.PrimaryLanguage not found in persistence store. Try system default");
                                 primaryLanguage = device::HostPersistence::getInstance().getDefaultProperty("audio.PrimaryLanguage");
                             } catch(...) {
                                 primaryLanguage = "eng";
@@ -4109,15 +4109,15 @@ private:
                         }
                         
                         if (dsSetPrimaryLanguageFunc(handle, primaryLanguage.c_str()) == dsERR_NONE) {
-                            LOGINFO("Initialized Primary Language: %s", primaryLanguage.c_str());
+                            DSLOG_INFO("Initialized Primary Language: %s", primaryLanguage.c_str());
                         }
                     } else {
-                        LOGINFO("dsSetPrimaryLanguage_t(int, char*) is not defined");
+                        DSLOG_INFO("dsSetPrimaryLanguage_t(int, char*) is not defined");
                     }
                     dlclose(dllib);
                     dllib = nullptr;
                 } else {
-                    LOGERR("Opening libdshal.so failed");
+                    DSLOG_ERR("Opening libdshal.so failed");
                 }
             }
             
@@ -4130,7 +4130,7 @@ private:
                 if (dllib) {
                     dsSetSecondaryLanguageFunc = (dsSetSecondaryLanguage_t) dlsym(dllib, "dsSetSecondaryLanguage");
                     if (dsSetSecondaryLanguageFunc) {
-                        LOGINFO("dsSetSecondaryLanguage_t(int, char*) is defined and loaded");
+                        DSLOG_INFO("dsSetSecondaryLanguage_t(int, char*) is defined and loaded");
                         std::string secondaryLanguage("eng");
                         handle = 0;
                         
@@ -4138,7 +4138,7 @@ private:
                             secondaryLanguage = device::HostPersistence::getInstance().getProperty("audio.SecondaryLanguage");
                         } catch(...) {
                             try {
-                                LOGINFO("audio.SecondaryLanguage not found in persistence store. Try system default");
+                                DSLOG_INFO("audio.SecondaryLanguage not found in persistence store. Try system default");
                                 secondaryLanguage = device::HostPersistence::getInstance().getDefaultProperty("audio.SecondaryLanguage");
                             } catch(...) {
                                 secondaryLanguage = "eng";
@@ -4146,15 +4146,15 @@ private:
                         }
                         
                         if (dsSetSecondaryLanguageFunc(handle, secondaryLanguage.c_str()) == dsERR_NONE) {
-                            LOGINFO("Initialized Secondary Language: %s", secondaryLanguage.c_str());
+                            DSLOG_INFO("Initialized Secondary Language: %s", secondaryLanguage.c_str());
                         }
                     } else {
-                        LOGINFO("dsSetSecondaryLanguage_t(int, char*) is not defined");
+                        DSLOG_INFO("dsSetSecondaryLanguage_t(int, char*) is not defined");
                     }
                     dlclose(dllib);
                     dllib = nullptr;
                 } else {
-                    LOGERR("Opening libdshal.so failed");
+                    DSLOG_ERR("Opening libdshal.so failed");
                 }
             }
             
@@ -4167,7 +4167,7 @@ private:
                 if (dllib) {
                     dsSetFaderControlFunc = (dsSetFaderControl_t) dlsym(dllib, "dsSetFaderControl");
                     if (dsSetFaderControlFunc) {
-                        LOGINFO("dsSetFaderControl_t(int, int) is defined and loaded");
+                        DSLOG_INFO("dsSetFaderControl_t(int, int) is defined and loaded");
                         std::string faderControl("0");
                         int faderControlValue = 0;
                         handle = 0;
@@ -4176,7 +4176,7 @@ private:
                             faderControl = device::HostPersistence::getInstance().getProperty("audio.FaderControl");
                         } catch(...) {
                             try {
-                                LOGINFO("audio.FaderControl not found in persistence store. Try system default");
+                                DSLOG_INFO("audio.FaderControl not found in persistence store. Try system default");
                                 faderControl = device::HostPersistence::getInstance().getDefaultProperty("audio.FaderControl");
                             } catch(...) {
                                 faderControl = "0";
@@ -4185,15 +4185,15 @@ private:
                         
                         faderControlValue = atoi(faderControl.c_str());
                         if (dsSetFaderControlFunc(handle, faderControlValue) == dsERR_NONE) {
-                            LOGINFO("Initialized Fader Control, mixing: %d", faderControlValue);
+                            DSLOG_INFO("Initialized Fader Control, mixing: %d", faderControlValue);
                         }
                     } else {
-                        LOGINFO("dsSetFaderControl_t(int, int) is not defined");
+                        DSLOG_INFO("dsSetFaderControl_t(int, int) is not defined");
                     }
                     dlclose(dllib);
                     dllib = nullptr;
                 } else {
-                    LOGERR("Opening libdshal.so failed");
+                    DSLOG_ERR("Opening libdshal.so failed");
                 }
             }
             
@@ -4206,7 +4206,7 @@ private:
                 if (dllib) {
                     dsSetAssociatedAudioMixingFunc = (dsSetAssociatedAudioMixing_t) dlsym(dllib, "dsSetAssociatedAudioMixing");
                     if (dsSetAssociatedAudioMixingFunc) {
-                        LOGINFO("dsSetAssociatedAudioMixing_t (intptr_t handle, bool mixing) is defined and loaded");
+                        DSLOG_INFO("dsSetAssociatedAudioMixing_t (intptr_t handle, bool mixing) is defined and loaded");
                         std::string associatedAudioMixing("Disabled");
                         bool associatedAudioMixingValue = false;
                         handle = 0;
@@ -4215,7 +4215,7 @@ private:
                             associatedAudioMixing = device::HostPersistence::getInstance().getProperty("audio.AssociatedAudioMixing");
                         } catch(...) {
                             try {
-                                LOGINFO("audio.AssociatedAudioMixing not found in persistence store. Try system default");
+                                DSLOG_INFO("audio.AssociatedAudioMixing not found in persistence store. Try system default");
                                 associatedAudioMixing = device::HostPersistence::getInstance().getDefaultProperty("audio.AssociatedAudioMixing");
                             } catch(...) {
                                 associatedAudioMixing = "Disabled";
@@ -4224,15 +4224,15 @@ private:
                         
                         associatedAudioMixingValue = (associatedAudioMixing == "Enabled");
                         if (dsSetAssociatedAudioMixingFunc(handle, associatedAudioMixingValue) == dsERR_NONE) {
-                            LOGINFO("Initialized AssociatedAudioMixingFunc: %s", associatedAudioMixingValue ? "enabled" : "disabled");
+                            DSLOG_INFO("Initialized AssociatedAudioMixingFunc: %s", associatedAudioMixingValue ? "enabled" : "disabled");
                         }
                     } else {
-                        LOGINFO("dsSetAssociatedAudioMixing_t (intptr_t handle, bool enable) is not defined");
+                        DSLOG_INFO("dsSetAssociatedAudioMixing_t (intptr_t handle, bool enable) is not defined");
                     }
                     dlclose(dllib);
                     dllib = nullptr;
                 } else {
-                    LOGERR("Opening libdshal.so failed");
+                    DSLOG_ERR("Opening libdshal.so failed");
                 }
             }
             #endif // DS_AUDIO_SETTINGS_PERSISTENCE
@@ -4245,9 +4245,9 @@ private:
                 ms12ProfileSupport = device::HostPersistence::getInstance().getDefaultProperty("audio.MS12Profile.supported");
             } catch(...) {
                 ms12ProfileSupport = "FALSE";
-                LOGINFO("audio.MS12Profile.supported setting not found in hostDataDefault");
+                DSLOG_INFO("audio.MS12Profile.supported setting not found in hostDataDefault");
             }
-            LOGINFO("audio.MS12Profile.supported = %s", ms12ProfileSupport.c_str());
+            DSLOG_INFO("audio.MS12Profile.supported = %s", ms12ProfileSupport.c_str());
             
             if (ms12ProfileSupport == "TRUE") {
                 // MS12 Profile is supported - initialize MS12 Audio Profile
@@ -4259,13 +4259,13 @@ private:
                     if (dllib) {
                         dsSetMS12AudioProfileFunc = (dsSetMS12AudioProfile_t) dlsym(dllib, "dsSetMS12AudioProfile");
                         if (dsSetMS12AudioProfileFunc) {
-                            LOGINFO("dsSetMS12AudioProfile_t(int, const char*) is defined and loaded");
+                            DSLOG_INFO("dsSetMS12AudioProfile_t(int, const char*) is defined and loaded");
                             
                             try {
                                 ms12Profile = device::HostPersistence::getInstance().getProperty("audio.MS12Profile");
                             } catch(...) {
                                 try {
-                                    LOGINFO("audio.MS12Profile not found in persistence store. Try system default");
+                                    DSLOG_INFO("audio.MS12Profile not found in persistence store. Try system default");
                                     ms12Profile = device::HostPersistence::getInstance().getDefaultProperty("audio.MS12Profile");
                                 } catch(...) {
                                     ms12Profile = "Off";
@@ -4276,19 +4276,19 @@ private:
                             handle = 0;
                             if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                                 if (dsSetMS12AudioProfileFunc(handle, ms12Profile.c_str()) == dsERR_NONE) {
-                                    LOGINFO("Port SPEAKER0: Initialized MS12 Audio Profile: %s", ms12Profile.c_str());
+                                    DSLOG_INFO("Port SPEAKER0: Initialized MS12 Audio Profile: %s", ms12Profile.c_str());
                                     device::HostPersistence::getInstance().persistHostProperty("audio.MS12Profile", ms12Profile.c_str());
                                 } else {
-                                    LOGINFO("Port SPEAKER0: Initialization failed !!! MS12 Audio Profile: %s", ms12Profile.c_str());
+                                    DSLOG_INFO("Port SPEAKER0: Initialization failed !!! MS12 Audio Profile: %s", ms12Profile.c_str());
                                 }
                             }
                         } else {
-                            LOGINFO("dsSetMS12AudioProfile_t(int, const char*) is not defined");
+                            DSLOG_INFO("dsSetMS12AudioProfile_t(int, const char*) is not defined");
                         }
                         dlclose(dllib);
                         dllib = nullptr;
                     } else {
-                        LOGERR("Opening libdshal.so failed");
+                        DSLOG_ERR("Opening libdshal.so failed");
                     }
                 }
             }
@@ -4302,10 +4302,10 @@ private:
                 initializeIndividualMS12Settings();
             }
             
-            LOGINFO("Comprehensive audio configuration initialization completed successfully");
+            DSLOG_INFO("Comprehensive audio configuration initialization completed successfully");
             
         } catch (...) {
-            LOGERR("Exception in audioConfigInit");
+            DSLOG_ERR("Exception in audioConfigInit");
         }
         EXIT_LOG;
     }
@@ -4339,17 +4339,17 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetAudioCompressionFunc(handle, compressionLevel) == dsERR_NONE) {
-                                LOGINFO("Port SPEAKER0: Initialized audio compression: %d", compressionLevel);
+                                DSLOG_INFO("Port SPEAKER0: Initialized audio compression: %d", compressionLevel);
                             }
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetAudioCompressionFunc(handle, compressionLevel) == dsERR_NONE) {
-                                LOGINFO("Port HDMI0: Initialized audio compression: %d", compressionLevel);
+                                DSLOG_INFO("Port HDMI0: Initialized audio compression: %d", compressionLevel);
                             }
                         }
                     } catch(...) {
-                        LOGINFO("audio.Compression not found in persistence store. System Default configured through profiles");
+                        DSLOG_INFO("audio.Compression not found in persistence store. System Default configured through profiles");
                     }
                 }
             }
@@ -4377,17 +4377,17 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetDialogEnhancementFunc(handle, enhancerValue) == dsERR_NONE) {
-                                LOGINFO("Port SPEAKER0: Initialized dialog enhancement level: %d", enhancerValue);
+                                DSLOG_INFO("Port SPEAKER0: Initialized dialog enhancement level: %d", enhancerValue);
                             }
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetDialogEnhancementFunc(handle, enhancerValue) == dsERR_NONE) {
-                                LOGINFO("Port HDMI0: Initialized dialog enhancement level: %d", enhancerValue);
+                                DSLOG_INFO("Port HDMI0: Initialized dialog enhancement level: %d", enhancerValue);
                             }
                         }
                     } catch(...) {
-                        LOGINFO("audio.EnhancerLevel not found in persistence store. System Default configured through profiles");
+                        DSLOG_INFO("audio.EnhancerLevel not found in persistence store. System Default configured through profiles");
                     }
                 }
             }
@@ -4407,14 +4407,14 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetDolbyVolumeModeFunc(handle, m_dolbyVolumeMode) == dsERR_NONE)
-                                LOGINFO("Port SPEAKER0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
+                                DSLOG_INFO("Port SPEAKER0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetDolbyVolumeModeFunc(handle, m_dolbyVolumeMode) == dsERR_NONE)
-                                LOGINFO("Port HDMI0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
+                                DSLOG_INFO("Port HDMI0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
                         }
-                    } catch(...) { LOGINFO("audio.DolbyVolumeMode not found. System Default configured through profiles"); }
+                    } catch(...) { DSLOG_INFO("audio.DolbyVolumeMode not found. System Default configured through profiles"); }
                 }
             }
 
@@ -4432,14 +4432,14 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetIEQModeFunc(handle, m_IEQMode) == dsERR_NONE)
-                                LOGINFO("Port SPEAKER0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
+                                DSLOG_INFO("Port SPEAKER0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetIEQModeFunc(handle, m_IEQMode) == dsERR_NONE)
-                                LOGINFO("Port HDMI0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
+                                DSLOG_INFO("Port HDMI0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
                         }
-                    } catch(...) { LOGINFO("audio.IntelligentEQ not found. System Default configured through profiles"); }
+                    } catch(...) { DSLOG_INFO("audio.IntelligentEQ not found. System Default configured through profiles"); }
                 }
             }
 
@@ -4461,14 +4461,14 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetVolLevFunc(handle, m_vl) == dsERR_NONE)
-                                LOGINFO("Port SPEAKER0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
+                                DSLOG_INFO("Port SPEAKER0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetVolLevFunc(handle, m_vl) == dsERR_NONE)
-                                LOGINFO("Port HDMI0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
+                                DSLOG_INFO("Port HDMI0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
                         }
-                    } catch(...) { LOGINFO("audio.VolumeLeveller not found. System Default configured through profiles"); }
+                    } catch(...) { DSLOG_INFO("audio.VolumeLeveller not found. System Default configured through profiles"); }
                 }
             }
 
@@ -4486,14 +4486,14 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetBassFunc(handle, m_bassBoost) == dsERR_NONE)
-                                LOGINFO("Port SPEAKER0: Initialized Bass Boost: %d", m_bassBoost);
+                                DSLOG_INFO("Port SPEAKER0: Initialized Bass Boost: %d", m_bassBoost);
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetBassFunc(handle, m_bassBoost) == dsERR_NONE)
-                                LOGINFO("Port HDMI0: Initialized Bass Boost: %d", m_bassBoost);
+                                DSLOG_INFO("Port HDMI0: Initialized Bass Boost: %d", m_bassBoost);
                         }
-                    } catch(...) { LOGINFO("audio.BassBoost not found. System Default configured through profiles"); }
+                    } catch(...) { DSLOG_INFO("audio.BassBoost not found. System Default configured through profiles"); }
                 }
             }
 
@@ -4512,14 +4512,14 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsEnableSurrDecFunc(handle, m_surroundDecoder) == dsERR_NONE)
-                                LOGINFO("Port SPEAKER0: Initialized Surround Decoder: %d", m_surroundDecoder);
+                                DSLOG_INFO("Port SPEAKER0: Initialized Surround Decoder: %d", m_surroundDecoder);
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsEnableSurrDecFunc(handle, m_surroundDecoder) == dsERR_NONE)
-                                LOGINFO("Port HDMI0: Initialized Surround Decoder: %d", m_surroundDecoder);
+                                DSLOG_INFO("Port HDMI0: Initialized Surround Decoder: %d", m_surroundDecoder);
                         }
-                    } catch(...) { LOGINFO("audio.SurroundDecoderEnabled not found. System Default configured through profiles"); }
+                    } catch(...) { DSLOG_INFO("audio.SurroundDecoderEnabled not found. System Default configured through profiles"); }
                 }
             }
 
@@ -4538,14 +4538,14 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetDRCFunc(handle, m_DRCMode) == dsERR_NONE)
-                                LOGINFO("Port SPEAKER0: Initialized DRCMode: %d", m_DRCMode);
+                                DSLOG_INFO("Port SPEAKER0: Initialized DRCMode: %d", m_DRCMode);
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetDRCFunc(handle, m_DRCMode) == dsERR_NONE)
-                                LOGINFO("Port HDMI0: Initialized DRCMode: %d", m_DRCMode);
+                                DSLOG_INFO("Port HDMI0: Initialized DRCMode: %d", m_DRCMode);
                         }
-                    } catch(...) { LOGINFO("audio.DRCMode not found. System Default configured through profiles"); }
+                    } catch(...) { DSLOG_INFO("audio.DRCMode not found. System Default configured through profiles"); }
                 }
             }
 
@@ -4567,14 +4567,14 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetSurrVirtFunc(handle, m_virt) == dsERR_NONE)
-                                LOGINFO("Port SPEAKER0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
+                                DSLOG_INFO("Port SPEAKER0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetSurrVirtFunc(handle, m_virt) == dsERR_NONE)
-                                LOGINFO("Port HDMI0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
+                                DSLOG_INFO("Port HDMI0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
                         }
-                    } catch(...) { LOGINFO("audio.SurroundVirtualizer not found. System Default configured through profiles"); }
+                    } catch(...) { DSLOG_INFO("audio.SurroundVirtualizer not found. System Default configured through profiles"); }
                 }
             }
 
@@ -4593,14 +4593,14 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetMIFunc(handle, m_MISteering) == dsERR_NONE)
-                                LOGINFO("Port SPEAKER0: Initialized MI Steering: %d", m_MISteering);
+                                DSLOG_INFO("Port SPEAKER0: Initialized MI Steering: %d", m_MISteering);
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetMIFunc(handle, m_MISteering) == dsERR_NONE)
-                                LOGINFO("Port HDMI0: Initialized MI Steering: %d", m_MISteering);
+                                DSLOG_INFO("Port HDMI0: Initialized MI Steering: %d", m_MISteering);
                         }
-                    } catch(...) { LOGINFO("audio.MISteering not found. System Default configured through profiles"); }
+                    } catch(...) { DSLOG_INFO("audio.MISteering not found. System Default configured through profiles"); }
                 }
             }
 
@@ -4618,19 +4618,19 @@ private:
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                             if (dsSetGEQFunc(handle, m_GEQMode) == dsERR_NONE)
-                                LOGINFO("Port SPEAKER0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
+                                DSLOG_INFO("Port SPEAKER0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
                         }
                         handle = 0;
                         if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                             if (dsSetGEQFunc(handle, m_GEQMode) == dsERR_NONE)
-                                LOGINFO("Port HDMI0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
+                                DSLOG_INFO("Port HDMI0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
                         }
-                    } catch(...) { LOGINFO("audio.GraphicEQ not found. System Default configured through profiles"); }
+                    } catch(...) { DSLOG_INFO("audio.GraphicEQ not found. System Default configured through profiles"); }
                 }
             }
 
         } catch (...) {
-            LOGERR("Exception in initializeMS12ProfileOverrides");
+            DSLOG_ERR("Exception in initializeMS12ProfileOverrides");
         }
         EXIT_LOG;
     }
@@ -4665,13 +4665,13 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetAudioCompressionFunc(handle, compressionLevel) == dsERR_NONE) {
-                        LOGINFO("Port SPEAKER0: Initialized audio compression: %d", compressionLevel);
+                        DSLOG_INFO("Port SPEAKER0: Initialized audio compression: %d", compressionLevel);
                     }
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetAudioCompressionFunc(handle, compressionLevel) == dsERR_NONE) {
-                        LOGINFO("Port HDMI0: Initialized audio compression: %d", compressionLevel);
+                        DSLOG_INFO("Port HDMI0: Initialized audio compression: %d", compressionLevel);
                     }
                 }
             }
@@ -4699,13 +4699,13 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetDialogEnhancementFunc(handle, enhancerValue) == dsERR_NONE) {
-                        LOGINFO("Port SPEAKER0: Initialized dialog enhancement level: %d", enhancerValue);
+                        DSLOG_INFO("Port SPEAKER0: Initialized dialog enhancement level: %d", enhancerValue);
                     }
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetDialogEnhancementFunc(handle, enhancerValue) == dsERR_NONE) {
-                        LOGINFO("Port HDMI0: Initialized dialog enhancement level: %d", enhancerValue);
+                        DSLOG_INFO("Port HDMI0: Initialized dialog enhancement level: %d", enhancerValue);
                     }
                 }
             }
@@ -4723,7 +4723,7 @@ private:
                     bDolbyVolumeOverrideCheck = false;
                 } catch(...) {
                     try {
-                        LOGINFO("audio.DolbyVolumeMode not found in persistence store. Try system default");
+                        DSLOG_INFO("audio.DolbyVolumeMode not found in persistence store. Try system default");
                         dolbyMode = device::HostPersistence::getInstance().getDefaultProperty("audio.DolbyVolumeMode");
                     } catch(...) { dolbyMode = "FALSE"; }
                 }
@@ -4731,12 +4731,12 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetDolbyVolumeModeIndFunc(handle, m_dolbyVolumeMode) == dsERR_NONE)
-                        LOGINFO("Port SPEAKER0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
+                        DSLOG_INFO("Port SPEAKER0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetDolbyVolumeModeIndFunc(handle, m_dolbyVolumeMode) == dsERR_NONE)
-                        LOGINFO("Port HDMI0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
+                        DSLOG_INFO("Port HDMI0: Initialized Dolby Volume Mode: %d", m_dolbyVolumeMode);
                 }
             }
 
@@ -4750,7 +4750,7 @@ private:
                     ieqMode = device::HostPersistence::getInstance().getProperty("audio.IntelligentEQ");
                 } catch(...) {
                     try {
-                        LOGINFO("audio.IntelligentEQ not found in persistence store. Try system default");
+                        DSLOG_INFO("audio.IntelligentEQ not found in persistence store. Try system default");
                         ieqMode = device::HostPersistence::getInstance().getDefaultProperty("audio.IntelligentEQ");
                     } catch(...) { ieqMode = "0"; }
                 }
@@ -4758,12 +4758,12 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetIEQModeIndFunc(handle, m_IEQMode) == dsERR_NONE)
-                        LOGINFO("Port SPEAKER0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
+                        DSLOG_INFO("Port SPEAKER0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetIEQModeIndFunc(handle, m_IEQMode) == dsERR_NONE)
-                        LOGINFO("Port HDMI0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
+                        DSLOG_INFO("Port HDMI0: Initialized Intelligent Equalizer mode: %d", m_IEQMode);
                 }
             }
 
@@ -4780,23 +4780,23 @@ private:
                     bDolbyVolumeOverrideCheck = true;
                 } catch(...) {
                     try {
-                        LOGINFO("audio.VolumeLeveller not found in persistence store. Try system default");
+                        DSLOG_INFO("audio.VolumeLeveller not found in persistence store. Try system default");
                         volMode  = device::HostPersistence::getInstance().getDefaultProperty("audio.VolumeLeveller.mode");
                         volLevel = device::HostPersistence::getInstance().getDefaultProperty("audio.VolumeLeveller.level");
                     } catch(...) { volMode = "0"; volLevel = "0"; }
                 }
                 m_vl.mode  = atoi(volMode.c_str());
                 m_vl.level = atoi(volLevel.c_str());
-                LOGINFO("bDolbyVolumeOverrideCheck value: %d", (int)bDolbyVolumeOverrideCheck);
+                DSLOG_INFO("bDolbyVolumeOverrideCheck value: %d", (int)bDolbyVolumeOverrideCheck);
                 handle = 0;
                 if (bDolbyVolumeOverrideCheck && dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetVolLevIndFunc(handle, m_vl) == dsERR_NONE)
-                        LOGINFO("Port SPEAKER0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
+                        DSLOG_INFO("Port SPEAKER0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
                 }
                 handle = 0;
                 if (bDolbyVolumeOverrideCheck && dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetVolLevIndFunc(handle, m_vl) == dsERR_NONE)
-                        LOGINFO("Port HDMI0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
+                        DSLOG_INFO("Port HDMI0: Initialized Volume Leveller: Mode: %d, Level: %d", m_vl.mode, m_vl.level);
                 }
             }
 
@@ -4810,7 +4810,7 @@ private:
                     bassBoost = device::HostPersistence::getInstance().getProperty("audio.BassBoost");
                 } catch(...) {
                     try {
-                        LOGINFO("audio.BassBoost not found in persistence store. Try system default");
+                        DSLOG_INFO("audio.BassBoost not found in persistence store. Try system default");
                         bassBoost = device::HostPersistence::getInstance().getDefaultProperty("audio.BassBoost");
                     } catch(...) { bassBoost = "0"; }
                 }
@@ -4818,12 +4818,12 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetBassIndFunc(handle, m_bassBoost) == dsERR_NONE)
-                        LOGINFO("Port SPEAKER0: Initialized Bass Boost: %d", m_bassBoost);
+                        DSLOG_INFO("Port SPEAKER0: Initialized Bass Boost: %d", m_bassBoost);
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetBassIndFunc(handle, m_bassBoost) == dsERR_NONE)
-                        LOGINFO("Port HDMI0: Initialized Bass Boost: %d", m_bassBoost);
+                        DSLOG_INFO("Port HDMI0: Initialized Bass Boost: %d", m_bassBoost);
                 }
             }
 
@@ -4837,7 +4837,7 @@ private:
                     sd = device::HostPersistence::getInstance().getProperty("audio.SurroundDecoderEnabled");
                 } catch(...) {
                     try {
-                        LOGINFO("audio.SurroundDecoderEnabled not found in persistence store. Try system default");
+                        DSLOG_INFO("audio.SurroundDecoderEnabled not found in persistence store. Try system default");
                         sd = device::HostPersistence::getInstance().getDefaultProperty("audio.SurroundDecoderEnabled");
                     } catch(...) { sd = "FALSE"; }
                 }
@@ -4845,12 +4845,12 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsEnableSurrDecIndFunc(handle, m_surroundDecoder) == dsERR_NONE)
-                        LOGINFO("Port SPEAKER0: Initialized Surround Decoder: %d", m_surroundDecoder);
+                        DSLOG_INFO("Port SPEAKER0: Initialized Surround Decoder: %d", m_surroundDecoder);
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsEnableSurrDecIndFunc(handle, m_surroundDecoder) == dsERR_NONE)
-                        LOGINFO("Port HDMI0: Initialized Surround Decoder: %d", m_surroundDecoder);
+                        DSLOG_INFO("Port HDMI0: Initialized Surround Decoder: %d", m_surroundDecoder);
                 }
             }
 
@@ -4864,7 +4864,7 @@ private:
                     drcMode = device::HostPersistence::getInstance().getProperty("audio.DRCMode");
                 } catch(...) {
                     try {
-                        LOGINFO("audio.DRCMode not found in persistence store. Try system default");
+                        DSLOG_INFO("audio.DRCMode not found in persistence store. Try system default");
                         drcMode = device::HostPersistence::getInstance().getDefaultProperty("audio.DRCMode");
                     } catch(...) { drcMode = "Line"; }
                 }
@@ -4872,12 +4872,12 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetDRCIndFunc(handle, m_DRCMode) == dsERR_NONE)
-                        LOGINFO("Port SPEAKER0: Initialized DRCMode: %d", m_DRCMode);
+                        DSLOG_INFO("Port SPEAKER0: Initialized DRCMode: %d", m_DRCMode);
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetDRCIndFunc(handle, m_DRCMode) == dsERR_NONE)
-                        LOGINFO("Port HDMI0: Initialized DRCMode: %d", m_DRCMode);
+                        DSLOG_INFO("Port HDMI0: Initialized DRCMode: %d", m_DRCMode);
                 }
             }
 
@@ -4895,7 +4895,7 @@ private:
                     m_virt.boost = atoi(svBoost.c_str());
                 } catch(...) {
                     try {
-                        LOGINFO("audio.SurroundVirtualizer.mode/boost not found in persistence store. Try system default");
+                        DSLOG_INFO("audio.SurroundVirtualizer.mode/boost not found in persistence store. Try system default");
                         svMode  = device::HostPersistence::getInstance().getDefaultProperty("audio.SurroundVirtualizer.mode");
                         svBoost = device::HostPersistence::getInstance().getDefaultProperty("audio.SurroundVirtualizer.boost");
                     } catch(...) { svMode = "0"; svBoost = "0"; }
@@ -4905,12 +4905,12 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetSurrVirtIndFunc(handle, m_virt) == dsERR_NONE)
-                        LOGINFO("Port SPEAKER0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
+                        DSLOG_INFO("Port SPEAKER0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetSurrVirtIndFunc(handle, m_virt) == dsERR_NONE)
-                        LOGINFO("Port HDMI0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
+                        DSLOG_INFO("Port HDMI0: Initialized Surround Virtualizer: Mode: %d, Boost: %d", m_virt.mode, m_virt.boost);
                 }
             }
 
@@ -4924,7 +4924,7 @@ private:
                     miSteering = device::HostPersistence::getInstance().getProperty("audio.MISteering");
                 } catch(...) {
                     try {
-                        LOGINFO("audio.MISteering not found in persistence store. Try system default");
+                        DSLOG_INFO("audio.MISteering not found in persistence store. Try system default");
                         miSteering = device::HostPersistence::getInstance().getDefaultProperty("audio.MISteering");
                     } catch(...) { miSteering = "Disabled"; }
                 }
@@ -4932,14 +4932,14 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetMIIndFunc(handle, m_MISteering) == dsERR_NONE)
-                        LOGINFO("Port SPEAKER0: Initialized MI Steering: %d", m_MISteering);
+                        DSLOG_INFO("Port SPEAKER0: Initialized MI Steering: %d", m_MISteering);
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetMIIndFunc(handle, m_MISteering) == dsERR_NONE)
-                        LOGINFO("Port HDMI0: Initialized MI Steering: %d", m_MISteering);
+                        DSLOG_INFO("Port HDMI0: Initialized MI Steering: %d", m_MISteering);
                     else
-                        LOGINFO("Port HDMI0: Initialization MI Steering: %d failed. Port not available", m_MISteering);
+                        DSLOG_INFO("Port HDMI0: Initialization MI Steering: %d failed. Port not available", m_MISteering);
                 }
             }
 
@@ -4953,7 +4953,7 @@ private:
                     geqMode = device::HostPersistence::getInstance().getProperty("audio.GraphicEQ");
                 } catch(...) {
                     try {
-                        LOGINFO("audio.GraphicEQ not found in persistence store. Try system default");
+                        DSLOG_INFO("audio.GraphicEQ not found in persistence store. Try system default");
                         geqMode = device::HostPersistence::getInstance().getDefaultProperty("audio.GraphicEQ");
                     } catch(...) { geqMode = "0"; }
                 }
@@ -4961,17 +4961,17 @@ private:
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                     if (dsSetGEQIndFunc(handle, m_GEQMode) == dsERR_NONE)
-                        LOGINFO("Port SPEAKER0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
+                        DSLOG_INFO("Port SPEAKER0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
                 }
                 handle = 0;
                 if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                     if (dsSetGEQIndFunc(handle, m_GEQMode) == dsERR_NONE)
-                        LOGINFO("Port HDMI0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
+                        DSLOG_INFO("Port HDMI0: Initialized Graphic Equalizer mode: %d", m_GEQMode);
                 }
             }
 
         } catch (...) {
-            LOGERR("Exception in initializeIndividualMS12Settings");
+            DSLOG_ERR("Exception in initializeIndividualMS12Settings");
         }
         EXIT_LOG;
     }
@@ -5015,7 +5015,7 @@ private:
     {
         ENTRY_LOG;
         try {
-            LOGINFO("Starting comprehensive audio port settings initialization from persistence...");
+            DSLOG_INFO("Starting comprehensive audio port settings initialization from persistence...");
             
             // Initialize HDMI Audio Mode Settings from Persistence
             #ifdef IGNORE_EDID_LOGIC
@@ -5026,19 +5026,19 @@ private:
             
             dsAudioStereoMode_t hdmiAudioMode;
             
-            LOGINFO("Checking Host persistence for HDMI audio settings");
+            DSLOG_INFO("Checking Host persistence for HDMI audio settings");
             try {
                 hdmiAudioModeSettings = device::HostPersistence::getInstance().getProperty("HDMI0.AudioMode");
             } catch(...) {
-                LOGINFO("HDMI0.AudioMode not in host persistence. Checking default.");
+                DSLOG_INFO("HDMI0.AudioMode not in host persistence. Checking default.");
                 try {
                     hdmiAudioModeSettings = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.AudioMode");
                 } catch(...) {
-                    LOGINFO("HDMI0.AudioMode not in default host persistence.");
+                    DSLOG_INFO("HDMI0.AudioMode not in default host persistence.");
                 }
             }
             
-            LOGINFO("The HDMI Audio Mode Setting on startup is %s", hdmiAudioModeSettings.c_str());
+            DSLOG_INFO("The HDMI Audio Mode Setting on startup is %s", hdmiAudioModeSettings.c_str());
             
             // Parse HDMI audio mode string to enum
             if (hdmiAudioModeSettings.compare("SURROUND") == 0) {
@@ -5066,7 +5066,7 @@ private:
             try {
                 hdmiAudioModeAuto = device::HostPersistence::getInstance().getProperty("HDMI0.AudioMode.AUTO");
             } catch(...) {
-                LOGINFO("HDMI0.AudioMode.AUTO not found in persistence store. Try system default");
+                DSLOG_INFO("HDMI0.AudioMode.AUTO not found in persistence store. Try system default");
                 try {
                     hdmiAudioModeAuto = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.AudioMode.AUTO");
                 } catch(...) {
@@ -5086,7 +5086,7 @@ private:
                 arcAudioModeAuto = device::HostPersistence::getInstance().getProperty("HDMI_ARC0.AudioMode.AUTO");
             } catch(...) {
                 try {
-                    LOGINFO("HDMI_ARC0.AudioMode.AUTO not found in persistence store. Try system default");
+                    DSLOG_INFO("HDMI_ARC0.AudioMode.AUTO not found in persistence store. Try system default");
                     arcAudioModeAuto = device::HostPersistence::getInstance().getDefaultProperty("HDMI_ARC0.AudioMode.AUTO");
                 } catch(...) {
                     arcAudioModeAuto = "FALSE";
@@ -5101,7 +5101,7 @@ private:
                 spdifAudioModeAuto = device::HostPersistence::getInstance().getProperty("SPDIF0.AudioMode.AUTO");
             } catch(...) {
                 try {
-                    LOGINFO("SPDIF0.AudioMode.AUTO not found in persistence store. Try system default");
+                    DSLOG_INFO("SPDIF0.AudioMode.AUTO not found in persistence store. Try system default");
                     spdifAudioModeAuto = device::HostPersistence::getInstance().getDefaultProperty("SPDIF0.AudioMode.AUTO");
                 } catch(...) {
                     spdifAudioModeAuto = "FALSE";
@@ -5116,7 +5116,7 @@ private:
                 speakerAudioModeAuto = device::HostPersistence::getInstance().getProperty("SPEAKER0.AudioMode.AUTO");
             } catch(...) {
                 try {
-                    LOGINFO("SPEAKER0.AudioMode.AUTO not found in persistence store. Try system default");
+                    DSLOG_INFO("SPEAKER0.AudioMode.AUTO not found in persistence store. Try system default");
                     speakerAudioModeAuto = device::HostPersistence::getInstance().getDefaultProperty("SPEAKER0.AudioMode.AUTO");
                 } catch(...) {
                     speakerAudioModeAuto = "TRUE";
@@ -5129,17 +5129,17 @@ private:
             spdifAutoMode = (spdifAudioModeAuto.compare("TRUE") == 0);
             speakerAutoMode = (speakerAudioModeAuto.compare("TRUE") == 0);
             
-            LOGINFO("The HDMI Audio Auto Setting on startup is %s", hdmiAudioModeAuto.c_str());
-            LOGINFO("The HDMI ARC Audio Auto Setting on startup is %s", arcAudioModeAuto.c_str());
-            LOGINFO("The SPDIF Audio Auto Setting on startup is %s", spdifAudioModeAuto.c_str());
-            LOGINFO("The SPEAKER Audio Auto Setting on startup is %s", speakerAudioModeAuto.c_str());
+            DSLOG_INFO("The HDMI Audio Auto Setting on startup is %s", hdmiAudioModeAuto.c_str());
+            DSLOG_INFO("The HDMI ARC Audio Auto Setting on startup is %s", arcAudioModeAuto.c_str());
+            DSLOG_INFO("The SPDIF Audio Auto Setting on startup is %s", spdifAudioModeAuto.c_str());
+            DSLOG_INFO("The SPEAKER Audio Auto Setting on startup is %s", speakerAudioModeAuto.c_str());
             
             // Initialize SPDIF Audio Mode Settings
             std::string spdifModeSettings("STEREO");
             dsAudioStereoMode_t spdifAudioMode;
             
             spdifModeSettings = device::HostPersistence::getInstance().getProperty("SPDIF0.AudioMode", spdifModeSettings);
-            LOGINFO("The SPDIF Audio Mode Setting on startup is %s", spdifModeSettings.c_str());
+            DSLOG_INFO("The SPDIF Audio Mode Setting on startup is %s", spdifModeSettings.c_str());
             
             if (spdifModeSettings.compare("SURROUND") == 0) {
                 spdifAudioMode = dsAUDIO_STEREO_SURROUND;
@@ -5154,7 +5154,7 @@ private:
             dsAudioStereoMode_t arcAudioMode;
             
             arcModeSettings = device::HostPersistence::getInstance().getProperty("HDMI_ARC0.AudioMode", arcModeSettings);
-            LOGINFO("The HDMI ARC Audio Mode Setting on startup is %s", arcModeSettings.c_str());
+            DSLOG_INFO("The HDMI ARC Audio Mode Setting on startup is %s", arcModeSettings.c_str());
             
             if (arcModeSettings.compare("SURROUND") == 0) {
                 arcAudioMode = dsAUDIO_STEREO_SURROUND;
@@ -5170,7 +5170,7 @@ private:
             
             try {
                 speakerModeSettings = device::HostPersistence::getInstance().getProperty("SPEAKER0.AudioMode", speakerModeSettings);
-                LOGINFO("The SPEAKER Audio Mode Setting on startup is %s", speakerModeSettings.c_str());
+                DSLOG_INFO("The SPEAKER Audio Mode Setting on startup is %s", speakerModeSettings.c_str());
             } catch(...) {
                 speakerModeSettings = "SURROUND";
             }
@@ -5191,10 +5191,10 @@ private:
             // Set HDMI port audio mode
             if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI, 0, &handle) == dsERR_NONE) {
                 if (dsSetStereoMode(handle, hdmiAudioMode) == dsERR_NONE) {
-                    LOGINFO("HDMI0: Applied audio mode: %d", hdmiAudioMode);
+                    DSLOG_INFO("HDMI0: Applied audio mode: %d", hdmiAudioMode);
                 }
                 if (dsSetStereoAuto(handle, hdmiAutoMode ? 1 : 0) == dsERR_NONE) {
-                    LOGINFO("HDMI0: Applied auto mode: %s", hdmiAutoMode ? "TRUE" : "FALSE");
+                    DSLOG_INFO("HDMI0: Applied auto mode: %s", hdmiAutoMode ? "TRUE" : "FALSE");
                 }
             }
             
@@ -5202,10 +5202,10 @@ private:
             handle = 0;
             if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPDIF, 0, &handle) == dsERR_NONE) {
                 if (dsSetStereoMode(handle, spdifAudioMode) == dsERR_NONE) {
-                    LOGINFO("SPDIF0: Applied audio mode: %d", spdifAudioMode);
+                    DSLOG_INFO("SPDIF0: Applied audio mode: %d", spdifAudioMode);
                 }
                 if (dsSetStereoAuto(handle, spdifAutoMode ? 1 : 0) == dsERR_NONE) {
-                    LOGINFO("SPDIF0: Applied auto mode: %s", spdifAutoMode ? "TRUE" : "FALSE");
+                    DSLOG_INFO("SPDIF0: Applied auto mode: %s", spdifAutoMode ? "TRUE" : "FALSE");
                 }
             }
             
@@ -5213,10 +5213,10 @@ private:
             handle = 0;
             if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI_ARC, 0, &handle) == dsERR_NONE) {
                 if (dsSetStereoMode(handle, arcAudioMode) == dsERR_NONE) {
-                    LOGINFO("HDMI_ARC0: Applied audio mode: %d", arcAudioMode);
+                    DSLOG_INFO("HDMI_ARC0: Applied audio mode: %d", arcAudioMode);
                 }
                 if (dsSetStereoAuto(handle, arcAutoMode ? 1 : 0) == dsERR_NONE) {
-                    LOGINFO("HDMI_ARC0: Applied auto mode: %s", arcAutoMode ? "TRUE" : "FALSE");
+                    DSLOG_INFO("HDMI_ARC0: Applied auto mode: %s", arcAutoMode ? "TRUE" : "FALSE");
                 }
             }
             
@@ -5224,17 +5224,17 @@ private:
             handle = 0;
             if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
                 if (dsSetStereoMode(handle, speakerAudioMode) == dsERR_NONE) {
-                    LOGINFO("SPEAKER0: Applied audio mode: %d", speakerAudioMode);
+                    DSLOG_INFO("SPEAKER0: Applied audio mode: %d", speakerAudioMode);
                 }
                 if (dsSetStereoAuto(handle, speakerAutoMode ? 1 : 0) == dsERR_NONE) {
-                    LOGINFO("SPEAKER0: Applied auto mode: %s", speakerAutoMode ? "TRUE" : "FALSE");
+                    DSLOG_INFO("SPEAKER0: Applied auto mode: %s", speakerAutoMode ? "TRUE" : "FALSE");
                 }
             }
             
-            LOGINFO("Comprehensive audio port settings initialization completed successfully");
+            DSLOG_INFO("Comprehensive audio port settings initialization completed successfully");
             
         } catch (...) {
-            LOGERR("Exception in initializeAudioPortSettings");
+            DSLOG_ERR("Exception in initializeAudioPortSettings");
         }
         EXIT_LOG;
     }
@@ -5262,16 +5262,16 @@ private:
                     handle = 0;
                     if (dsGetAudioPort(compressionPorts[i], 0, &handle) == dsERR_NONE) {
                         if (dsSetAudioCompressionFunc(handle, defaultCompression) == dsERR_NONE) {
-                            LOGINFO("%s: Initialized audio compression: %d", portNames[i], defaultCompression);
+                            DSLOG_INFO("%s: Initialized audio compression: %d", portNames[i], defaultCompression);
                         }
                     }
                 }
             }
             
-            LOGINFO("MS12 audio settings initialization completed");
+            DSLOG_INFO("MS12 audio settings initialization completed");
             
         } catch (...) {
-            LOGERR("Exception in initializeMS12Settings");
+            DSLOG_ERR("Exception in initializeMS12Settings");
         }
         EXIT_LOG;
     }
@@ -5279,7 +5279,7 @@ private:
     // audioOutPortConnectCallback implementation
     static void audioOutPortConnectCallback(dsAudioPortType_t portType, unsigned int uiPortNo, bool isPortConnected)
     {
-        LOGINFO("Audio port hotplug event: portType=%d, portNo=%d, connected=%s", 
+        DSLOG_INFO("Audio port hotplug event: portType=%d, portNo=%d, connected=%s",
                portType, uiPortNo, isPortConnected ? "true" : "false");
         
         // Convert dsAudioPortType_t to AudioPortType
@@ -5303,7 +5303,7 @@ private:
     // audioFormatUpdateCallback implementation
     static void audioFormatUpdateCallback(dsAudioFormat_t audioFormat)
     {
-        LOGINFO("Audio format update event: audioFormat=%d", audioFormat);
+        DSLOG_INFO("Audio format update event: audioFormat=%d", audioFormat);
         
         // Convert dsAudioFormat_t to AudioFormat
         AudioFormat wpeFormat = static_cast<AudioFormat>(audioFormat);
@@ -5317,7 +5317,7 @@ private:
     // audioAtmosCapsChangeCallback implementation  
     static void audioAtmosCapsChangeCallback(dsATMOSCapability_t atmosCaps, bool status)
     {
-        LOGINFO("Audio atmos caps change event: atmosCaps=%d, status=%s", atmosCaps, status ? "true" : "false");
+        DSLOG_INFO("Audio atmos caps change event: atmosCaps=%d, status=%s", atmosCaps, status ? "true" : "false");
         
         // Convert dsATMOSCapability_t to DolbyAtmosCapability
         DolbyAtmosCapability wpeAtmosCaps = static_cast<DolbyAtmosCapability>(atmosCaps);
@@ -5332,7 +5332,7 @@ private:
     // notifyAssociatedAudioMixingChanged implementation
     void notifyAssociatedAudioMixingChanged(bool mixing)
     {
-        LOGINFO("Associated audio mixing changed: %s", mixing ? "enabled" : "disabled");
+        DSLOG_INFO("Associated audio mixing changed: %s", mixing ? "enabled" : "disabled");
         // Call Audio event handler using global callback if available
         if (g_AssociatedAudioMixingChangedCallback) {
             g_AssociatedAudioMixingChangedCallback(mixing);
@@ -5342,7 +5342,7 @@ private:
     // notifyAudioFaderControlChanged implementation
     void notifyAudioFaderControlChanged(int32_t mixerBalance)
     {
-        LOGINFO("Audio fader control changed: mixerBalance=%d", mixerBalance);
+        DSLOG_INFO("Audio fader control changed: mixerBalance=%d", mixerBalance);
         // Call Audio event handler using global callback if available
         if (g_AudioFaderControlChangedCallback) {
             g_AudioFaderControlChangedCallback(mixerBalance);
@@ -5352,7 +5352,7 @@ private:
     // notifyAudioPrimaryLanguageChanged implementation
     void notifyAudioPrimaryLanguageChanged(const std::string& primaryLanguage)
     {
-        LOGINFO("Audio primary language changed: %s", primaryLanguage.c_str());
+        DSLOG_INFO("Audio primary language changed: %s", primaryLanguage.c_str());
         // Call Audio event handler using global callback if available
         if (g_AudioPrimaryLanguageChangedCallback) {
             g_AudioPrimaryLanguageChangedCallback(primaryLanguage);
@@ -5362,7 +5362,7 @@ private:
     // notifyAudioSecondaryLanguageChanged implementation
     void notifyAudioSecondaryLanguageChanged(const std::string& secondaryLanguage)
     {
-        LOGINFO("Audio secondary language changed: %s", secondaryLanguage.c_str());
+        DSLOG_INFO("Audio secondary language changed: %s", secondaryLanguage.c_str());
         // Call Audio event handler using global callback if available
         if (g_AudioSecondaryLanguageChangedCallback) {
             g_AudioSecondaryLanguageChangedCallback(secondaryLanguage);
@@ -5372,7 +5372,7 @@ private:
     // notifyAudioPortStateChanged implementation
     void notifyAudioPortStateChanged(AudioPortState audioPortState)
     {
-        LOGINFO("Audio port state changed: state=%d", static_cast<int>(audioPortState));
+        DSLOG_INFO("Audio port state changed: state=%d", static_cast<int>(audioPortState));
         // Call Audio event handler using global callback if available
         if (g_AudioPortStateChangedCallback) {
             g_AudioPortStateChangedCallback(audioPortState);
@@ -5382,7 +5382,7 @@ private:
     // notifyAudioLevelChanged implementation
     void notifyAudioLevelChanged(int32_t audioLevel)
     {
-        LOGINFO("Audio level changed: audioLevel=%d", audioLevel);
+        DSLOG_INFO("Audio level changed: audioLevel=%d", audioLevel);
         // Call Audio event handler using global callback if available
         if (g_AudioLevelChangedCallback) {
             g_AudioLevelChangedCallback(static_cast<float>(audioLevel));
@@ -5392,7 +5392,7 @@ private:
     // notifyAudioModeChanged implementation
     void notifyAudioModeChanged(AudioPortType portType, AudioStereoMode mode)
     {
-        LOGINFO("Audio mode changed: portType=%d, mode=%d", static_cast<int>(portType), static_cast<int>(mode));
+        DSLOG_INFO("Audio mode changed: portType=%d, mode=%d", static_cast<int>(portType), static_cast<int>(mode));
         // Call Audio event handler using global callback if available
         if (g_AudioModeChangedCallback) {
             g_AudioModeChangedCallback(portType, mode);
@@ -5406,56 +5406,56 @@ private:
         
         // Register audio callbacks following HdmiIn pattern
         if (bundle.OnAudioOutHotPlug) {
-            LOGINFO("Audio Output Hot Plug Event Callback Registered");
+            DSLOG_INFO("Audio Output Hot Plug Event Callback Registered");
             g_AudioOutHotPlugCallback = bundle.OnAudioOutHotPlug;
         }
         
         if (bundle.OnAudioFormatUpdate) {
-            LOGINFO("Audio Format Update Event Callback Registered");
+            DSLOG_INFO("Audio Format Update Event Callback Registered");
             g_AudioFormatUpdateCallback = bundle.OnAudioFormatUpdate;
         }
         
         if (bundle.OnDolbyAtmosCapabilitiesChanged) {
-            LOGINFO("Dolby Atmos Capabilities Changed Event Callback Registered");
+            DSLOG_INFO("Dolby Atmos Capabilities Changed Event Callback Registered");
             g_DolbyAtmosCapabilitiesChangedCallback = bundle.OnDolbyAtmosCapabilitiesChanged;
         }
         
         if (bundle.OnAssociatedAudioMixingChanged) {
-            LOGINFO("Associated Audio Mixing Changed Event Callback Registered");
+            DSLOG_INFO("Associated Audio Mixing Changed Event Callback Registered");
             g_AssociatedAudioMixingChangedCallback = bundle.OnAssociatedAudioMixingChanged;
         }
         
         if (bundle.OnAudioFaderControlChanged) {
-            LOGINFO("Audio Fader Control Changed Event Callback Registered");
+            DSLOG_INFO("Audio Fader Control Changed Event Callback Registered");
             g_AudioFaderControlChangedCallback = bundle.OnAudioFaderControlChanged;
         }
         
         if (bundle.OnAudioPrimaryLanguageChanged) {
-            LOGINFO("Audio Primary Language Changed Event Callback Registered");
+            DSLOG_INFO("Audio Primary Language Changed Event Callback Registered");
             g_AudioPrimaryLanguageChangedCallback = bundle.OnAudioPrimaryLanguageChanged;
         }
         
         if (bundle.OnAudioSecondaryLanguageChanged) {
-            LOGINFO("Audio Secondary Language Changed Event Callback Registered");
+            DSLOG_INFO("Audio Secondary Language Changed Event Callback Registered");
             g_AudioSecondaryLanguageChangedCallback = bundle.OnAudioSecondaryLanguageChanged;
         }
         
         if (bundle.OnAudioPortStateChanged) {
-            LOGINFO("Audio Port State Changed Event Callback Registered");
+            DSLOG_INFO("Audio Port State Changed Event Callback Registered");
             g_AudioPortStateChangedCallback = bundle.OnAudioPortStateChanged;
         }
         
         if (bundle.OnAudioLevelChanged) {
-            LOGINFO("Audio Level Changed Event Callback Registered");
+            DSLOG_INFO("Audio Level Changed Event Callback Registered");
             g_AudioLevelChangedCallback = bundle.OnAudioLevelChanged;
         }
         
         if (bundle.OnAudioModeChanged) {
-            LOGINFO("Audio Mode Changed Event Callback Registered");
+            DSLOG_INFO("Audio Mode Changed Event Callback Registered");
             g_AudioModeChangedCallback = bundle.OnAudioModeChanged;
         }
         
-        LOGINFO("Audio callbacks set successfully");
+        DSLOG_INFO("Audio callbacks set successfully");
         EXIT_LOG;
     }
 
@@ -5463,7 +5463,7 @@ private:
     {
         ENTRY_LOG;
         // Initialize persistence-related values if needed
-        LOGINFO("Audio persistence values loaded");
+        DSLOG_INFO("Audio persistence values loaded");
         EXIT_LOG;
     }
 };

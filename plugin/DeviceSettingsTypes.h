@@ -89,7 +89,7 @@ inline profile_t searchRdkProfile(void) {
 #include <interfaces/IDeviceSettingsHost.h>
 #include <interfaces/IDeviceSettingsVideoDevice.h>
 #include <interfaces/IDeviceSettingsVideoPort.h>
-#include <wpeframework/helpers/UtilsLogging.h>
+#include "DeviceSettingsLogger.h"
 
 #define USE_LEGACY_INTERFACE
 
@@ -324,12 +324,12 @@ namespace Plugin {
 namespace DeviceSettingsExceptionHelper {
     inline void LogException(const char* context, const std::exception& e)
     {
-        LOGERR("%s: %s", context, e.what());
+        DSLOG_ERR("%s: %s", context, e.what());
     }
 
     inline void LogUnknownException(const char* context)
     {
-        LOGERR("%s: unknown exception", context);
+        DSLOG_ERR("%s: unknown exception", context);
     }
 } // namespace DeviceSettingsExceptionHelper
 } // namespace Plugin
@@ -344,15 +344,15 @@ namespace DeviceSettingsExceptionHelper {
 #define RDK_DSHAL_NAME "libds-hal.so"
 
 #ifdef DEBUG_LOGGING
-#define ENTRY_LOG do { LOGINFO("%d: Enter %s", __LINE__, __func__); } while(0);
-#define EXIT_LOG do { LOGINFO("%d: Exit %s", __LINE__, __func__); } while(0);
+#define ENTRY_LOG do { DSLOG_INFO("%d: Enter %s", __LINE__, __func__); } while(0);
+#define EXIT_LOG do { DSLOG_INFO("%d: Exit %s", __LINE__, __func__); } while(0);
 #else
 #define ENTRY_LOG do { } while(0)
 #define EXIT_LOG do { } while(0)
 #endif
 
 #ifdef DEBUG_LOGGING
-#define DEBUG_LOG(fmt, ...) LOGINFO(fmt, ##__VA_ARGS__)
+#define DEBUG_LOG(fmt, ...) DSLOG_INFO(fmt, ##__VA_ARGS__)
 #else
 #define DEBUG_LOG(fmt, ...) do { } while(0)
 #endif
@@ -420,7 +420,7 @@ namespace device {
                         unsigned int size = dataToWrite.length();
                         size_t written = fwrite(dataToWrite.c_str(), 1, size, file);
                         if (written != size) {
-                            LOGERR("HostPersistence write failed for key %s", it->first.c_str());
+                            DSLOG_ERR("HostPersistence write failed for key %s", it->first.c_str());
                             break;
                         }
                     }
@@ -471,28 +471,28 @@ namespace device {
         }
 
         void load() {
-            LOGINFO("HostPersistence::load: loading user data from '%s'", filePath.c_str());
-            LOGINFO("HostPersistence::load: loading default data from '%s'", defaultFilePath.c_str());
+            DSLOG_INFO("loading user data from '%s'", filePath.c_str());
+            DSLOG_INFO("loading default data from '%s'", defaultFilePath.c_str());
             try {
                 loadFromFile(filePath, _properties);
-                LOGINFO("HostPersistence::load: loaded %zu user properties from '%s'", _properties.size(), filePath.c_str());
+                DSLOG_INFO("loaded %zu user properties from '%s'", _properties.size(), filePath.c_str());
             } catch (...) {
                 // Backup file is corrupt or not available
-                LOGWARN("HostPersistence::load: '%s' not available, trying backup '%stmpDB'", filePath.c_str(), filePath.c_str());
+                DSLOG_WARN("'%s' not available, trying backup '%stmpDB'", filePath.c_str(), filePath.c_str());
                 try {
                     loadFromFile(filePath + "tmpDB", _properties);
-                    LOGINFO("HostPersistence::load: loaded %zu user properties from backup '%stmpDB'", _properties.size(), filePath.c_str());
+                    DSLOG_INFO("loaded %zu user properties from backup '%stmpDB'", _properties.size(), filePath.c_str());
                 } catch (...) {
-                    LOGWARN("HostPersistence::load: backup also not available, starting with empty user properties");
+                    DSLOG_WARN("backup also not available, starting with empty user properties");
                     /* Remove all properties, and start with default values */
                 }
             }
 
             try {
                 loadFromFile(defaultFilePath, _defaultProperties);
-                LOGINFO("HostPersistence::load: loaded %zu default properties from '%s'", _defaultProperties.size(), defaultFilePath.c_str());
+                DSLOG_INFO("loaded %zu default properties from '%s'", _defaultProperties.size(), defaultFilePath.c_str());
             } catch (...) {
-                LOGWARN("HostPersistence::load: '%s' not available, default properties will be empty", defaultFilePath.c_str());
+                DSLOG_WARN("'%s' not available, default properties will be empty", defaultFilePath.c_str());
                 // System file is corrupt or not available
             }
         }
@@ -506,13 +506,13 @@ namespace device {
                 throw std::invalid_argument("The KEY is empty");
             }
 
-            LOGINFO("HostPersistence::getProperty: key='%s' from '%s'", key.c_str(), filePath.c_str());
+            DSLOG_INFO("key='%s' from '%s'", key.c_str(), filePath.c_str());
             std::map<std::string, std::string>::const_iterator eFound = _properties.find(key);
             if (eFound == _properties.end()) {
-                LOGWARN("HostPersistence::getProperty: key='%s' NOT FOUND in '%s'", key.c_str(), filePath.c_str());
+                DSLOG_WARN("key='%s' NOT FOUND in '%s'", key.c_str(), filePath.c_str());
                 throw std::invalid_argument("The Item IS NOT FOUND");
             } else {
-                LOGINFO("HostPersistence::getProperty: key='%s' value='%s' (from '%s')", key.c_str(), eFound->second.c_str(), filePath.c_str());
+                DSLOG_INFO("key='%s' value='%s' (from '%s')", key.c_str(), eFound->second.c_str(), filePath.c_str());
                 return eFound->second;
             }
         }
@@ -526,13 +526,13 @@ namespace device {
                 throw std::invalid_argument("The KEY is empty");
             }
 
-            LOGINFO("HostPersistence::getProperty(defVal): key='%s' from '%s'", key.c_str(), filePath.c_str());
+            DSLOG_INFO("key='%s' from '%s'", key.c_str(), filePath.c_str());
             std::map<std::string, std::string>::const_iterator eFound = _properties.find(key);
             if (eFound == _properties.end()) {
-                LOGINFO("HostPersistence::getProperty(defVal): key='%s' NOT FOUND, returning default='%s'", key.c_str(), defValue.c_str());
+                DSLOG_INFO("key='%s' NOT FOUND, returning default='%s'", key.c_str(), defValue.c_str());
                 return defValue;
             } else {
-                LOGINFO("HostPersistence::getProperty(defVal): key='%s' value='%s' (from '%s')", key.c_str(), eFound->second.c_str(), filePath.c_str());
+                DSLOG_INFO("key='%s' value='%s' " "(from '%s')", key.c_str(), eFound->second.c_str(), filePath.c_str());
                 return eFound->second;
             }
         }
@@ -546,13 +546,13 @@ namespace device {
                 throw std::invalid_argument("The KEY is empty");
             }
 
-            LOGINFO("HostPersistence::getDefaultProperty: key='%s' from '%s'", key.c_str(), defaultFilePath.c_str());
+            DSLOG_INFO("key='%s' from '%s'", key.c_str(), defaultFilePath.c_str());
             std::map<std::string, std::string>::const_iterator eFound = _defaultProperties.find(key);
             if (eFound == _defaultProperties.end()) {
-                LOGWARN("HostPersistence::getDefaultProperty: key='%s' NOT FOUND in '%s'", key.c_str(), defaultFilePath.c_str());
+                DSLOG_WARN("key='%s' NOT FOUND in '%s'", key.c_str(), defaultFilePath.c_str());
                 throw std::invalid_argument("The Item IS NOT FOUND");
             } else {
-                LOGINFO("HostPersistence::getDefaultProperty: key='%s' value='%s' (from '%s')", key.c_str(), eFound->second.c_str(), defaultFilePath.c_str());
+                DSLOG_INFO("key='%s' value='%s' (from '%s')", key.c_str(), eFound->second.c_str(), defaultFilePath.c_str());
                 return eFound->second;
             }
         }
@@ -565,14 +565,14 @@ namespace device {
                 throw std::invalid_argument("Given KEY or VALUE is empty");
             }
 
-            LOGINFO("HostPersistence::persistHostProperty: key='%s' value='%s' to '%s'", key.c_str(), value.c_str(), filePath.c_str());
+            DSLOG_INFO("key='%s' value='%s' to '%s'", key.c_str(), value.c_str(), filePath.c_str());
 
             try {
                 std::string eRet = getProperty(key);
 
                 if (eRet.compare(value) == 0) {
                     /* Same value. No need to do anything */
-                    LOGINFO("HostPersistence::persistHostProperty: key='%s' value unchanged, skip write", key.c_str());
+                    DSLOG_INFO("key='%s' value unchanged, skip write", key.c_str());
                     return;
                 }
 
@@ -590,7 +590,7 @@ namespace device {
 
             _properties.insert({key, value});
             writeToFile(filePath);
-            LOGINFO("HostPersistence::persistHostProperty: key='%s' value='%s' written to '%s'", key.c_str(), value.c_str(), filePath.c_str());
+            DSLOG_INFO("key='%s' value='%s' written to '%s'", key.c_str(), value.c_str(), filePath.c_str());
         }
     };
 }

@@ -96,7 +96,7 @@ namespace Plugin
         using Clock = std::chrono::steady_clock;
         using Ms    = std::chrono::milliseconds;
         auto tInit  = Clock::now();
-        LOGINFO("[DS-INIT-TIMING] DeviceSettings::Initialize — begin");
+        DSLOG_INFO("[DS-INIT-TIMING] DeviceSettings::Initialize — begin");
 
         ASSERT(service != nullptr);
         ASSERT(mService == nullptr);
@@ -120,38 +120,38 @@ namespace Plugin
         {
             auto t0 = Clock::now();
             _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
-            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "service->Root (DeviceSettingsImp)",
+            DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "service->Root (DeviceSettingsImp)",
                     (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count());
         }
 
         if (_mDeviceSettings == nullptr) {
-            LOGERR("DeviceSettings::Initialize: Failed to initialise DeviceSettings plugin");
+            DSLOG_ERR("Failed to initialise DeviceSettings plugin");
             message = _T("DeviceSettings plugin could not be initialised");
-            LOGERR("Failed to get IDeviceSettings interface");
+            DSLOG_ERR("Failed to get IDeviceSettings interface");
         } else {
-            LOGINFO("DeviceSettingsImp initialized successfully");
+            DSLOG_INFO("DeviceSettingsImp initialized successfully");
             
             // Call Configure method on DeviceSettingsImp with the service
             Core::hresult result = _mDeviceSettings->Configure(service);
             if (result != Core::ERROR_NONE) {
-                LOGERR("Failed to configure DeviceSettings: %d", result);
+                DSLOG_ERR("Failed to configure DeviceSettings: %d", result);
                 message = _T("DeviceSettings configuration failed");
             } else {
                 // Initialize individual interface pointers for external COM-RPC access
                 auto tQI = Clock::now();
                 _mDeviceSettingsFPD = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsFPD>();
                 if (_mDeviceSettingsFPD == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsFPD interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsFPD interface for external access");
                 }
                 
                 _mDeviceSettingsHDMIIn = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
                 if (_mDeviceSettingsHDMIIn == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsHDMIIn interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsHDMIIn interface for external access");
                 }
 
                 _mDeviceSettingsAudio = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsAudio>();
                 if (_mDeviceSettingsAudio == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsAudio interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsAudio interface for external access");
                 }
 
                 _mDeviceSettingsVideoPort = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsVideoPort>();
@@ -160,54 +160,54 @@ namespace Plugin
                 _mDeviceSettingsCompositeIn = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsCompositeIn>();
                 _mDeviceSettingsDisplay = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsDisplay>();
                 if (_mDeviceSettingsVideoPort == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsVideoPort interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsVideoPort interface for external access");
                 }
                 if (_mDeviceSettingsVideoDevice == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsVideoDevice interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsVideoDevice interface for external access");
                 }
                 if (_mDeviceSettingsHost == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsHost interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsHost interface for external access");
                 }
                 if (_mDeviceSettingsCompositeIn == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsCompositeIn interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsCompositeIn interface for external access");
                 }
                 if (_mDeviceSettingsDisplay == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsDisplay interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsDisplay interface for external access");
                 }
-                LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "QueryInterface x8 [legacy]",
+                DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "QueryInterface x8 [legacy]",
                         (long long)std::chrono::duration_cast<Ms>(Clock::now() - tQI).count());
 
-                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p, CompositeIn: %p, Display: %p", 
+                DSLOG_INFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p, CompositeIn: %p, Display: %p",
                        _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost, _mDeviceSettingsCompositeIn, _mDeviceSettingsDisplay);
                 
                 // Register for HDMIIn event notifications
                 if (_mDeviceSettingsHDMIIn != nullptr) {
                     _mDeviceSettingsHDMIIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHDMIIn::INotification>());
-                    LOGINFO("Registered for HDMIIn event notifications");
+                    DSLOG_INFO("Registered for HDMIIn event notifications");
                 }
                 
                 // Register for VideoPort event notifications
                 if (_mDeviceSettingsVideoPort != nullptr) {
                     _mDeviceSettingsVideoPort->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoPort::INotification>());
-                    LOGINFO("Registered for VideoPort event notifications");
+                    DSLOG_INFO("Registered for VideoPort event notifications");
                 }
                 
                 // Register for VideoDevice event notifications
                 if (_mDeviceSettingsVideoDevice != nullptr) {
                     _mDeviceSettingsVideoDevice->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
-                    LOGINFO("Registered for VideoDevice event notifications");
+                    DSLOG_INFO("Registered for VideoDevice event notifications");
                 }
                 
                 // Register for CompositeIn event notifications
                 if (_mDeviceSettingsCompositeIn != nullptr) {
                     _mDeviceSettingsCompositeIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
-                    LOGINFO("Registered for CompositeIn event notifications");
+                    DSLOG_INFO("Registered for CompositeIn event notifications");
                 }
                 
                 // Register for Display event notifications
                 if (_mDeviceSettingsDisplay != nullptr) {
                     _mDeviceSettingsDisplay->Register(mNotificationSink.baseInterface<IDisplayNotification>());
-                    LOGINFO("Registered for Display event notifications");
+                    DSLOG_INFO("Registered for Display event notifications");
                 }
             }
         }
@@ -216,36 +216,36 @@ namespace Plugin
         {
             auto t0 = Clock::now();
             _mDeviceSettings = service->Root<Exchange::IDeviceSettings>(mConnectionId, RPC::CommunicationTimeOut, _T("DeviceSettingsImp"));
-            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "service->Root (DeviceSettingsImp)",
+            DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "service->Root (DeviceSettingsImp)",
                     (long long)std::chrono::duration_cast<Ms>(Clock::now() - t0).count());
         }
 
         if (_mDeviceSettings == nullptr) {
-            LOGERR("DeviceSettings::Initialize: Failed to initialise DeviceSettings plugin");
+            DSLOG_ERR("Failed to initialise DeviceSettings plugin");
             message = _T("DeviceSettings plugin could not be initialised");
-            LOGERR("Failed to get IDeviceSettings interface");
+            DSLOG_ERR("Failed to get IDeviceSettings interface");
         } else {
-            LOGINFO("DeviceSettingsImp initialized successfully");
+            DSLOG_INFO("DeviceSettingsImp initialized successfully");
             
             // Call Configure method on DeviceSettingsImp with the service
             auto tCfg = Clock::now();
             Core::hresult result = _mDeviceSettings->Configure(service);
-            LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Configure(service)",
+            DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Configure(service)",
                     (long long)std::chrono::duration_cast<Ms>(Clock::now() - tCfg).count());
             if (result != Core::ERROR_NONE) {
-                LOGERR("Failed to configure DeviceSettings: %d", result);
+                DSLOG_ERR("Failed to configure DeviceSettings: %d", result);
                 message = _T("DeviceSettings configuration failed");
             } else {
                 // Initialize individual interface pointers for external COM-RPC access
                 auto tQI = Clock::now();
                 _mDeviceSettingsFPD = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsFPD>();
                 if (_mDeviceSettingsFPD == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsFPD interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsFPD interface for external access");
                 }
                 
                 _mDeviceSettingsHDMIIn = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
                 if (_mDeviceSettingsHDMIIn == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsHDMIIn interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsHDMIIn interface for external access");
                 }
 
                 _mDeviceSettingsCompositeIn = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsCompositeIn>();
@@ -255,57 +255,57 @@ namespace Plugin
                 _mDeviceSettingsHost = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsHost>();
                 _mDeviceSettingsDisplay = _mDeviceSettings->QueryInterface<Exchange::IDeviceSettingsDisplay>();
                 if (_mDeviceSettingsCompositeIn == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsCompositeIn interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsCompositeIn interface for external access");
                 }
                 if (_mDeviceSettingsAudio == nullptr) {
-                    LOGERR("Failed to get DeviceSettingsAudio interface for external access");
+                    DSLOG_ERR("Failed to get DeviceSettingsAudio interface for external access");
                 }
                 if (_mDeviceSettingsVideoPort == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsVideoPort interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsVideoPort interface for external access");
                 }
                 if (_mDeviceSettingsVideoDevice == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsVideoDevice interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsVideoDevice interface for external access");
                 }
                 if (_mDeviceSettingsHost == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsHost interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsHost interface for external access");
                 }
                 if (_mDeviceSettingsDisplay == nullptr) {
-                    LOGERR("Failed to get IDeviceSettingsDisplay interface for external access");
+                    DSLOG_ERR("Failed to get IDeviceSettingsDisplay interface for external access");
                 }
-                LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "QueryInterface x8",
+                DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "QueryInterface x8",
                         (long long)std::chrono::duration_cast<Ms>(Clock::now() - tQI).count());
 
-                LOGINFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, CompositeIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p, Display: %p", 
+                DSLOG_INFO("Individual interfaces initialized for external access - FPD: %p, HDMIIn: %p, CompositeIn: %p, Audio: %p, VideoPort: %p, VideoDevice: %p, Host: %p, Display: %p",
                        _mDeviceSettingsFPD, _mDeviceSettingsHDMIIn, _mDeviceSettingsCompositeIn, _mDeviceSettingsAudio, _mDeviceSettingsVideoPort, _mDeviceSettingsVideoDevice, _mDeviceSettingsHost, _mDeviceSettingsDisplay);
                 
                 // Register for HDMIIn event notifications
                 if (_mDeviceSettingsHDMIIn != nullptr) {
                     _mDeviceSettingsHDMIIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHDMIIn::INotification>());
-                    LOGINFO("Registered for HDMIIn event notifications");
+                    DSLOG_INFO("Registered for HDMIIn event notifications");
                 }
                 
                 // Register for VideoPort event notifications
                 if (_mDeviceSettingsVideoPort != nullptr) {
                     _mDeviceSettingsVideoPort->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoPort::INotification>());
-                    LOGINFO("Registered for VideoPort event notifications");
+                    DSLOG_INFO("Registered for VideoPort event notifications");
                 }
                 
                 // Register for VideoDevice event notifications
                 if (_mDeviceSettingsVideoDevice != nullptr) {
                     _mDeviceSettingsVideoDevice->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
-                    LOGINFO("Registered for VideoDevice event notifications");
+                    DSLOG_INFO("Registered for VideoDevice event notifications");
                 }
                 
                 // Register for CompositeIn event notifications
                 if (_mDeviceSettingsCompositeIn != nullptr) {
                     _mDeviceSettingsCompositeIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
-                    LOGINFO("Registered for CompositeIn event notifications");
+                    DSLOG_INFO("Registered for CompositeIn event notifications");
                 }
                 
                 // Register for Display event notifications
                 if (_mDeviceSettingsDisplay != nullptr) {
                     _mDeviceSettingsDisplay->Register(mNotificationSink.baseInterface<IDisplayNotification>());
-                    LOGINFO("Registered for Display event notifications");
+                    DSLOG_INFO("Registered for Display event notifications");
                 }
             }
         }
@@ -314,7 +314,7 @@ namespace Plugin
             Deinitialize(service);
         }
 
-        LOGINFO("[DS-INIT-TIMING] %-28s : %6lld ms", "DeviceSettings::Initialize TOTAL",
+        DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "DeviceSettings::Initialize TOTAL",
                 (long long)std::chrono::duration_cast<Ms>(Clock::now() - tInit).count());
         // On success return empty, to indicate there is no error text.
         return (message);
@@ -330,27 +330,27 @@ namespace Plugin
             // Unregister from event notifications before releasing interfaces
             if (_mDeviceSettingsHDMIIn != nullptr) {
                 _mDeviceSettingsHDMIIn->Unregister(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHDMIIn::INotification>());
-                LOGINFO("Unregistered from HDMIIn event notifications");
+                DSLOG_INFO("Unregistered from HDMIIn event notifications");
             }
             
             if (_mDeviceSettingsVideoPort != nullptr) {
                 _mDeviceSettingsVideoPort->Unregister(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoPort::INotification>());
-                LOGINFO("Unregistered from VideoPort event notifications");
+                DSLOG_INFO("Unregistered from VideoPort event notifications");
             }
             
             if (_mDeviceSettingsVideoDevice != nullptr) {
                 _mDeviceSettingsVideoDevice->Unregister(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
-                LOGINFO("Unregistered from VideoDevice event notifications");
+                DSLOG_INFO("Unregistered from VideoDevice event notifications");
             }
             
             if (_mDeviceSettingsCompositeIn != nullptr) {
                 _mDeviceSettingsCompositeIn->Unregister(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
-                LOGINFO("Unregistered from CompositeIn event notifications");
+                DSLOG_INFO("Unregistered from CompositeIn event notifications");
             }
             
             if (_mDeviceSettingsDisplay != nullptr) {
                 _mDeviceSettingsDisplay->Unregister(mNotificationSink.baseInterface<IDisplayNotification>());
-                LOGINFO("Unregistered from Display event notifications");
+                DSLOG_INFO("Unregistered from Display event notifications");
             }
             
             // Release individual interface pointers
@@ -401,7 +401,7 @@ namespace Plugin
             mService->Release();
             mService = nullptr;
             mConnectionId = 0;
-            LOGINFO("DeviceSettings de-initialised");
+            DSLOG_INFO("DeviceSettings de-initialised");
         }
     }
 
@@ -424,7 +424,7 @@ namespace Plugin
     void DeviceSettings::CallbackRevoked(const Core::IUnknown* remote, const uint32_t interfaceId)
     {
         // Add your handling code here, or leave empty if not needed
-        LOGINFO("CallbackRevoked called for interfaceId %u", interfaceId);
+        DSLOG_INFO("called for interfaceId %u", interfaceId);
     }
 
 } // namespace Plugin
