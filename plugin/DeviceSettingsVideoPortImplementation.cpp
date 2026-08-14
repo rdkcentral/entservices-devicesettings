@@ -41,19 +41,33 @@ namespace Plugin {
 
     DeviceSettingsVideoPortImpl::~DeviceSettingsVideoPortImpl() {
         DSLOG_INFO("Destructor - Instance Address: %p", this);
+        std::list<Exchange::IDeviceSettingsVideoPort::INotification*> notifications;
+        _callbackLock.Lock();
+        notifications.swap(_VideoPortNotifications);
+        _callbackLock.Unlock();
+        for (auto* notification : notifications) {
+            notification->Release();
+        }
     }
 
     template<typename Func, typename... Args>
     void DeviceSettingsVideoPortImpl::dispatchVideoPortEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
+        std::vector<Exchange::IDeviceSettingsVideoPort::INotification*> notifications;
         _callbackLock.Lock();
-        for (auto& notification : _VideoPortNotifications) {
+        for (auto* notification : _VideoPortNotifications) {
+            notification->AddRef();
+            notifications.push_back(notification);
+        }
+        _callbackLock.Unlock();
+
+        for (auto* notification : notifications) {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
             DSLOG_INFO("client %p took %" PRId64 "ms to process IVideoPort event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            notification->Release();
         }
-        _callbackLock.Unlock();
         DSLOG_INFO("<<");
     }
 

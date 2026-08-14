@@ -108,8 +108,7 @@ namespace Plugin {
     }
 
     DSController::DSController(DeviceSettingsImp* deviceSettingsInstance)
-        : _deviceSettingsInstance(deviceSettingsInstance)
-        , _deviceSettings(nullptr)
+        : _deviceSettings(deviceSettingsInstance)
         , _pwrEventListener(nullptr)
         , _mainLoop(nullptr)
         , _easMode(0)
@@ -282,11 +281,10 @@ namespace Plugin {
     void DSController::InitializeDeviceSettingsComponents()
     {
         try {
-            // Use the injected instance instead of singleton
-            _deviceSettings = _deviceSettingsInstance;
             if (_deviceSettings) {
                 _deviceSettings->Register(static_cast<IDisplayHDMIHotPlugNotification*>(this));
                 _deviceSettings->Register(static_cast<IDisplayNotification*>(this));
+                _deviceSettings->Register(static_cast<Exchange::IDeviceSettingsVideoPort::INotification*>(this));
             } else {
                 DSLOG_ERR("Failed to get DeviceSettings implementation instance");
             }
@@ -300,6 +298,7 @@ namespace Plugin {
         if (_deviceSettings) {
             _deviceSettings->Unregister(static_cast<IDisplayHDMIHotPlugNotification*>(this));
             _deviceSettings->Unregister(static_cast<IDisplayNotification*>(this));
+            _deviceSettings->Unregister(static_cast<Exchange::IDeviceSettingsVideoPort::INotification*>(this));
         }
         
         _deviceSettings = nullptr;
@@ -1060,11 +1059,20 @@ namespace Plugin {
     }
     
     void DSController::OnDisplayHDCPStatus(const int32_t hdcpStatus) {
+        DSLOG_INFO("hdcpStatus = %d", hdcpStatus);
+        HandleHDCPStatus(hdcpStatus);
+    }
+
+    void DSController::OnHDCPStatusChange(const VideoPortHdcpStatus hdcpStatus) {
+        DSLOG_INFO("hdcpStatus = %d", static_cast<int>(hdcpStatus));
+        HandleHDCPStatus(static_cast<int32_t>(hdcpStatus));
+    }
+
+    void DSController::HandleHDCPStatus(int32_t hdcpStatus) {
         IARM_Bus_SYSMgr_EventData_t HDCPeventData;
         HDCPeventData.data.systemStates.stateId = IARM_BUS_SYSMGR_SYSSTATE_HDCP_ENABLED;
         HDCPeventData.data.systemStates.state = 1;
 
-        DSLOG_INFO("hdcpStatus = %d", hdcpStatus);
         if (hdcpStatus == dsHDCP_STATUS_AUTHENTICATED) {
             DSLOG_INFO("Changed status to HDCP Authentication Pass !!!!!!!!");
             _hdcpAuthenticated = true;

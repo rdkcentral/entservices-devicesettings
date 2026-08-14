@@ -46,8 +46,8 @@ void Display::Platform_init()
         this->OnDisplayRxSense(rxSenseOn ? DisplayEvent::DS_DISPLAY_RXSENSE_ON
                                          : DisplayEvent::DS_DISPLAY_RXSENSE_OFF);
     };
-    bundle.OnDisplayHDCPStatus = [this](const uint8_t /*port*/, const bool /*authenticated*/) {
-        this->OnDisplayHDCPStatus();
+    bundle.OnDisplayHDCPStatus = [this](const uint8_t /*port*/, const int32_t hdcpStatus) {
+        this->OnDisplayHDCPStatus(hdcpStatus);
     };
     bundle.OnDisplayHDMIHotPlug = [this](const uint8_t /*port*/, const bool connected) {
         this->OnDisplayHDMIHotPlug(connected ? DisplayEvent::DS_DISPLAY_EVENT_CONNECTED
@@ -68,10 +68,10 @@ void Display::OnDisplayRxSense(const DisplayEvent displayEvent)
     _parent.OnDisplayRxSense(displayEvent);
 }
 
-void Display::OnDisplayHDCPStatus()
+void Display::OnDisplayHDCPStatus(const int32_t hdcpStatus)
 {
     DSLOG_INFO("Display OnDisplayHDCPStatus event");
-    _parent.OnDisplayHDCPStatus();
+    _parent.OnDisplayHDCPStatus(hdcpStatus);
 }
 
 void Display::OnDisplayHDMIHotPlug(const DisplayEvent displayEvent)
@@ -182,35 +182,4 @@ uint32_t Display::SetAVIScanInformation(const int32_t handle, const int32_t scan
         DSLOG_ERR("failed: handle=%d, error=%u", handle, result);
     }
     return result;
-}
-
-void Display::RegisterDisplayEventCallback()
-{
-    // Event callbacks are registered through platform initialization
-    DSLOG_INFO("handled by platform layer");
-}
-
-void Display::OnDisplayEvent(const int32_t handle, const DisplayEvent event, void *eventData)
-{
-    
-    switch(event) {
-        case DisplayEvent::DS_DISPLAY_RXSENSE_ON:
-        case DisplayEvent::DS_DISPLAY_RXSENSE_OFF:
-            OnDisplayRxSense(event);
-            break;
-            
-        case DisplayEvent::DS_DISPLAY_HDCPPROTOCOL_CHANGE:
-            OnDisplayHDCPStatus();
-            break;
-            
-        case DisplayEvent::DS_DISPLAY_EVENT_CONNECTED:
-        case DisplayEvent::DS_DISPLAY_EVENT_DISCONNECTED:
-            OnDisplayHDMIHotPlug(event);
-            break;
-            
-        default:
-            DSLOG_ERR("Unknown display event: %d", static_cast<int>(event));
-            break;
-    }
-    
 }

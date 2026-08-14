@@ -614,7 +614,7 @@ struct CallbackBundle {
 
     // Display event callbacks (for HAL implementations)
     std::function<void(const uint8_t, const bool)> OnDisplayRxSense;
-    std::function<void(const uint8_t, const bool)> OnDisplayHDCPStatus;
+    std::function<void(const uint8_t, const int32_t)> OnDisplayHDCPStatus;
     std::function<void(const uint8_t, const bool)> OnDisplayHDMIHotPlug;
     
     // CompositeIn callbacks  

@@ -59,7 +59,7 @@ static pthread_mutex_t dsDisplayLock = PTHREAD_MUTEX_INITIALIZER;
 
 // Static global callback functions for Display events
 static std::function<void(const uint8_t, const bool)> g_DisplayRxSenseCallback;
-static std::function<void(const uint8_t, const bool)> g_DisplayHDCPStatusCallback;
+static std::function<void(const uint8_t, const int32_t)> g_DisplayHDCPStatusCallback;
 static std::function<void(const uint8_t, const bool)> g_DisplayHDMIHotPlugCallback;
 
 class dDisplayImpl : public hal::dDisplay::IPlatform {
@@ -669,8 +669,9 @@ private:
                 
             case dsDISPLAY_HDCPPROTOCOL_CHANGE: // DS_DISPLAY_HDCPPROTOCOL_CHANGE equivalent
                 if (g_DisplayHDCPStatusCallback && eventData) {
-                    bool isAuthenticated = *static_cast<bool*>(eventData);
-                    g_DisplayHDCPStatusCallback(port, isAuthenticated);
+                    int32_t hdcpStatusValue = *reinterpret_cast<int32_t*>(eventData);
+                    DSLOG_INFO(" HDCP status changed, invoking callback with status=%d", hdcpStatusValue);
+                    g_DisplayHDCPStatusCallback(port, static_cast<int32_t>(hdcpStatusValue));
                 }
                 break;
                 

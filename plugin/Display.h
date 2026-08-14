@@ -55,7 +55,7 @@ public:
         public:
             virtual ~INotification() = default;
             virtual void OnDisplayRxSense(const DisplayEvent displayEvent) = 0;
-            virtual void OnDisplayHDCPStatus() = 0;
+            virtual void OnDisplayHDCPStatus(const int32_t hdcpStatus) = 0;
             virtual void OnDisplayHDMIHotPlug(const DisplayEvent displayEvent) = 0;
     };
 
@@ -76,7 +76,7 @@ public:
 
     // Display event handling methods - Called by DS HAL to forward events to parent
     void OnDisplayRxSense(const DisplayEvent displayEvent);
-    void OnDisplayHDCPStatus();
+    void OnDisplayHDCPStatus(const int32_t hdcpStatus);
     void OnDisplayHDMIHotPlug(const DisplayEvent displayEvent);
 
     template <typename IMPL = DefaultImpl, typename... Args>
@@ -103,8 +103,6 @@ public:
 public:
     /** Deferred HAL init — called from DeviceSettingsImp::Configure() */
     void InitialiseHAL() { std::static_pointer_cast<DefaultImpl>(_platform)->InitialiseHAL(); }
-    void RegisterDisplayEventCallback();
-    void OnDisplayEvent(const int32_t handle, const DisplayEvent event, void *eventData);
 
     INotification& _parent;
 };

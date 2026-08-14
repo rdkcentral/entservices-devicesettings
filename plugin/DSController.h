@@ -75,7 +75,8 @@ namespace Plugin {
     class DeviceSettingsImp;
     
     class DSController : public Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification
-                       , public Exchange::IDeviceSettingsDisplay::INotification {
+                       , public Exchange::IDeviceSettingsDisplay::INotification
+                       , public Exchange::IDeviceSettingsVideoPort::INotification {
     public:
         DSController(DeviceSettingsImp* deviceSettingsInstance);
         ~DSController();
@@ -90,6 +91,7 @@ namespace Plugin {
         BEGIN_INTERFACE_MAP(DSController)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay::IDisplayHDMIHotPlugNotification)
             INTERFACE_ENTRY(Exchange::IDeviceSettingsDisplay::INotification)
+            INTERFACE_ENTRY(Exchange::IDeviceSettingsVideoPort::INotification)
         END_INTERFACE_MAP
 
         // Implement Core::IUnknown methods. Some branches expose AddRef as void,
@@ -124,6 +126,10 @@ namespace Plugin {
         void OnDisplayRxSense(const DisplayEvent displayEvent) override;
         void OnDisplayHDCPStatus(const int32_t hdcpStatus) override;
         void OnDisplayHDMIHotPlug(const DisplayEvent displayEvent) override;
+        void OnHDCPStatusChange(const VideoPortHdcpStatus hdcpStatus) override;
+        void OnResolutionPreChange(const ResolutionChange& resolution) override {};
+        void OnResolutionPostChange(const ResolutionChange& resolution) override {};
+        void OnVideoFormatUpdate(const HDRStandard videoFormatHDR) override {};
         
     private:
         uint32_t AddRefImpl(std::false_type) const {
@@ -150,6 +156,7 @@ namespace Plugin {
         }
 
         void InitializeResolutionThread();
+        void HandleHDCPStatus(int32_t hdcpStatus);
         void SetVideoPortResolution();
         void SetResolution(int32_t handle, dsVideoPortType_t portType);
         void SetAudioMode();
@@ -187,8 +194,6 @@ namespace Plugin {
         static DSController* _instance;
         
         // Injected DeviceSettings instance for dependency injection
-        DeviceSettingsImp* _deviceSettingsInstance;
-        
         DeviceSettingsImp* _deviceSettings;
         DSPwrEventListener* _pwrEventListener;
         
