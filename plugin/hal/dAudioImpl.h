@@ -1014,6 +1014,26 @@ public:
             if (ret == dsERR_NONE) {
                 muted = dsMuted;
                 DSLOG_INFO("success: handle=%d, muted=%d", handle, muted);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                std::string muteKey;
+                switch (getAudioPortType(dsHandle)) {
+                    case dsAUDIOPORT_TYPE_SPDIF:     muteKey = "SPDIF0.audio.mute";     break;
+                    case dsAUDIOPORT_TYPE_HDMI:      muteKey = "HDMI0.audio.mute";      break;
+                    case dsAUDIOPORT_TYPE_SPEAKER:   muteKey = "SPEAKER0.audio.mute";   break;
+                    case dsAUDIOPORT_TYPE_HEADPHONE: muteKey = "HEADPHONE0.audio.mute"; break;
+                    case dsAUDIOPORT_TYPE_HDMI_ARC:  muteKey = "HDMI_ARC0.audio.mute";  break;
+                    default: break;
+                }
+
+                if (!muteKey.empty()) {
+                    try {
+                        muted = (device::HostPersistence::getInstance().getProperty(muteKey) == "TRUE")
+                            || muted;
+                    } catch (...) {
+                        DSLOG_WARN("failed to read persisted mute state for %s", muteKey.c_str());
+                    }
+                }
+#endif
             } else {
                 DSLOG_ERR("dsIsAudioMute failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;

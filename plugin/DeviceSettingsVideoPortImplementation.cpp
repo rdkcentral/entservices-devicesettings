@@ -19,9 +19,13 @@
 
 #include "DeviceSettingsVideoPortImplementation.h"
 
+#include <functional>
 #include <syscall.h>
 #include <set>
 #include <vector>
+
+#include <core/IAction.h>
+#include <core/WorkerPool.h>
 
 using namespace std;
 
@@ -30,10 +34,35 @@ using namespace std;
 namespace WPEFramework {
 namespace Plugin {
 
+namespace {
+    class VideoPortEventJob : public Core::IDispatch {
+    public:
+        VideoPortEventJob(std::shared_ptr<std::mutex> dispatchMutex,
+                          std::vector<std::function<void()>> callbacks)
+            : _dispatchMutex(std::move(dispatchMutex))
+            , _callbacks(std::move(callbacks))
+        {
+        }
+
+        void Dispatch() override
+        {
+            std::lock_guard<std::mutex> lock(*_dispatchMutex);
+            for (auto& callback : _callbacks) {
+                callback();
+            }
+        }
+
+    private:
+        std::shared_ptr<std::mutex> _dispatchMutex;
+        std::vector<std::function<void()>> _callbacks;
+    };
+}
+
     DeviceSettingsVideoPortImpl::DeviceSettingsVideoPortImpl() : 
         _VideoPortNotifications(),
         _apiLock(),
         _callbackLock(),
+        _eventDispatchMutex(std::make_shared<std::mutex>()),
         _videoPort(VideoPort::Create(*this))
     {
         DSLOG_INFO("Constructor - Instance Address: %p", this);
@@ -61,13 +90,29 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
+        std::vector<std::function<void()>> callbacks;
+        callbacks.reserve(notifications.size());
         for (auto* notification : notifications) {
-            auto start = std::chrono::steady_clock::now();
-            (notification->*notifyFunc)(std::forward<Args>(args)...);
-            auto elapsed = std::chrono::steady_clock::now() - start;
-            DSLOG_INFO("client %p took %" PRId64 "ms to process IVideoPort event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-            notification->Release();
+            auto callback = std::bind(notifyFunc, notification, std::forward<Args>(args)...);
+            callbacks.emplace_back([notification, callback]() mutable {
+                auto start = std::chrono::steady_clock::now();
+                try {
+                    callback();
+                } catch (...) {
+                    DSLOG_ERR("client %p threw while processing IVideoPort event", notification);
+                }
+                auto elapsed = std::chrono::steady_clock::now() - start;
+                DSLOG_INFO("client %p took %" PRId64 "ms to process IVideoPort event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+                notification->Release();
+            });
         }
+
+        if (!callbacks.empty()) {
+            Core::ProxyType<Core::IDispatch> job(
+                Core::ProxyType<VideoPortEventJob>::Create(_eventDispatchMutex, std::move(callbacks)));
+            Core::IWorkerPool::Instance().Submit(job);
+        }
+
         DSLOG_INFO("<<");
     }
 
