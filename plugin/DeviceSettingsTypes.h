@@ -341,7 +341,10 @@ namespace DeviceSettingsExceptionHelper {
 #define API_VERSION_PATCH 0
 
 #define TVSETTINGS_DALS_RFC_PARAM "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TvSettings.DynamicAutoLatency"
+
+#ifndef RDK_DSHAL_NAME
 #define RDK_DSHAL_NAME "libds-hal.so"
+#endif
 
 #ifdef DEBUG_LOGGING
 #define ENTRY_LOG do { DSLOG_INFO("%d: Enter %s", __LINE__, __func__); } while(0);

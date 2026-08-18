@@ -4030,7 +4030,7 @@ private:
             static dsSetAudioDelay_t dsSetAudioDelayFunc = nullptr;
             
             if (dsSetAudioDelayFunc == nullptr) {
-                dllib = dlopen("libdshal.so", RTLD_LAZY);
+                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
                 if (dllib) {
                     dsSetAudioDelayFunc = (dsSetAudioDelay_t) dlsym(dllib, "dsSetAudioDelay");
                     if (dsSetAudioDelayFunc) {
@@ -4109,7 +4109,7 @@ private:
             static dsSetPrimaryLanguage_t dsSetPrimaryLanguageFunc = nullptr;
             
             if (dsSetPrimaryLanguageFunc == nullptr) {
-                dllib = dlopen("libdshal.so", RTLD_LAZY);
+                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
                 if (dllib) {
                     dsSetPrimaryLanguageFunc = (dsSetPrimaryLanguage_t) dlsym(dllib, "dsSetPrimaryLanguage");
                     if (dsSetPrimaryLanguageFunc) {
@@ -4146,7 +4146,7 @@ private:
             static dsSetSecondaryLanguage_t dsSetSecondaryLanguageFunc = nullptr;
             
             if (dsSetSecondaryLanguageFunc == nullptr) {
-                dllib = dlopen("libdshal.so", RTLD_LAZY);
+                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
                 if (dllib) {
                     dsSetSecondaryLanguageFunc = (dsSetSecondaryLanguage_t) dlsym(dllib, "dsSetSecondaryLanguage");
                     if (dsSetSecondaryLanguageFunc) {
@@ -4183,7 +4183,7 @@ private:
             static dsSetFaderControl_t dsSetFaderControlFunc = nullptr;
             
             if (dsSetFaderControlFunc == nullptr) {
-                dllib = dlopen("libdshal.so", RTLD_LAZY);
+                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
                 if (dllib) {
                     dsSetFaderControlFunc = (dsSetFaderControl_t) dlsym(dllib, "dsSetFaderControl");
                     if (dsSetFaderControlFunc) {
@@ -4222,7 +4222,7 @@ private:
             static dsSetAssociatedAudioMixing_t dsSetAssociatedAudioMixingFunc = nullptr;
             
             if (dsSetAssociatedAudioMixingFunc == nullptr) {
-                dllib = dlopen("libdshal.so", RTLD_LAZY);
+                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
                 if (dllib) {
                     dsSetAssociatedAudioMixingFunc = (dsSetAssociatedAudioMixing_t) dlsym(dllib, "dsSetAssociatedAudioMixing");
                     if (dsSetAssociatedAudioMixingFunc) {
@@ -4275,7 +4275,7 @@ private:
                 static dsSetMS12AudioProfile_t dsSetMS12AudioProfileFunc = nullptr;
                 
                 if (dsSetMS12AudioProfileFunc == nullptr) {
-                    dllib = dlopen("libdshal.so", RTLD_LAZY);
+                    dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
                     if (dllib) {
                         dsSetMS12AudioProfileFunc = (dsSetMS12AudioProfile_t) dlsym(dllib, "dsSetMS12AudioProfile");
                         if (dsSetMS12AudioProfileFunc) {
