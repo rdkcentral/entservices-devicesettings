@@ -24,6 +24,7 @@
 #include <iostream>
 #include <functional>
 #include <string>
+#include <vector>
 #include "dDisplay.h"
 #include "dsDisplay.h"
 #include "dsError.h"
@@ -33,6 +34,7 @@
 #include <WPEFramework/interfaces/IDeviceSettingsDisplay.h>
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsHdmiStatus.h"
+#include "dVideoPortImpl.h"
 
 #ifndef RDK_DSHAL_NAME
 #warning   "RDK_DSHAL_NAME is not defined"
@@ -398,10 +400,11 @@ public:
         return retCode;
     }
 
-    uint32_t GetDisplayEdid(const int32_t handle, WPEFramework::Exchange::IDeviceSettingsDisplay::DisplayEDID &edId) override
+    uint32_t GetDisplayEdid(const int32_t handle, WPEFramework::Exchange::IDeviceSettingsDisplay::DisplayEDID &edId, IDSVideoPortResolutionIterator*& supportedResolutionList) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d", handle);
+        supportedResolutionList = nullptr;
 
         /* Mirror dsDisplay.c _dsGetEDID: serve from cache when available.
          * Cache is reset to false on dsDISPLAY_EVENT_DISCONNECTED. */
@@ -418,6 +421,8 @@ public:
             edId.physicalAddressD       = s_edidStructCache.physicalAddressD;
             edId.numOfSupportedResolution = s_edidStructCache.numOfSupportedResolution;
             edId.monitorName            = std::string(s_edidStructCache.monitorName);
+            buildSupportedResolutionIterator(s_edidStructCache, supportedResolutionList);
+            DSLOG_INFO(" returned %d cached supported resolutions", s_edidStructCache.numOfSupportedResolution);
             DSLOG_INFO(" returning cached EDID");
             return WPEFramework::Core::ERROR_NONE;
         }
@@ -447,6 +452,7 @@ public:
             edId.physicalAddressD       = halEdid.physicalAddressD;
             edId.numOfSupportedResolution = halEdid.numOfSupportedResolution;
             edId.monitorName            = std::string(halEdid.monitorName);
+            buildSupportedResolutionIterator(halEdid, supportedResolutionList);
             retCode = WPEFramework::Core::ERROR_NONE;
             DSLOG_INFO(" SUCCESS (cached for next call)");
         } else {
@@ -455,6 +461,38 @@ public:
         
         pthread_mutex_unlock(&dsDisplayLock);
         return retCode;
+    }
+
+    static void buildSupportedResolutionIterator(const dsDisplayEDID_t& halEdid, IDSVideoPortResolutionIterator*& supportedResolutionList)
+    {
+        supportedResolutionList = nullptr;
+
+        if (halEdid.numOfSupportedResolution <= 0) {
+            return;
+        }
+
+        std::vector<DisplayVideoPortResolution> resolutions;
+        resolutions.reserve(static_cast<size_t>(halEdid.numOfSupportedResolution));
+
+        const int maxResolutions = static_cast<int>(dsEEDID_MAX_VIDEO_CODE * dsVIDEO_SSMODE_MAX);
+        const int resolutionCount = (halEdid.numOfSupportedResolution < maxResolutions)
+            ? halEdid.numOfSupportedResolution
+            : maxResolutions;
+
+        for (int i = 0; i < resolutionCount; ++i) {
+            const dsVideoPortResolution_t& halResolution = halEdid.suppResolutionList[i];
+            DisplayVideoPortResolution resolution;
+            resolution.name = std::string(halResolution.name);
+            resolution.pixelResolution = static_cast<DisplayTVResolution>(halResolution.pixelResolution);
+            resolution.aspectRatio = static_cast<DisplayVideoAspectRatio>(halResolution.aspectRatio);
+            resolution.stereoScopicMode = static_cast<DisplayInVideoStereoScopicMode>(halResolution.stereoScopicMode);
+            resolution.frameRate = static_cast<DisplayInVideoFrameRate>(halResolution.frameRate);
+            resolution.interlaced = halResolution.interlaced;
+            resolutions.push_back(resolution);
+        }
+
+        using ResolutionIterator = WPEFramework::RPC::IteratorType<IDSVideoPortResolutionIterator>;
+        supportedResolutionList = WPEFramework::Core::Service<ResolutionIterator>::Create<IDSVideoPortResolutionIterator>(resolutions);
     }
 
     /* Mirror dsDisplay.c dumpEDIDInformation — logs EDID product/serial/year/
@@ -676,6 +714,9 @@ private:
                 break;
                 
             case dsDISPLAY_EVENT_CONNECTED: // DS_DISPLAY_EVENT_CONNECTED equivalent
+                // Legacy parity: reconcile persisted preferred color depth against
+                // current sink capabilities before announcing connected state.
+                dVideoPortImpl::ApplyPreferredColorDepthAfterHdmiReset();
                 _dsSyncHdmiStatus(DS_HDMI_TAG_HOTPLUP, dsDISPLAY_EVENT_CONNECTED);
                 if (g_DisplayHDMIHotPlugCallback) {
                     g_DisplayHDMIHotPlugCallback(port, true);

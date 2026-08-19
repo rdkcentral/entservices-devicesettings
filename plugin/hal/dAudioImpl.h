@@ -36,6 +36,11 @@
 #include <functional>
 #include <dlfcn.h>
 #include <cstdio>
+#include <atomic>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
 
 // Static global callback functions following HdmiIn pattern
 static std::function<void(const AudioPortType, const uint32_t, const bool)> g_AudioOutHotPlugCallback;
@@ -48,6 +53,20 @@ static std::function<void(const std::string&)> g_AudioSecondaryLanguageChangedCa
 static std::function<void(const AudioPortState)> g_AudioPortStateChangedCallback;
 static std::function<void(const float)> g_AudioLevelChangedCallback;
 static std::function<void(const AudioPortType, const AudioStereoMode)> g_AudioModeChangedCallback;
+
+// Legacy dsAudio.c parity: cache latest level and coalesce persistence writes.
+static std::atomic<float> g_LastVolumeLevel(0.0f);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+static std::atomic<float> g_audioLevelCacheSpdif(0.0f);
+static std::atomic<float> g_audioLevelCacheHdmi(0.0f);
+static std::atomic<float> g_audioLevelCacheSpeaker(0.0f);
+static std::atomic<float> g_audioLevelCacheHeadphone(0.0f);
+static std::atomic<bool> g_audioLevelPersistThreadAlive(false);
+static std::atomic<bool> g_audioLevelPersistPending(false);
+static std::thread g_audioLevelPersistThread;
+static std::mutex g_audioLevelPersistMutex;
+static std::condition_variable g_audioLevelPersistCv;
+#endif
 
 /* LE (Loudness Equivalent) enable state — mirrors m_LEEnabled in dsAudio.c.
  * Loaded from persistence at init, updated on each EnableAudioLEConfig call. */
@@ -71,6 +90,101 @@ private:
     
     // Audio port state tracking
     bool _audioPortEnabled[dsAUDIOPORT_TYPE_MAX];
+
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+    static void persistAudioLevelIfChanged(const char* key, float& previousLevel, const float currentLevel)
+    {
+        if (currentLevel != previousLevel) {
+            DSLOG_INFO("Persist coalesced audio level: %s=%f", key, currentLevel);
+            device::HostPersistence::getInstance().persistHostProperty(key, std::to_string(currentLevel));
+            previousLevel = currentLevel;
+        }
+    }
+
+    static void runAudioLevelPersistThread()
+    {
+        float prevSpdif = g_audioLevelCacheSpdif.load();
+        float prevHdmi = g_audioLevelCacheHdmi.load();
+        float prevSpeaker = g_audioLevelCacheSpeaker.load();
+        float prevHeadphone = g_audioLevelCacheHeadphone.load();
+
+        DSLOG_INFO("Audio level persistence coalescing thread started");
+        while (g_audioLevelPersistThreadAlive.load()) {
+            std::unique_lock<std::mutex> lk(g_audioLevelPersistMutex);
+            g_audioLevelPersistCv.wait(lk, [] {
+                return g_audioLevelPersistPending.load() || !g_audioLevelPersistThreadAlive.load();
+            });
+
+            if (!g_audioLevelPersistThreadAlive.load()) {
+                break;
+            }
+
+            g_audioLevelPersistPending.store(false);
+            lk.unlock();
+
+            // Legacy delay before persisting latest coalesced values.
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+
+            try {
+                persistAudioLevelIfChanged("SPDIF0.audio.Level", prevSpdif, g_audioLevelCacheSpdif.load());
+                persistAudioLevelIfChanged("HDMI0.audio.Level", prevHdmi, g_audioLevelCacheHdmi.load());
+                persistAudioLevelIfChanged("SPEAKER0.audio.Level", prevSpeaker, g_audioLevelCacheSpeaker.load());
+                persistAudioLevelIfChanged("HEADPHONE0.audio.Level", prevHeadphone, g_audioLevelCacheHeadphone.load());
+            } catch (...) {
+                DSLOG_ERR("Exception while persisting coalesced audio levels");
+            }
+        }
+        DSLOG_INFO("Audio level persistence coalescing thread stopped");
+    }
+
+    static void startAudioLevelPersistThread()
+    {
+        if (g_audioLevelPersistThreadAlive.load()) {
+            return;
+        }
+        g_audioLevelPersistThreadAlive.store(true);
+        g_audioLevelPersistPending.store(false);
+        g_audioLevelPersistThread = std::thread(runAudioLevelPersistThread);
+    }
+
+    static void stopAudioLevelPersistThread()
+    {
+        if (!g_audioLevelPersistThreadAlive.load()) {
+            return;
+        }
+
+        g_audioLevelPersistThreadAlive.store(false);
+        g_audioLevelPersistPending.store(true);
+        g_audioLevelPersistCv.notify_one();
+
+        if (g_audioLevelPersistThread.joinable()) {
+            g_audioLevelPersistThread.join();
+        }
+    }
+
+    static void cacheAudioLevelForPersist(const dsAudioPortType_t portType, const float level)
+    {
+        switch (portType) {
+            case dsAUDIOPORT_TYPE_SPDIF:
+                g_audioLevelCacheSpdif.store(level);
+                break;
+            case dsAUDIOPORT_TYPE_HDMI:
+                g_audioLevelCacheHdmi.store(level);
+                break;
+            case dsAUDIOPORT_TYPE_SPEAKER:
+                g_audioLevelCacheSpeaker.store(level);
+                break;
+            case dsAUDIOPORT_TYPE_HEADPHONE:
+                g_audioLevelCacheHeadphone.store(level);
+                break;
+            default:
+                return;
+        }
+
+        g_audioLevelPersistPending.store(true);
+        g_audioLevelPersistCv.notify_one();
+    }
+#endif
     
     // Helper method implementations for enabling audio port
     dsAudioPortType_t getAudioPortType(intptr_t handle)
@@ -342,6 +456,9 @@ public:
             } else {
                 _isInitialized = true;
                 DSLOG_INFO("Audio platform initialized successfully");
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                startAudioLevelPersistThread();
+#endif
                 initializeAudioSettings();
                 audioConfigInit();
                 registerHALCallbacks();
@@ -356,6 +473,10 @@ public:
     virtual ~dAudioImpl()
     {
         ENTRY_LOG;
+
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+        stopAudioLevelPersistThread();
+#endif
 
         if (_isInitialized) {
             try {
@@ -779,15 +900,20 @@ public:
             
             if (ret == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, level=%f", handle, audioLevel);
+                g_LastVolumeLevel.store(audioLevel);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
-                std::string _audioLevel = std::to_string(audioLevel);
                 dsAudioPortType_t _portType = getAudioPortType(dsHandle);
-                switch (_portType) {
-                    case dsAUDIOPORT_TYPE_SPDIF:     device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.Level",     _audioLevel); break;
-                    case dsAUDIOPORT_TYPE_HDMI:      device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.Level",      _audioLevel); break;
-                    case dsAUDIOPORT_TYPE_SPEAKER:   device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.Level",   _audioLevel); break;
-                    case dsAUDIOPORT_TYPE_HEADPHONE: device::HostPersistence::getInstance().persistHostProperty("HEADPHONE0.audio.Level", _audioLevel); break;
-                    default: break;
+                if (g_audioLevelPersistThreadAlive.load()) {
+                    cacheAudioLevelForPersist(_portType, audioLevel);
+                } else {
+                    std::string _audioLevel = std::to_string(audioLevel);
+                    switch (_portType) {
+                        case dsAUDIOPORT_TYPE_SPDIF:     device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.Level", _audioLevel); break;
+                        case dsAUDIOPORT_TYPE_HDMI:      device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.Level", _audioLevel); break;
+                        case dsAUDIOPORT_TYPE_SPEAKER:   device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.Level", _audioLevel); break;
+                        case dsAUDIOPORT_TYPE_HEADPHONE: device::HostPersistence::getInstance().persistHostProperty("HEADPHONE0.audio.Level", _audioLevel); break;
+                        default: break;
+                    }
                 }
 #endif
                 // Notify about audio level change
@@ -833,6 +959,7 @@ public:
 
             if (ret == dsERR_NONE) {
                 audioLevel = dsLevel;
+                g_LastVolumeLevel.store(audioLevel);
                 DSLOG_INFO("success: handle=%d, level=%f", handle, audioLevel);
             } else {
                 DSLOG_ERR("dsGetAudioLevel failed with error: %d", ret);

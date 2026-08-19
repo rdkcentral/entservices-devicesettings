@@ -82,7 +82,8 @@ void Display::OnDisplayHDMIHotPlug(const DisplayEvent displayEvent)
 
 uint32_t Display::GetDisplayEdid(const int32_t handle, DisplayEDID &edId, IDSVideoPortResolutionIterator*& supportedResolutionList)
 {
-    uint32_t result = this->platform().GetDisplayEdid(handle, edId);
+    supportedResolutionList = nullptr;
+    uint32_t result = this->platform().GetDisplayEdid(handle, edId, supportedResolutionList);
     if (result == WPEFramework::Core::ERROR_NONE) {
         DSLOG_INFO("succeeded: handle=%d", handle);
     } else {

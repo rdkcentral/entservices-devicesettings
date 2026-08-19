@@ -96,6 +96,47 @@ public:
         return instance;
     }
 
+    // Legacy parity helper: apply persisted preferred color depth constrained by sink capabilities.
+    // This mirrors resetColorDepthOnHdmiReset() flow from dsVideoPort.c.
+    static void ApplyPreferredColorDepthAfterHdmiReset(intptr_t preferredHandle = 0)
+    {
+        intptr_t targetHandle = preferredHandle;
+        if (targetHandle == 0) {
+            targetHandle = dsGetDefaultPortHandle();
+        }
+
+        if (targetHandle == 0) {
+            DSLOG_WARN("Skipping preferred color depth reconcile: no HDMI/INTERNAL handle");
+            return;
+        }
+
+        bool connected = false;
+        dsError_t connectedError = dsIsDisplayConnected(targetHandle, &connected);
+        if (connectedError != dsERR_NONE || !connected) {
+            DSLOG_INFO("Skipping preferred color depth reconcile: connected=%d error=%d",
+                static_cast<int>(connected), connectedError);
+            return;
+        }
+
+        dsDisplayColorDepth_t persisted = static_cast<dsDisplayColorDepth_t>(getPersistentColorDepth());
+        DSLOG_INFO("Reconcile preferred color depth after HDMI reset: persisted=0x%x", persisted);
+
+        dsDisplayColorDepth_t current = dsDISPLAY_COLORDEPTH_UNKNOWN;
+        dsError_t currentError = getCurrentPreferredColorDepth(targetHandle, &current);
+        if (currentError == dsERR_NONE && current == persisted) {
+            DSLOG_INFO("Preferred color depth already set to 0x%x", current);
+            return;
+        }
+
+        dsDisplayColorDepth_t toSet = getBestSupportedColorDepth(targetHandle, persisted);
+        dsError_t setError = setPreferredColorDepthHAL(targetHandle, toSet);
+        if (setError == dsERR_NONE) {
+            DSLOG_INFO("Preferred color depth reconciled to 0x%x (requested persisted=0x%x)", toSet, persisted);
+        } else {
+            DSLOG_ERR("Failed to reconcile preferred color depth: error=%d", setError);
+        }
+    }
+
     void InitialiseHAL()
     {
         // Note: videoPort_isInitialized should only be set in setAllCallbacks after callback registration
@@ -123,6 +164,10 @@ public:
             
             // Load persistence values after successful initialization - following dsVideoPort.c pattern
             getPersistenceValue();
+
+                // Legacy parity: apply persisted preferred color depth constrained by sink caps
+                // immediately after VideoPort HAL initialization.
+                ApplyPreferredColorDepthAfterHdmiReset();
             
             videoPort_isPlatInitialized = 1;
             DSLOG_INFO("completed: videoPort_isPlatInitialized=%d, videoPort_isInitialized=%d",
@@ -239,17 +284,52 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d", handle);
-        
+
+        dsVideoPortType_t portType = dsVIDEOPORT_TYPE_MAX;
+        if (!resolvePortTypeByHandle(handle, portType)) {
+            DSLOG_ERR(" unable to resolve video port type for handle=%d", handle);
+            return retCode;
+        }
+
+        // Legacy dsVideoPort.c behavior:
+        // - HDMI/INTERNAL: use HAL current resolution when connected, persist/cache fallback otherwise.
+        // - COMPONENT/BB/RF: return cached/persisted resolution string.
+        if (portType == dsVIDEOPORT_TYPE_COMPONENT || portType == dsVIDEOPORT_TYPE_BB || portType == dsVIDEOPORT_TYPE_RF) {
+            resolution = buildResolutionFromName(getCachedResolutionForPort(portType));
+            DSLOG_INFO(" returning cached analog resolution '%s'", resolution.name.c_str());
+            return WPEFramework::Core::ERROR_NONE;
+        }
+
+        bool isConnected = false;
+        dsError_t connectedError = dsIsDisplayConnected(handle, &isConnected);
+        if (connectedError != dsERR_NONE) {
+            DSLOG_ERR(" dsIsDisplayConnected failed with error: %d", connectedError);
+        }
+
+        if (connectedError == dsERR_NONE && !isConnected) {
+            resolution = buildResolutionFromName(getCachedResolutionForPort(portType));
+            DSLOG_INFO(" display disconnected, returning cached resolution '%s'", resolution.name.c_str());
+            return WPEFramework::Core::ERROR_NONE;
+        }
+
         dsVideoPortResolution_t dsResolution;
+        memset(&dsResolution, 0, sizeof(dsResolution));
         dsError_t eError = dsGetResolution(handle, &dsResolution);
         if (eError == dsERR_NONE) {
             resolution = convertVideoPortResolution(dsResolution);
+            if (resolution.name.empty()) {
+                resolution = buildResolutionFromName(getCachedResolutionForPort(portType));
+            } else {
+                updateCachedResolutionForPort(portType, resolution.name);
+            }
             retCode = WPEFramework::Core::ERROR_NONE;
-            DSLOG_INFO(" SUCCESS");
+            DSLOG_INFO(" SUCCESS - current resolution '%s'", resolution.name.c_str());
         } else {
-            DSLOG_ERR(" dsGetResolution failed with error: %d", eError);
+            DSLOG_ERR(" dsGetResolution failed with error: %d, using cached fallback", eError);
+            resolution = buildResolutionFromName(getCachedResolutionForPort(portType));
+            retCode = WPEFramework::Core::ERROR_NONE;
         }
-        
+
         return retCode;
     }
 
@@ -864,23 +944,64 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, persist=%s, forceCompatibility=%s", handle, persist ? "true" : "false", forceCompatibility ? "true" : "false");
 
+        dsVideoPortType_t portType = dsVIDEOPORT_TYPE_MAX;
+        if (!resolvePortTypeByHandle(handle, portType)) {
+            DSLOG_ERR(" unable to resolve video port type for handle=%d", handle);
+            return retCode;
+        }
+
+        bool isConnected = false;
+        dsError_t connectedError = dsIsDisplayConnected(handle, &isConnected);
+        if (connectedError == dsERR_NONE && !isConnected) {
+            DSLOG_INFO(" Port type=%d not connected, ignoring resolution request", static_cast<int>(portType));
+            return WPEFramework::Core::ERROR_GENERAL;
+        }
+
+        bool forceDisable4K = false;
+        dsError_t force4KError = dsGetForceDisable4KSupport(handle, &forceDisable4K);
+        if (force4KError == dsERR_NONE && forceDisable4K) {
+            if (resolution.name.find("2160") != std::string::npos) {
+                DSLOG_INFO(" Cannot set 4K resolution while force-disable-4K is enabled");
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+        }
+
+        bool ignoreEDID = false;
+        getIgnoreEDIDStatus(handle, ignoreEDID);
+        DSLOG_INFO(" ResOverride SetVideoPortResolution ignoreEDID=%d", static_cast<int>(ignoreEDID));
+
         dsVideoPortResolution_t dsResolution = convertVideoPortResolution(resolution);
+
+        dsVideoPortResolution_t platformResolution;
+        memset(&platformResolution, 0, sizeof(platformResolution));
+        dsError_t platformResolutionError = dsGetResolution(handle, &platformResolution);
+        if (platformResolutionError == dsERR_NONE) {
+            DSLOG_INFO(" Requested resolution=%s, platform resolution=%s", dsResolution.name, platformResolution.name);
+            if (strcmp(dsResolution.name, platformResolution.name) == 0) {
+                updateCachedResolutionForPort(portType, platformResolution.name);
+                if (persist) {
+                    persistVideoPortResolution(handle, platformResolution, forceCompatibility);
+                }
+                DSLOG_INFO(" Same resolution requested, skipping dsSetResolution");
+                return WPEFramework::Core::ERROR_NONE;
+            }
+        }
 
         // Trigger resolution pre-change callback
         VideoPortPreResolutionChange(&dsResolution);
 
         dsError_t eError = dsSetResolution(handle, &dsResolution);
+        // Legacy ordering calls post-change notification immediately after dsSetResolution call.
+        VideoPortPostResolutionChange(&dsResolution);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
             DSLOG_INFO(" SUCCESS");
+            updateCachedResolutionForPort(portType, dsResolution.name);
             
             // Persist resolution setting if requested - following dsVideoPort.c pattern
             if (persist) {
                 persistVideoPortResolution(handle, dsResolution, forceCompatibility);
             }
-            
-            // Trigger resolution post-change callback on successful resolution change
-            VideoPortPostResolutionChange(&dsResolution);
         } else {
             DSLOG_ERR(" dsSetResolution failed with error: %d", eError);
         }
@@ -1699,6 +1820,144 @@ private:
 
     
     // Helper methods for DS VideoPort HAL conversion
+    static bool resolvePortTypeByHandle(const int32_t handle, dsVideoPortType_t& portType)
+    {
+        intptr_t halHandle = 0;
+
+        if (dsGetVideoPort(dsVIDEOPORT_TYPE_HDMI, 0, &halHandle) == dsERR_NONE && static_cast<int32_t>(halHandle) == handle) {
+            portType = dsVIDEOPORT_TYPE_HDMI;
+            return true;
+        }
+        if (dsGetVideoPort(dsVIDEOPORT_TYPE_INTERNAL, 0, &halHandle) == dsERR_NONE && static_cast<int32_t>(halHandle) == handle) {
+            portType = dsVIDEOPORT_TYPE_INTERNAL;
+            return true;
+        }
+        if (dsGetVideoPort(dsVIDEOPORT_TYPE_COMPONENT, 0, &halHandle) == dsERR_NONE && static_cast<int32_t>(halHandle) == handle) {
+            portType = dsVIDEOPORT_TYPE_COMPONENT;
+            return true;
+        }
+        if (dsGetVideoPort(dsVIDEOPORT_TYPE_BB, 0, &halHandle) == dsERR_NONE && static_cast<int32_t>(halHandle) == handle) {
+            portType = dsVIDEOPORT_TYPE_BB;
+            return true;
+        }
+        if (dsGetVideoPort(dsVIDEOPORT_TYPE_RF, 0, &halHandle) == dsERR_NONE && static_cast<int32_t>(halHandle) == handle) {
+            portType = dsVIDEOPORT_TYPE_RF;
+            return true;
+        }
+
+        portType = dsVIDEOPORT_TYPE_MAX;
+        return false;
+    }
+
+    static std::string defaultResolutionByProfile()
+    {
+        return (profileType == TV) ? DS_VP_DEFAULT_RESOLUTION_2160P : DS_VP_DEFAULT_RESOLUTION_1080P;
+    }
+
+    static std::string getCachedResolutionForPort(const dsVideoPortType_t portType)
+    {
+        switch (portType) {
+            case dsVIDEOPORT_TYPE_HDMI:
+            case dsVIDEOPORT_TYPE_INTERNAL:
+                return _dsHDMIResolution.empty() ? defaultResolutionByProfile() : _dsHDMIResolution;
+            case dsVIDEOPORT_TYPE_COMPONENT:
+                return _dsCompResolution.empty() ? defaultResolutionByProfile() : _dsCompResolution;
+            case dsVIDEOPORT_TYPE_BB:
+                return _dsBBResolution.empty() ? DS_VP_DEFAULT_RESOLUTION : _dsBBResolution;
+            case dsVIDEOPORT_TYPE_RF:
+                return _dsRFResolution.empty() ? DS_VP_DEFAULT_RESOLUTION : _dsRFResolution;
+            default:
+                return defaultResolutionByProfile();
+        }
+    }
+
+    static void updateCachedResolutionForPort(const dsVideoPortType_t portType, const std::string& resolutionName)
+    {
+        if (resolutionName.empty()) {
+            return;
+        }
+
+        switch (portType) {
+            case dsVIDEOPORT_TYPE_HDMI:
+            case dsVIDEOPORT_TYPE_INTERNAL:
+                _dsHDMIResolution = resolutionName;
+                break;
+            case dsVIDEOPORT_TYPE_COMPONENT:
+                _dsCompResolution = resolutionName;
+                break;
+            case dsVIDEOPORT_TYPE_BB:
+                _dsBBResolution = resolutionName;
+                break;
+            case dsVIDEOPORT_TYPE_RF:
+                _dsRFResolution = resolutionName;
+                break;
+            default:
+                break;
+        }
+    }
+
+    static VideoPortResolution buildResolutionFromName(const std::string& resolutionName)
+    {
+        VideoPortResolution resolution;
+        resolution.name = resolutionName;
+        resolution.aspectRatio = VideoAspectRatio::DS_VIDEO_ASPECT_RATIO_16X9;
+        resolution.stereoScopicMode = VideoStereoScopicMode::DS_VIDEO_SSMODE_2D;
+        resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_60;
+        resolution.interlaced = false;
+
+        if (resolutionName.find("2160") != std::string::npos) {
+            resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_3840X2160;
+            if (resolutionName.find("24") != std::string::npos) {
+                resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_24;
+            } else if (resolutionName.find("25") != std::string::npos) {
+                resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_25;
+            } else if (resolutionName.find("30") != std::string::npos) {
+                resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_30;
+            } else if (resolutionName.find("50") != std::string::npos) {
+                resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_50;
+            }
+        } else if (resolutionName.find("1080i") != std::string::npos) {
+            resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_1920X1080;
+            resolution.interlaced = true;
+        } else if (resolutionName.find("1080") != std::string::npos) {
+            resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_1920X1080;
+            if (resolutionName.find("24") != std::string::npos) {
+                resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_24;
+            } else if (resolutionName.find("25") != std::string::npos) {
+                resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_25;
+            } else if (resolutionName.find("30") != std::string::npos) {
+                resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_30;
+            } else if (resolutionName.find("50") != std::string::npos) {
+                resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_50;
+            }
+        } else if (resolutionName.find("720") != std::string::npos) {
+            resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_1280X720;
+            if (resolutionName.find("50") != std::string::npos) {
+                resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_50;
+            }
+        } else if (resolutionName.find("576i") != std::string::npos) {
+            resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_720X576;
+            resolution.interlaced = true;
+            resolution.aspectRatio = VideoAspectRatio::DS_VIDEO_ASPECT_RATIO_4X3;
+            resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_50;
+        } else if (resolutionName.find("576") != std::string::npos) {
+            resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_720X576;
+            resolution.aspectRatio = VideoAspectRatio::DS_VIDEO_ASPECT_RATIO_4X3;
+            resolution.frameRate = VideoFrameRate::DS_VIDEO_FRAMERATE_50;
+        } else if (resolutionName.find("480i") != std::string::npos) {
+            resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_720X480;
+            resolution.interlaced = true;
+            resolution.aspectRatio = VideoAspectRatio::DS_VIDEO_ASPECT_RATIO_4X3;
+        } else if (resolutionName.find("480") != std::string::npos) {
+            resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_720X480;
+            resolution.aspectRatio = VideoAspectRatio::DS_VIDEO_ASPECT_RATIO_4X3;
+        } else {
+            resolution.pixelResolution = VideoResolution::DS_VIDEO_PIXELRES_1920X1080;
+        }
+
+        return resolution;
+    }
+
     static dsVideoPortType_t convertVideoPortType(const VideoPortType videoPort)
     {
         switch (videoPort) {
@@ -2056,7 +2315,7 @@ private:
     }
 
     // Get persistent color depth - following dsVideoPort.c getPersistentColorDepth() pattern
-    DisplayColorDepth getPersistentColorDepth()
+    static DisplayColorDepth getPersistentColorDepth()
     {
         DisplayColorDepth defaultColorDepth = static_cast<DisplayColorDepth>(DEFAULT_COLOR_DEPTH);
         std::string colorDepthStr = std::to_string(static_cast<int>(defaultColorDepth));
@@ -2071,5 +2330,87 @@ private:
             DSLOG_ERR("Reading HDMI persistent color depth %s conversion failed", colorDepthStr.c_str());
             return defaultColorDepth;
         }
+    }
+
+    static dsError_t getCurrentPreferredColorDepth(intptr_t handle, dsDisplayColorDepth_t* colorDepth)
+    {
+        if (colorDepth == nullptr) {
+            return dsERR_INVALID_PARAM;
+        }
+
+        typedef dsError_t (*dsGetPreferredColorDepth_t)(intptr_t, dsDisplayColorDepth_t*);
+        static dsGetPreferredColorDepth_t func = nullptr;
+        if (func == nullptr) {
+            func = reinterpret_cast<dsGetPreferredColorDepth_t>(resolve(RDK_DSHAL_NAME, "dsGetPreferredColorDepth"));
+        }
+
+        if (func == nullptr) {
+            DSLOG_ERR("dsGetPreferredColorDepth symbol not available");
+            return dsERR_GENERAL;
+        }
+
+        return func(handle, colorDepth);
+    }
+
+    static dsError_t getColorDepthCapabilitiesHAL(intptr_t handle, unsigned int* colorDepthCapability)
+    {
+        if (colorDepthCapability == nullptr) {
+            return dsERR_INVALID_PARAM;
+        }
+
+        typedef dsError_t (*dsColorDepthCapabilities_t)(intptr_t, unsigned int*);
+        static dsColorDepthCapabilities_t func = nullptr;
+        if (func == nullptr) {
+            func = reinterpret_cast<dsColorDepthCapabilities_t>(resolve(RDK_DSHAL_NAME, "dsColorDepthCapabilities"));
+        }
+
+        if (func == nullptr) {
+            DSLOG_ERR("dsColorDepthCapabilities symbol not available");
+            return dsERR_GENERAL;
+        }
+
+        return func(handle, colorDepthCapability);
+    }
+
+    static dsDisplayColorDepth_t getBestSupportedColorDepth(intptr_t handle, dsDisplayColorDepth_t requested)
+    {
+        unsigned int capability = 0;
+        dsError_t capError = getColorDepthCapabilitiesHAL(handle, &capability);
+        if (capError != dsERR_NONE) {
+            DSLOG_WARN("Color depth capability query failed (%d), fallback to 8bit", capError);
+            return dsDISPLAY_COLORDEPTH_8BIT;
+        }
+
+        capability |= dsDISPLAY_COLORDEPTH_AUTO;
+
+        if ((capability & requested) && (requested != dsDISPLAY_COLORDEPTH_AUTO)) {
+            return requested;
+        }
+        if (capability & dsDISPLAY_COLORDEPTH_12BIT) {
+            return dsDISPLAY_COLORDEPTH_12BIT;
+        }
+        if (capability & dsDISPLAY_COLORDEPTH_10BIT) {
+            return dsDISPLAY_COLORDEPTH_10BIT;
+        }
+        if (capability & dsDISPLAY_COLORDEPTH_8BIT) {
+            return dsDISPLAY_COLORDEPTH_8BIT;
+        }
+        return dsDISPLAY_COLORDEPTH_8BIT;
+    }
+
+    static dsError_t setPreferredColorDepthHAL(intptr_t handle, dsDisplayColorDepth_t colorDepth)
+    {
+        typedef dsError_t (*dsSetPreferredColorDepth_t)(intptr_t, dsDisplayColorDepth_t);
+        static dsSetPreferredColorDepth_t func = nullptr;
+        if (func == nullptr) {
+            func = reinterpret_cast<dsSetPreferredColorDepth_t>(resolve(RDK_DSHAL_NAME, "dsSetPreferredColorDepth"));
+        }
+
+        if (func == nullptr) {
+            DSLOG_ERR("dsSetPreferredColorDepth symbol not available");
+            return dsERR_GENERAL;
+        }
+
+        return func(handle, colorDepth);
     }
 };

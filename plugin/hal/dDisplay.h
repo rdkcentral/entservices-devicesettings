@@ -51,7 +51,7 @@ namespace dDisplay {
         // New Display Platform interface methods for the 5 required functions
         virtual uint32_t GetDisplay(const int32_t type, const int32_t index, int32_t &handle) = 0;
         virtual uint32_t GetDisplayAspectRatio(const int32_t handle, WPEFramework::Exchange::IDeviceSettingsDisplay::DisplayVideoAspectRatio &aspectRatio) = 0; 
-        virtual uint32_t GetDisplayEdid(const int32_t handle, WPEFramework::Exchange::IDeviceSettingsDisplay::DisplayEDID &edId) = 0;
+        virtual uint32_t GetDisplayEdid(const int32_t handle, WPEFramework::Exchange::IDeviceSettingsDisplay::DisplayEDID &edId, IDSVideoPortResolutionIterator*& supportedResolutionList) = 0;
         virtual uint32_t GetDisplayEdidBytes(const int32_t handle, uint8_t edIdBytes[], const uint16_t edidLength) = 0;
         virtual uint32_t SetAllmEnabled(const int32_t handle, const bool enabled) = 0;
         virtual uint32_t SetAVIContentType(const int32_t handle, const int32_t contentType) = 0;
