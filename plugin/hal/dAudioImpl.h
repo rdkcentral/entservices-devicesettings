@@ -219,26 +219,12 @@ private:
         if (_isDuckingInProgress) {
             volume = _volumeDuckingLevel;
         } else {
-            // Use resolve function for dsGetAudioLevel
-            typedef dsError_t (*dsGetAudioLevel_t)(intptr_t handle, float* level);
-            static dsGetAudioLevel_t dsGetAudioLevelFunc = 0;
-            if (dsGetAudioLevelFunc == 0) {
-                dsGetAudioLevelFunc = (dsGetAudioLevel_t)resolve(RDK_DSHAL_NAME, "dsGetAudioLevel");
-                if (dsGetAudioLevelFunc == 0) {
-                    DSLOG_ERR("dsGetAudioLevel is not defined");
-                    return WPEFramework::Core::ERROR_GENERAL;
-                }
-            }
-            
-            dsError_t ret = dsERR_GENERAL;
-            if (0 != dsGetAudioLevelFunc) {
-                ret = dsGetAudioLevelFunc(handle, &volume);
-            }
-            if (ret != dsERR_NONE) {
-                DSLOG_ERR("dsGetAudioLevel failed with error: %d", ret);
-                return WPEFramework::Core::ERROR_GENERAL;
-            }
-            DSLOG_INFO("Current audio level: %f", volume);
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+            volume = g_audioLevelCacheSpeaker.load();
+#else
+            volume = g_LastVolumeLevel.load();
+#endif
+            DSLOG_INFO("Restoring speaker audio level: %f", volume);
         }
         
         // Use resolve function for dsSetAudioLevel
@@ -263,6 +249,28 @@ private:
         }
         
         return WPEFramework::Core::ERROR_NONE;
+    }
+
+    bool isAudioOutputConnectedForInitialization(const intptr_t handle)
+    {
+        typedef dsError_t (*dsAudioOutIsConnected_t)(intptr_t handle, bool* isConnected);
+        static dsAudioOutIsConnected_t dsAudioOutIsConnectedFunc = 0;
+        bool isConnected = true;
+
+        if (dsAudioOutIsConnectedFunc == 0) {
+            dsAudioOutIsConnectedFunc = (dsAudioOutIsConnected_t)resolve(RDK_DSHAL_NAME, "dsAudioOutIsConnected");
+            if (dsAudioOutIsConnectedFunc == 0) {
+                DSLOG_WARN("dsAudioOutIsConnected is not defined; assuming audio output is connected");
+                return isConnected;
+            }
+        }
+
+        if (dsAudioOutIsConnectedFunc(handle, &isConnected) != dsERR_NONE) {
+            DSLOG_WARN("dsAudioOutIsConnected failed; assuming audio output is connected");
+            return true;
+        }
+
+        return isConnected;
     }
     
     uint32_t getAudioDelayInternal(dsAudioPortType_t portType)
@@ -1183,7 +1191,6 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             int32_t volume = 0;
-            float volumeLevel = 0;
             bool portEnabled = false;
             
             DSLOG_INFO(" action=%d, type=%d, level=%d", static_cast<int>(duckingAction), static_cast<int>(duckingType), level);
@@ -1194,30 +1201,24 @@ public:
                 DSLOG_WARN("dsIsAudioPortEnabled failed with error: %d", ret);
             }
 
-            // Get current audio level
-            ret = dsGetAudioLevel(dsHandle, &volumeLevel);
-            if (ret != dsERR_NONE) {
-                DSLOG_ERR("dsGetAudioLevel failed with error: %d", ret);
-                return WPEFramework::Core::ERROR_GENERAL;
-            }
-
-            DSLOG_INFO("Current volumeLevel: %f", volumeLevel);
+            const float lastVolumeLevel = g_LastVolumeLevel.load();
+            DSLOG_INFO("Cached audio level: %f", lastVolumeLevel);
 
             // Calculate ducking volume based on action and type
             if (duckingAction == AudioDuckingAction::AUDIO_DUCKINGACTION_START) {
                 _isDuckingInProgress = true;
                 if (duckingType == AudioDuckingType::AUDIO_DUCKINGTYPE_RELATIVE) {
-                    volume = (volumeLevel * level) / 100;
+                    volume = (lastVolumeLevel * level) / 100;
                 } else {
-                    if (level > volumeLevel) {
-                        volume = volumeLevel;
+                    if (level > lastVolumeLevel) {
+                        volume = lastVolumeLevel;
                     } else {
                         volume = level;
                     }
                 }
             } else {
                 _isDuckingInProgress = false;
-                volume = volumeLevel;
+                volume = static_cast<int32_t>(lastVolumeLevel);
             }
 
             // If muted or port disabled, store volume but don't apply
@@ -1964,6 +1965,45 @@ public:
                 DSLOG_ERR("dsEnableAudioPort failed with error: %d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
+
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+            if (enable && portType != dsAUDIOPORT_TYPE_SPEAKER) {
+                float restoredVolume = 0.0f;
+                bool hasCachedVolume = true;
+
+                switch (portType) {
+                    case dsAUDIOPORT_TYPE_SPDIF:
+                        restoredVolume = g_audioLevelCacheSpdif.load();
+                        break;
+                    case dsAUDIOPORT_TYPE_HDMI:
+                        restoredVolume = g_audioLevelCacheHdmi.load();
+                        break;
+                    case dsAUDIOPORT_TYPE_HEADPHONE:
+                        restoredVolume = g_audioLevelCacheHeadphone.load();
+                        break;
+                    default:
+                        hasCachedVolume = false;
+                        break;
+                }
+
+                if (hasCachedVolume) {
+                    typedef dsError_t (*dsSetAudioLevel_t)(intptr_t handle, float level);
+                    static dsSetAudioLevel_t dsSetAudioLevelFunc = 0;
+                    if (dsSetAudioLevelFunc == 0) {
+                        dsSetAudioLevelFunc = (dsSetAudioLevel_t)resolve(RDK_DSHAL_NAME, "dsSetAudioLevel");
+                    }
+
+                    if (dsSetAudioLevelFunc != 0) {
+                        dsResult = dsSetAudioLevelFunc(dsHandle, restoredVolume);
+                        if (dsResult == dsERR_NONE) {
+                            DSLOG_INFO("Restored audio level %f for enabled port type %d", restoredVolume, portType);
+                        } else {
+                            DSLOG_WARN("Failed to restore audio level for enabled port type %d: %d", portType, dsResult);
+                        }
+                    }
+                }
+            }
+#endif
 
             // Verify that the port was actually enabled/disabled
             bool portEnabled = false;
@@ -4066,6 +4106,8 @@ private:
                         DSLOG_INFO("dsSetAudioLevel_t(int, float) is defined and loaded");
                         std::string audioLevel("0");
                         float audioLevelValue = 0;
+                        float lastAudioLevel = 0;
+                        bool hasLastAudioLevel = false;
                         
                         // SPDIF init
                         handle = 0;
@@ -4081,6 +4123,11 @@ private:
                                 }
                             }
                             audioLevelValue = atof(audioLevel.c_str());
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                            g_audioLevelCacheSpdif.store(audioLevelValue);
+#endif
+                            lastAudioLevel = audioLevelValue;
+                            hasLastAudioLevel = true;
                             if (dsSetAudioLevelFunc(handle, audioLevelValue) == dsERR_NONE) {
                                 DSLOG_INFO("Port SPDIF0: Initialized audio level: %f", audioLevelValue);
                             }
@@ -4100,6 +4147,11 @@ private:
                                 }
                             }
                             audioLevelValue = atof(audioLevel.c_str());
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                            g_audioLevelCacheSpeaker.store(audioLevelValue);
+#endif
+                            lastAudioLevel = audioLevelValue;
+                            hasLastAudioLevel = true;
                             if (dsSetAudioLevelFunc(handle, audioLevelValue) == dsERR_NONE) {
                                 DSLOG_INFO("Port SPEAKER0: Initialized audio level: %f", audioLevelValue);
                             }
@@ -4119,8 +4171,17 @@ private:
                                 }
                             }
                             audioLevelValue = atof(audioLevel.c_str());
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                            g_audioLevelCacheHeadphone.store(audioLevelValue);
+#endif
+                            const bool isHeadphoneConnected = isAudioOutputConnectedForInitialization(handle);
+                            if (isHeadphoneConnected) {
+                                lastAudioLevel = audioLevelValue;
+                                hasLastAudioLevel = true;
+                            }
                             if (dsSetAudioLevelFunc(handle, audioLevelValue) == dsERR_NONE) {
-                                DSLOG_INFO("Port HEADPHONE0: Initialized audio level: %f", audioLevelValue);
+                                DSLOG_INFO("Port HEADPHONE0: Initialized audio level: %f (connected: %d)",
+                                    audioLevelValue, isHeadphoneConnected);
                             }
                         }
                         
@@ -4138,9 +4199,19 @@ private:
                                 }
                             }
                             audioLevelValue = atof(audioLevel.c_str());
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+                            g_audioLevelCacheHdmi.store(audioLevelValue);
+#endif
+                            lastAudioLevel = audioLevelValue;
+                            hasLastAudioLevel = true;
                             if (dsSetAudioLevelFunc(handle, audioLevelValue) == dsERR_NONE) {
                                 DSLOG_INFO("Port HDMI0: Initialized audio level: %f", audioLevelValue);
                             }
+                        }
+
+                        if (hasLastAudioLevel) {
+                            g_LastVolumeLevel.store(lastAudioLevel);
+                            DSLOG_INFO("Initialized cached audio level: %f", lastAudioLevel);
                         }
                     } else {
                         DSLOG_INFO("dsSetAudioLevel_t(int, float) is not defined");
