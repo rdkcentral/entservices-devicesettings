@@ -343,7 +343,7 @@ namespace DeviceSettingsExceptionHelper {
 #define TVSETTINGS_DALS_RFC_PARAM "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.TvSettings.DynamicAutoLatency"
 
 #ifndef RDK_DSHAL_NAME
-#define RDK_DSHAL_NAME "libds-hal.so"
+#define RDK_DSHAL_NAME "libds-hal.so.0"
 #endif
 
 #ifdef DEBUG_LOGGING
@@ -384,6 +384,7 @@ namespace device {
 
         void ensureInitialized() {
             if (!_isInitialized) {
+                DSLOG_INFO("RDK_DSHAL_NAME: %s",RDK_DSHAL_NAME);
                 load();
                 _isInitialized = true;
             }
