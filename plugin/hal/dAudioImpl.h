@@ -54,6 +54,15 @@ static std::function<void(const AudioPortState)> g_AudioPortStateChangedCallback
 static std::function<void(const float)> g_AudioLevelChangedCallback;
 static std::function<void(const AudioPortType, const AudioStereoMode)> g_AudioModeChangedCallback;
 
+static bool g_AudioHdmiAuto = false;
+static bool g_AudioSpdifAuto = false;
+static bool g_AudioHdmiArcAuto = false;
+static bool g_AudioSpeakerAuto = true;
+static dsAudioStereoMode_t g_HdmiAudioMode = dsAUDIO_STEREO_STEREO;
+static dsAudioStereoMode_t g_SpdifAudioMode = dsAUDIO_STEREO_STEREO;
+static dsAudioStereoMode_t g_HdmiArcAudioMode = dsAUDIO_STEREO_STEREO;
+static dsAudioStereoMode_t g_SpeakerAudioMode = dsAUDIO_STEREO_SURROUND;
+
 // Legacy dsAudio.c parity: cache latest level and coalesce persistence writes.
 static std::atomic<float> g_LastVolumeLevel(0.0f);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
@@ -539,6 +548,50 @@ public:
             case dsAUDIO_STEREO_DD: return AudioStereoMode::AUDIO_STEREO_DD;
             case dsAUDIO_STEREO_DDPLUS: return AudioStereoMode::AUDIO_STEREO_DDPLUS;
             default: return AudioStereoMode::AUDIO_STEREO_UNKNOWN;
+        }
+    }
+
+    dsAudioStereoMode_t getConfiguredStereoMode(const dsAudioPortType_t portType) const
+    {
+        switch (portType) {
+            case dsAUDIOPORT_TYPE_HDMI: return g_HdmiAudioMode;
+            case dsAUDIOPORT_TYPE_SPDIF: return g_SpdifAudioMode;
+            case dsAUDIOPORT_TYPE_HDMI_ARC: return g_HdmiArcAudioMode;
+            case dsAUDIOPORT_TYPE_SPEAKER: return g_SpeakerAudioMode;
+            default: return dsAUDIO_STEREO_UNKNOWN;
+        }
+    }
+
+    bool isStereoAutoEnabled(const dsAudioPortType_t portType) const
+    {
+        switch (portType) {
+            case dsAUDIOPORT_TYPE_HDMI: return g_AudioHdmiAuto;
+            case dsAUDIOPORT_TYPE_SPDIF: return g_AudioSpdifAuto;
+            case dsAUDIOPORT_TYPE_HDMI_ARC: return g_AudioHdmiArcAuto;
+            case dsAUDIOPORT_TYPE_SPEAKER: return g_AudioSpeakerAuto;
+            default: return false;
+        }
+    }
+
+    void setConfiguredStereoMode(const dsAudioPortType_t portType, const dsAudioStereoMode_t mode)
+    {
+        switch (portType) {
+            case dsAUDIOPORT_TYPE_HDMI: g_HdmiAudioMode = mode; break;
+            case dsAUDIOPORT_TYPE_SPDIF: g_SpdifAudioMode = mode; break;
+            case dsAUDIOPORT_TYPE_HDMI_ARC: g_HdmiArcAudioMode = mode; break;
+            case dsAUDIOPORT_TYPE_SPEAKER: g_SpeakerAudioMode = mode; break;
+            default: break;
+        }
+    }
+
+    void setStereoAutoState(const dsAudioPortType_t portType, const bool enabled)
+    {
+        switch (portType) {
+            case dsAUDIOPORT_TYPE_HDMI: g_AudioHdmiAuto = enabled; break;
+            case dsAUDIOPORT_TYPE_SPDIF: g_AudioSpdifAuto = enabled; break;
+            case dsAUDIOPORT_TYPE_HDMI_ARC: g_AudioHdmiArcAuto = enabled; break;
+            case dsAUDIOPORT_TYPE_SPEAKER: g_AudioSpeakerAuto = enabled; break;
+            default: break;
         }
     }
 
@@ -1282,9 +1335,15 @@ public:
         
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsAudioStereoMode_t dsMode;
-            
-            dsError_t ret = dsGetStereoMode(dsHandle, &dsMode);
+            const dsAudioPortType_t portType = getAudioPortType(dsHandle);
+            dsAudioStereoMode_t dsMode = dsAUDIO_STEREO_UNKNOWN;
+            dsError_t ret = dsERR_NONE;
+
+            if (isStereoAutoEnabled(portType) || portType == dsAUDIOPORT_TYPE_SPEAKER) {
+                ret = dsGetStereoMode(dsHandle, &dsMode);
+            } else {
+                dsMode = getConfiguredStereoMode(portType);
+            }
             
             if (ret == dsERR_NONE) {
                 mode = convertFromDS(dsMode);
@@ -1311,14 +1370,18 @@ public:
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             dsAudioStereoMode_t dsMode = convertToDS(mode);
+            const dsAudioPortType_t dsPortType = getAudioPortType(dsHandle);
+
+            if (dsPortType == dsAUDIOPORT_TYPE_MAX) {
+                DSLOG_ERR("Unable to determine audio port type for handle=%d", handle);
+                return WPEFramework::Core::ERROR_BAD_REQUEST;
+            }
 
             dsError_t ret = dsSetStereoMode(dsHandle, dsMode);
 
             if (ret == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, mode=%d, persist=%s", handle, static_cast<int>(mode), persist ? "true" : "false");
 
-                // Determine actual port type from handle
-                dsAudioPortType_t dsPortType = getAudioPortType(dsHandle);
                 AudioPortType portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER; // Default
                 
                 // Convert dsAudioPortType_t to AudioPortType and handle persistence
@@ -1334,6 +1397,14 @@ public:
                         break;
                     case AudioStereoMode::AUDIO_STEREO_PASSTHROUGH:
                         modeString = "PASSTHRU";
+                        portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER;
+                        break;
+                    case AudioStereoMode::AUDIO_STEREO_DD:
+                        modeString = "DOLBYDIGITAL";
+                        portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER;
+                        break;
+                    case AudioStereoMode::AUDIO_STEREO_DDPLUS:
+                        modeString = "DOLBYDIGITALPLUS";
                         portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER;
                         break;
                     default:
@@ -1387,6 +1458,8 @@ public:
                         DSLOG_ERR("Error in persisting audio mode setting");
                     }
                 }
+
+                setConfiguredStereoMode(dsPortType, dsMode);
 
                 // Notify about audio mode change
                 notifyAudioModeChanged(portType, mode);
@@ -3951,6 +4024,8 @@ public:
                 DSLOG_INFO("HAL call skipped for port type %d (only HDMI_ARC/SPDIF supported): handle=%d, autoMode=%d",
                        portType, handle, autoMode);
             }
+
+            setStereoAutoState(portType, autoMode != 0);
         } catch (...) {
             DSLOG_ERR("Exception in SetStereoAuto");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -5402,6 +5477,15 @@ private:
             } else {
                 speakerAudioMode = dsAUDIO_STEREO_SURROUND;
             }
+
+            g_AudioHdmiAuto = hdmiAutoMode;
+            g_AudioSpdifAuto = spdifAutoMode;
+            g_AudioHdmiArcAuto = arcAutoMode;
+            g_AudioSpeakerAuto = speakerAutoMode;
+            g_HdmiAudioMode = hdmiAudioMode;
+            g_SpdifAudioMode = spdifAudioMode;
+            g_HdmiArcAudioMode = arcAudioMode;
+            g_SpeakerAudioMode = speakerAudioMode;
             
             // Apply audio port settings using HAL functions
             intptr_t handle = 0;
