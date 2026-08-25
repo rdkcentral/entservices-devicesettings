@@ -105,10 +105,6 @@ public:
     void DeInitialiseHAL()
     {
         if (host_isPlatInitialized) {
-            dsError_t eError = dsHostTerm();
-            if (dsERR_NONE != eError) {
-                DSLOG_ERR(" dsHostTerm failed with error: %d", eError);
-            }
             host_isPlatInitialized = 0;
             DSLOG_INFO(" dsHost HAL de-initialized successfully");
         }
