@@ -54,13 +54,22 @@ static std::function<void(const AudioPortState)> g_AudioPortStateChangedCallback
 static std::function<void(const float)> g_AudioLevelChangedCallback;
 static std::function<void(const AudioPortType, const AudioStereoMode)> g_AudioModeChangedCallback;
 
+#ifdef IGNORE_EDID_LOGIC
 static bool g_AudioHdmiAuto = false;
 static bool g_AudioSpdifAuto = false;
 static bool g_AudioHdmiArcAuto = false;
-static bool g_AudioSpeakerAuto = true;
 static dsAudioStereoMode_t g_HdmiAudioMode = dsAUDIO_STEREO_STEREO;
 static dsAudioStereoMode_t g_SpdifAudioMode = dsAUDIO_STEREO_STEREO;
 static dsAudioStereoMode_t g_HdmiArcAudioMode = dsAUDIO_STEREO_STEREO;
+#else
+static bool g_AudioHdmiAuto = true;
+static bool g_AudioSpdifAuto = true;
+static bool g_AudioHdmiArcAuto = true;
+static dsAudioStereoMode_t g_HdmiAudioMode = dsAUDIO_STEREO_SURROUND;
+static dsAudioStereoMode_t g_SpdifAudioMode = dsAUDIO_STEREO_SURROUND;
+static dsAudioStereoMode_t g_HdmiArcAudioMode = dsAUDIO_STEREO_SURROUND;
+#endif
+static bool g_AudioSpeakerAuto = true;
 static dsAudioStereoMode_t g_SpeakerAudioMode = dsAUDIO_STEREO_SURROUND;
 
 // Legacy dsAudio.c parity: cache latest level and coalesce persistence writes.
@@ -558,7 +567,7 @@ public:
             case dsAUDIOPORT_TYPE_SPDIF: return g_SpdifAudioMode;
             case dsAUDIOPORT_TYPE_HDMI_ARC: return g_HdmiArcAudioMode;
             case dsAUDIOPORT_TYPE_SPEAKER: return g_SpeakerAudioMode;
-            default: return dsAUDIO_STEREO_UNKNOWN;
+            default: return dsAUDIO_STEREO_STEREO; /* Default to stereo like DS_IARM */
         }
     }
 
