@@ -50,7 +50,8 @@ namespace Plugin
     }
 
     DeviceSettings::DeviceSettings()
-        : mConnectionId(0)
+        : mConstructionStart(std::chrono::steady_clock::now())
+        , mConnectionId(0)
         , mService(nullptr)
         , _mDeviceSettings(nullptr)
         , _mDeviceSettingsCompositeIn(nullptr)
@@ -84,6 +85,9 @@ namespace Plugin
 
 #endif
 
+        DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "DeviceSettings constructor",
+                (long long)std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - mConstructionStart).count());
     }
 
     
@@ -97,6 +101,8 @@ namespace Plugin
         using Ms    = std::chrono::milliseconds;
         auto tInit  = Clock::now();
         DSLOG_INFO("[DS-INIT-TIMING] DeviceSettings::Initialize — begin");
+        DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Constructor to Initialize begin",
+            (long long)std::chrono::duration_cast<Ms>(tInit - mConstructionStart).count());
 
         ASSERT(service != nullptr);
         ASSERT(mService == nullptr);
@@ -132,7 +138,10 @@ namespace Plugin
             DSLOG_INFO("DeviceSettingsImp initialized successfully");
             
             // Call Configure method on DeviceSettingsImp with the service
+            auto tCfg = Clock::now();
             Core::hresult result = _mDeviceSettings->Configure(service);
+            DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Configure(service) [legacy]",
+                    (long long)std::chrono::duration_cast<Ms>(Clock::now() - tCfg).count());
             if (result != Core::ERROR_NONE) {
                 DSLOG_ERR("Failed to configure DeviceSettings: %d", result);
                 message = _T("DeviceSettings configuration failed");
@@ -316,6 +325,8 @@ namespace Plugin
 
         DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "DeviceSettings::Initialize TOTAL",
                 (long long)std::chrono::duration_cast<Ms>(Clock::now() - tInit).count());
+        DSLOG_INFO("[DS-INIT-TIMING] %-28s : %6lld ms", "Constructor to Initialize end",
+            (long long)std::chrono::duration_cast<Ms>(Clock::now() - mConstructionStart).count());
         // On success return empty, to indicate there is no error text.
         return (message);
     }

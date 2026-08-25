@@ -34,6 +34,8 @@
 #include <core/core.h>
 #include <plugins/plugins.h>
 
+#include <chrono>
+
 #include "DeviceSettingsTypes.h"
 
 
@@ -304,6 +306,7 @@ namespace Plugin {
         void CallbackRevoked(const Core::IUnknown* remote, const uint32_t interfaceId);
 
     private:
+        std::chrono::steady_clock::time_point mConstructionStart;
         uint32_t mConnectionId;
         PluginHost::IShell* mService;
         Exchange::IDeviceSettings* _mDeviceSettings;
