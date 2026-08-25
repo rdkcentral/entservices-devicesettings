@@ -270,11 +270,11 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult DeviceSettingsFPDImpl::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess) {
+    Core::hresult DeviceSettingsFPDImpl::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess, const bool persist) {
 
         Core::hresult errorCode = Core::ERROR_GENERAL;
         _apiLock.Lock();
-        if (_fpd.GetFPDBrightness(indicator, brightNess) == dsERR_NONE) {
+        if (_fpd.GetFPDBrightness(indicator, brightNess, persist) == dsERR_NONE) {
             errorCode = Core::ERROR_NONE;
         } else {
             errorCode = Core::ERROR_GENERAL;
@@ -286,7 +286,7 @@ namespace Plugin {
             return errorCode;
         }
 
-        DSLOG_INFO("SUCCESS - indicator=%d, brightNess=%d", indicator, brightNess);
+        DSLOG_INFO("SUCCESS - indicator=%d, brightNess=%d, persist=%s", indicator, brightNess, persist ? "true" : "false");
         return errorCode;
     }
 

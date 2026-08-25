@@ -67,7 +67,7 @@ public:
     uint32_t SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations);
     uint32_t SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations);
     uint32_t SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist);
-    uint32_t GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess);
+    uint32_t GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess, const bool persist);
     uint32_t SetFPDState(const FPDIndicator indicator, const FPDState state);
     uint32_t GetFPDState(const FPDIndicator indicator, FPDState &state);
     uint32_t GetFPDColor(const FPDIndicator indicator, uint32_t &color);

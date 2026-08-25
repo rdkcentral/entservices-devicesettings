@@ -244,10 +244,10 @@ public:
         return retCode;
     }
 
-    uint32_t GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess) override
+    uint32_t GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess, const bool persist) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        DSLOG_INFO(" indicator %d", static_cast<int>(indicator));
+        DSLOG_INFO(" indicator %d, persist=%s", static_cast<int>(indicator), persist ? "true" : "false");
         if (!EnsurePlatInit()) {
             DSLOG_ERR(" FPD HAL not initialised");
             return retCode;
@@ -257,7 +257,8 @@ public:
             dsFPDBrightness_t halBrightness = 0;
             dsGetFPBrightness(static_cast<dsFPDIndicator_t>(indicator), &halBrightness);
 
-            brightNess = static_cast<uint32_t>(_dsPowerBrightness);
+            brightNess = persist ? static_cast<uint32_t>(_dsPowerBrightness)
+                                 : static_cast<uint32_t>(halBrightness);
             DSLOG_INFO(" indicator %d brightness %d (hal=%d _dsPowerBrightness=%d)",
                     static_cast<int>(indicator), brightNess,
                     static_cast<int>(halBrightness), static_cast<int>(_dsPowerBrightness));

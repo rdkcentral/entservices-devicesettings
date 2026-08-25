@@ -155,12 +155,12 @@ uint32_t FPD::SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDura
     return result;
 }
 
-uint32_t FPD::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess) {
+uint32_t FPD::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess, const bool persist) {
 
-    DSLOG_INFO("indicator=%d", indicator);
+    DSLOG_INFO("indicator=%d, persist=%s", indicator, persist ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
-        result = this->platform().GetFPDBrightness(indicator, brightNess);
+        result = this->platform().GetFPDBrightness(indicator, brightNess, persist);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
         DSLOG_INFO("SUCCESS - indicator=%d, brightNess=%d", indicator, brightNess);

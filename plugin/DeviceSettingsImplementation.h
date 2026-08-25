@@ -100,7 +100,7 @@ namespace Plugin {
         Core::hresult SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) override;
         Core::hresult SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations) override;
         Core::hresult SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist) override;
-        Core::hresult GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess) override;
+        Core::hresult GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess, const bool persist) override;
         Core::hresult SetFPDState(const FPDIndicator indicator, const FPDState state) override;
         Core::hresult GetFPDState(const FPDIndicator indicator, FPDState &state) override;
         Core::hresult GetFPDColor(const FPDIndicator indicator, uint32_t &color) override;

@@ -272,8 +272,8 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_fpdSettings, SetFPDBrightness, indicator, brightNess, persist)
     }
     
-    Core::hresult DeviceSettingsImp::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess) {
-        DELEGATE_TO_COMPONENT(_fpdSettings, GetFPDBrightness, indicator, brightNess)
+    Core::hresult DeviceSettingsImp::GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess, const bool persist) {
+        DELEGATE_TO_COMPONENT(_fpdSettings, GetFPDBrightness, indicator, brightNess, persist)
     }
     
     Core::hresult DeviceSettingsImp::SetFPDState(const FPDIndicator indicator, const FPDState state) {

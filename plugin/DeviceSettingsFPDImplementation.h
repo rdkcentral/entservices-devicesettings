@@ -101,7 +101,7 @@ namespace Plugin {
         Core::hresult SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations);
         Core::hresult SetFPDBlink(const FPDIndicator indicator, const uint32_t blinkDuration, const uint32_t blinkIterations);
         Core::hresult SetFPDBrightness(const FPDIndicator indicator, const uint32_t brightNess, const bool persist);
-        Core::hresult GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess);
+        Core::hresult GetFPDBrightness(const FPDIndicator indicator, uint32_t &brightNess, const bool persist);
         Core::hresult SetFPDState(const FPDIndicator indicator, const FPDState state);
         Core::hresult GetFPDState(const FPDIndicator indicator, FPDState &state);
         Core::hresult GetFPDColor(const FPDIndicator indicator, uint32_t &color);
