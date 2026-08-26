@@ -95,7 +95,7 @@ namespace Plugin {
 
         // FPD implementation methods - no longer interface methods, just implementation
         // These are called by DeviceSettingsImp which implements the Exchange interface
-        Core::hresult Register(Exchange::IDeviceSettingsFPD::INotification* notification);
+        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsFPD::INotification* notification);
         Core::hresult Unregister(Exchange::IDeviceSettingsFPD::INotification* notification);
         Core::hresult SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds);
         Core::hresult SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations);
@@ -119,7 +119,7 @@ namespace Plugin {
                               std::vector<Exchange::IDeviceSettings::FPDColorConfig>& colors,
                               std::vector<Exchange::IDeviceSettings::FPDColorBinding>& colorBindings) const;
 
-        std::list<Exchange::IDeviceSettingsFPD::INotification*> _FPDNotifications;
+        std::list<std::pair<string, Exchange::IDeviceSettingsFPD::INotification*>> _FPDNotifications;
 
         // lock to guard all apis of DeviceSettings
         mutable Core::CriticalSection _apiLock;
@@ -132,9 +132,9 @@ namespace Plugin {
             std::vector<FPDColorBinding> _cachedColorBindingConfigs;
 
         template <typename T>
-        Core::hresult Register(std::list<T*>& list, T* notification);
+        Core::hresult Register(std::list<std::pair<string, T*>>& list, const string& clientName, T* notification);
         template <typename T>
-        Core::hresult Unregister(std::list<T*>& list, const T* notification);
+        Core::hresult Unregister(std::list<std::pair<string, T*>>& list, const T* notification);
 
         template<typename Func, typename... Args>
         void dispatchFPDEvent(Func notifyFunc, Args&&... args);

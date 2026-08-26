@@ -43,26 +43,27 @@ namespace Plugin {
     void DeviceSettingsFPDImpl::dispatchFPDEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
         _callbackLock.Lock();
-        for (auto& notification : _FPDNotifications) {
+        for (auto& [clientName, notification] : _FPDNotifications) {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            DSLOG_INFO("client %p took %" PRId64 "ms to process IFPD event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client '%s' took %" PRId64 "ms to process IFPD event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         DSLOG_INFO("<<");
     }
 
     template <typename T>
-    Core::hresult DeviceSettingsFPDImpl::Register(std::list<T*>& list, T* notification)
+    Core::hresult DeviceSettingsFPDImpl::Register(std::list<std::pair<string, T*>>& list, const string& clientName, T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
         ASSERT(nullptr != notification);
 
         _callbackLock.Lock();
         // Make sure we can't register the same notification callback multiple times
-        if (std::find(list.begin(), list.end(), notification) == list.end()) {
-            list.push_back(notification);
+        auto it = std::find_if(list.begin(), list.end(), [notification](const std::pair<string, T*>& p){ return p.second == notification; });
+        if (it == list.end()) {
+            list.push_back({clientName, notification});
             notification->AddRef();
             status = Core::ERROR_NONE;
         } else {
@@ -74,16 +75,16 @@ namespace Plugin {
     }
 
     template <typename T>
-    Core::hresult DeviceSettingsFPDImpl::Unregister(std::list<T*>& list, const T* notification)
+    Core::hresult DeviceSettingsFPDImpl::Unregister(std::list<std::pair<string, T*>>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
 
         // Make sure we can't unregister the same notification callback multiple times
-        auto itr = std::find(list.begin(), list.end(), notification);
+        auto itr = std::find_if(list.begin(), list.end(), [notification](const std::pair<string, T*>& p){ return p.second == notification; });
         if (itr != list.end()) {
-            (*itr)->Release();
+            itr->second->Release();
             list.erase(itr);
             status = Core::ERROR_NONE;
         }
@@ -92,13 +93,13 @@ namespace Plugin {
         return status;
     }
 
-    Core::hresult DeviceSettingsFPDImpl::Register(DeviceSettingsFPD::INotification* notification)
+    Core::hresult DeviceSettingsFPDImpl::Register(const string& clientName, DeviceSettingsFPD::INotification* notification)
     {
-        Core::hresult errorCode = Register(_FPDNotifications, notification);
+        Core::hresult errorCode = Register(_FPDNotifications, clientName, notification);
         if (errorCode != Core::ERROR_NONE) {
-            DSLOG_ERR("IFPD %p, errorCode: %u", notification, errorCode);
+            DSLOG_ERR("IFPD %p [%s], errorCode: %u", notification, clientName.c_str(), errorCode);
         } else {
-            DSLOG_INFO("IFPD %p registered successfully", notification);
+            DSLOG_INFO("IFPD %p [%s] registered successfully", notification, clientName.c_str());
         }
         return errorCode;
     }

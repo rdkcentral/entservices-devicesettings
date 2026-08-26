@@ -93,7 +93,7 @@ namespace Plugin {
 
         // HDMIIn implementation methods - no longer interface methods, just implementation
         // These are called by DeviceSettingsImp which implements the Exchange interface
-        Core::hresult Register(Exchange::IDeviceSettingsHDMIIn::INotification* notification);
+        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsHDMIIn::INotification* notification);
         Core::hresult Unregister(Exchange::IDeviceSettingsHDMIIn::INotification* notification);
         Core::hresult GetHDMIInNumberOfInputs(int32_t &count);
         Core::hresult GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus);
@@ -116,7 +116,7 @@ namespace Plugin {
         Core::hresult GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus);
 
         private:
-        std::list<Exchange::IDeviceSettingsHDMIIn::INotification*> _HDMIInNotifications;
+        std::list<std::pair<string, Exchange::IDeviceSettingsHDMIIn::INotification*>> _HDMIInNotifications;
 
         // lock to guard all apis of DeviceSettings
         mutable Core::CriticalSection _apiLock;
@@ -124,9 +124,9 @@ namespace Plugin {
         mutable Core::CriticalSection _callbackLock;
 
         template <typename T>
-        Core::hresult Register(std::list<T*>& list, T* notification);
+        Core::hresult Register(std::list<std::pair<string, T*>>& list, const string& clientName, T* notification);
         template <typename T>
-        Core::hresult Unregister(std::list<T*>& list, const T* notification);
+        Core::hresult Unregister(std::list<std::pair<string, T*>>& list, const T* notification);
 
         template<typename Func, typename... Args>
         void dispatchHDMIInEvent(Func notifyFunc, Args&&... args);

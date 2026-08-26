@@ -46,26 +46,27 @@ namespace Plugin {
     void DeviceSettingsVideoDeviceImpl::dispatchVideoDeviceEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
         _callbackLock.Lock();
-        for (auto& notification : _VideoDeviceNotifications) {
+        for (auto& [clientName, notification] : _VideoDeviceNotifications) {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            DSLOG_INFO("client %p took %" PRId64 "ms to process IVideoDevice event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client '%s' took %" PRId64 "ms to process IVideoDevice event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         DSLOG_INFO("<<");
     }
 
     template <typename T>
-    Core::hresult DeviceSettingsVideoDeviceImpl::Register(std::list<T*>& list, T* notification)
+    Core::hresult DeviceSettingsVideoDeviceImpl::Register(std::list<std::pair<string, T*>>& list, const string& clientName, T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
         ASSERT(nullptr != notification);
 
         _callbackLock.Lock();
         // Make sure we can't register the same notification callback multiple times
-        if (std::find(list.begin(), list.end(), notification) == list.end()) {
-            list.push_back(notification);
+        auto it = std::find_if(list.begin(), list.end(), [notification](const std::pair<string, T*>& p){ return p.second == notification; });
+        if (it == list.end()) {
+            list.push_back({clientName, notification});
             notification->AddRef();
             status = Core::ERROR_NONE;
         } else {
@@ -77,16 +78,16 @@ namespace Plugin {
     }
 
     template <typename T>
-    Core::hresult DeviceSettingsVideoDeviceImpl::Unregister(std::list<T*>& list, const T* notification)
+    Core::hresult DeviceSettingsVideoDeviceImpl::Unregister(std::list<std::pair<string, T*>>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
 
         // Make sure we can't unregister the same notification callback multiple times
-        auto itr = std::find(list.begin(), list.end(), notification);
+        auto itr = std::find_if(list.begin(), list.end(), [notification](const std::pair<string, T*>& p){ return p.second == notification; });
         if (itr != list.end()) {
-            (*itr)->Release();
+            itr->second->Release();
             list.erase(itr);
             status = Core::ERROR_NONE;
         }
@@ -95,13 +96,13 @@ namespace Plugin {
         return status;
     }
 
-    Core::hresult DeviceSettingsVideoDeviceImpl::Register(Exchange::IDeviceSettingsVideoDevice::INotification* notification)
+    Core::hresult DeviceSettingsVideoDeviceImpl::Register(const string& clientName, Exchange::IDeviceSettingsVideoDevice::INotification* notification)
     {
-        Core::hresult errorCode = Register(_VideoDeviceNotifications, notification);
+        Core::hresult errorCode = Register(_VideoDeviceNotifications, clientName, notification);
         if (errorCode != Core::ERROR_NONE) {
-            DSLOG_ERR("IVideoDevice %p, errorCode: %u", notification, errorCode);
+            DSLOG_ERR("IVideoDevice %p [%s], errorCode: %u", notification, clientName.c_str(), errorCode);
         } else {
-            DSLOG_INFO("IVideoDevice %p registered successfully", notification);
+            DSLOG_INFO("IVideoDevice %p [%s] registered successfully", notification, clientName.c_str());
         }
         return errorCode;
     }

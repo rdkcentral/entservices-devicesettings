@@ -44,11 +44,11 @@ namespace Plugin {
     void DeviceSettingsDisplayImpl::dispatchDisplayEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
         _callbackLock.Lock();
-        for (auto& notification : _DisplayNotifications) {
+        for (auto& [clientName, notification] : _DisplayNotifications) {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            DSLOG_INFO("client %p took %" PRId64 "ms to process IDisplay event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client '%s' took %" PRId64 "ms to process IDisplay event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         DSLOG_INFO("<<");
@@ -58,26 +58,27 @@ namespace Plugin {
     void DeviceSettingsDisplayImpl::dispatchDisplayHDMIHotPlugEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
         _callbackLock.Lock();
-        for (auto& notification : _DisplayHDMIHotPlugNotifications) {
+        for (auto& [clientName, notification] : _DisplayHDMIHotPlugNotifications) {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            DSLOG_INFO("client %p took %" PRId64 "ms to process IDisplayHDMIHotPlug event", notification, std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client '%s' took %" PRId64 "ms to process IDisplayHDMIHotPlug event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
         }
         _callbackLock.Unlock();
         DSLOG_INFO("<<");
     }
 
     template <typename T>
-    Core::hresult DeviceSettingsDisplayImpl::Register(std::list<T*>& list, T* notification)
+    Core::hresult DeviceSettingsDisplayImpl::Register(std::list<std::pair<string, T*>>& list, const string& clientName, T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
         ASSERT(nullptr != notification);
 
         _callbackLock.Lock();
         // Make sure we can't register the same notification callback multiple times
-        if (std::find(list.begin(), list.end(), notification) == list.end()) {
-            list.push_back(notification);
+        auto it = std::find_if(list.begin(), list.end(), [notification](const std::pair<string, T*>& p){ return p.second == notification; });
+        if (it == list.end()) {
+            list.push_back({clientName, notification});
             notification->AddRef();
             status = Core::ERROR_NONE;
         } else {
@@ -89,16 +90,16 @@ namespace Plugin {
     }
 
     template <typename T>
-    Core::hresult DeviceSettingsDisplayImpl::Unregister(std::list<T*>& list, const T* notification)
+    Core::hresult DeviceSettingsDisplayImpl::Unregister(std::list<std::pair<string, T*>>& list, const T* notification)
     {
         uint32_t status = Core::ERROR_GENERAL;
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
 
         // Make sure we can't unregister the same notification callback multiple times
-        auto itr = std::find(list.begin(), list.end(), notification);
+        auto itr = std::find_if(list.begin(), list.end(), [notification](const std::pair<string, T*>& p){ return p.second == notification; });
         if (itr != list.end()) {
-            (*itr)->Release();
+            itr->second->Release();
             list.erase(itr);
             status = Core::ERROR_NONE;
         }
@@ -107,13 +108,13 @@ namespace Plugin {
         return status;
     }
 
-    Core::hresult DeviceSettingsDisplayImpl::Register(IDisplayNotification* notification)
+    Core::hresult DeviceSettingsDisplayImpl::Register(const string& clientName, IDisplayNotification* notification)
     {
-        Core::hresult errorCode = Register(_DisplayNotifications, notification);
+        Core::hresult errorCode = Register(_DisplayNotifications, clientName, notification);
         if (errorCode != Core::ERROR_NONE) {
-            DSLOG_ERR("IDisplay %p, errorCode: %u", notification, errorCode);
+            DSLOG_ERR("IDisplay %p [%s], errorCode: %u", notification, clientName.c_str(), errorCode);
         } else {
-            DSLOG_INFO("IDisplay %p registered successfully", notification);
+            DSLOG_INFO("IDisplay %p [%s] registered successfully", notification, clientName.c_str());
         }
         return errorCode;
     }
@@ -129,13 +130,13 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult DeviceSettingsDisplayImpl::Register(IDisplayHDMIHotPlugNotification* notification)
+    Core::hresult DeviceSettingsDisplayImpl::Register(const string& clientName, IDisplayHDMIHotPlugNotification* notification)
     {
-        Core::hresult errorCode = Register(_DisplayHDMIHotPlugNotifications, notification);
+        Core::hresult errorCode = Register(_DisplayHDMIHotPlugNotifications, clientName, notification);
         if (errorCode != Core::ERROR_NONE) {
-            DSLOG_ERR("IDisplayHDMIHotPlug %p, errorCode: %u", notification, errorCode);
+            DSLOG_ERR("IDisplayHDMIHotPlug %p [%s], errorCode: %u", notification, clientName.c_str(), errorCode);
         } else {
-            DSLOG_INFO("IDisplayHDMIHotPlug %p registered successfully", notification);
+            DSLOG_INFO("IDisplayHDMIHotPlug %p [%s] registered successfully", notification, clientName.c_str());
         }
         return errorCode;
     }

@@ -238,7 +238,7 @@ namespace Plugin {
         Core::hresult GetAudioHDMIARCPortId(const int32_t handle, int32_t &portId);
 
         // Notification registration/unregistration
-        Core::hresult Register(DeviceSettingsAudio::INotification* notification);
+        Core::hresult Register(const string& clientName, DeviceSettingsAudio::INotification* notification);
         Core::hresult Unregister(DeviceSettingsAudio::INotification* notification);
 
         // Audio::INotification interface implementation - hardware callbacks
@@ -262,17 +262,17 @@ namespace Plugin {
         void dispatchAudioEvent(Func notifyFunc, Args&&... args);
 
         template <typename T>
-        Core::hresult Register(std::list<T*>& list, T* notification);
+        Core::hresult Register(std::list<std::pair<string, T*>>& list, const string& clientName, T* notification);
 
         template <typename T>
-        Core::hresult Unregister(std::list<T*>& list, const T* notification);
+        Core::hresult Unregister(std::list<std::pair<string, T*>>& list, const T* notification);
 
         Audio _audio;
 
     public:
         /** Called from DeviceSettingsImp::Configure() to trigger deferred HAL init. */
         void InitialiseHAL() { _audio.InitialiseHAL(); }
-        std::list<DeviceSettingsAudio::INotification*> _AudioNotifications;
+        std::list<std::pair<string, DeviceSettingsAudio::INotification*>> _AudioNotifications;
         mutable Core::CriticalSection _configLock;
         mutable Core::CriticalSection _callbackLock;
         std::vector<AudioTypeConfigInfo> _cachedAudioTypeConfigs;

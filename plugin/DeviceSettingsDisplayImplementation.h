@@ -64,15 +64,15 @@ namespace Plugin {
 
         // Template methods for notification management
         template <typename T>
-        Core::hresult Register(std::list<T*>& list, T* notification);
+        Core::hresult Register(std::list<std::pair<string, T*>>& list, const string& clientName, T* notification);
 
         template <typename T>
-        Core::hresult Unregister(std::list<T*>& list, const T* notification);
+        Core::hresult Unregister(std::list<std::pair<string, T*>>& list, const T* notification);
 
         // Public notification registration methods called by DeviceSettingsImp
-        Core::hresult Register(IDisplayNotification* notification);
+        Core::hresult Register(const string& clientName, IDisplayNotification* notification);
         Core::hresult Unregister(IDisplayNotification* notification);
-        Core::hresult Register(IDisplayHDMIHotPlugNotification* notification);
+        Core::hresult Register(const string& clientName, IDisplayHDMIHotPlugNotification* notification);
         Core::hresult Unregister(IDisplayHDMIHotPlugNotification* notification);
 
         // Required Display::INotification interface implementations
@@ -96,8 +96,8 @@ namespace Plugin {
         void dispatchDisplayHDMIHotPlugEvent(Func notifyFunc, Args&&... args);
 
     private:
-        std::list<IDisplayNotification*> _DisplayNotifications;
-        std::list<IDisplayHDMIHotPlugNotification*> _DisplayHDMIHotPlugNotifications;
+        std::list<std::pair<string, IDisplayNotification*>> _DisplayNotifications;
+        std::list<std::pair<string, IDisplayHDMIHotPlugNotification*>> _DisplayHDMIHotPlugNotifications;
 
         // Thread-safety locks
         mutable Core::CriticalSection _apiLock;

@@ -240,10 +240,10 @@ namespace Plugin {
     // IDeviceSettingsFPD interface implementation - delegate to _fpdSettings interface
     // ============================================================================
     
-    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsFPD::INotification* notification) {
+    Core::hresult DeviceSettingsImp::Register(const string& clientName, Exchange::IDeviceSettingsFPD::INotification* notification) {
         Core::hresult result;
         if (_fpdSettings != nullptr) {
-            result = _fpdSettings->Register(notification);
+            result = _fpdSettings->Register(clientName, notification);
             DSLOG_INFO("FPD Register: SUCCESS - forwarded to implementation");
         } else {
             DSLOG_ERR("FPD Register: FAILED - _fpdSettings is null");
@@ -320,10 +320,10 @@ namespace Plugin {
     // IDeviceSettingsHDMIIn interface implementation - delegate to _hdmiInSettings interface
     // ============================================================================
     
-    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsHDMIIn::INotification* notification) {
+    Core::hresult DeviceSettingsImp::Register(const string& clientName, Exchange::IDeviceSettingsHDMIIn::INotification* notification) {
         Core::hresult result;
         if (_hdmiInSettings != nullptr) {
-            result = _hdmiInSettings->Register(notification);
+            result = _hdmiInSettings->Register(clientName, notification);
             DSLOG_INFO("HDMIIn Register: SUCCESS - forwarded to implementation");
         } else {
             DSLOG_ERR("HDMIIn Register: FAILED - _hdmiInSettings is null");
@@ -416,8 +416,8 @@ namespace Plugin {
     // IDeviceSettingsAudio interface implementation - delegate to _audioSettings interface
     // ============================================================================
     
-    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsAudio::INotification* notification) {
-        DELEGATE_TO_COMPONENT(_audioSettings, Register, notification)
+    Core::hresult DeviceSettingsImp::Register(const string& clientName, Exchange::IDeviceSettingsAudio::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_audioSettings, Register, clientName, notification)
     }
     
     Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsAudio::INotification* notification) {
@@ -742,8 +742,8 @@ namespace Plugin {
     // IDeviceSettingsVideoPort interface implementation - delegate to _videoPortSettings interface
     // ============================================================================
     
-    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsVideoPort::INotification* notification) {
-        DELEGATE_TO_COMPONENT(_videoPortSettings, Register, notification)
+    Core::hresult DeviceSettingsImp::Register(const string& clientName, Exchange::IDeviceSettingsVideoPort::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, Register, clientName, notification)
     }
     
     Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsVideoPort::INotification* notification) {
@@ -952,8 +952,8 @@ namespace Plugin {
 
     // IDeviceSettingsVideoDevice interface implementation - delegate to _videoDeviceSettings interface
 
-    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsVideoDevice::INotification* notification) {
-        DELEGATE_TO_COMPONENT(_videoDeviceSettings, Register, notification)
+    Core::hresult DeviceSettingsImp::Register(const string& clientName, Exchange::IDeviceSettingsVideoDevice::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_videoDeviceSettings, Register, clientName, notification)
     }
 
     Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsVideoDevice::INotification* notification) {
@@ -1025,8 +1025,8 @@ namespace Plugin {
     // IDeviceSettingsDisplay interface implementation - delegate to _displaySettings interface
     // ============================================================================
 
-    Core::hresult DeviceSettingsImp::Register(IDisplayNotification* notification) {
-        DELEGATE_TO_COMPONENT(_displaySettings, Register, notification)
+    Core::hresult DeviceSettingsImp::Register(const string& clientName, IDisplayNotification* notification) {
+        DELEGATE_TO_COMPONENT(_displaySettings, Register, clientName, notification)
     }
 
     Core::hresult DeviceSettingsImp::Unregister(IDisplayNotification* notification) {
@@ -1045,8 +1045,8 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_displaySettings, GetDisplay, portType, index, handle)
     }
 
-    Core::hresult DeviceSettingsImp::Register(IDisplayHDMIHotPlugNotification* notification) {
-        DELEGATE_TO_COMPONENT(_displaySettings, Register, notification)
+    Core::hresult DeviceSettingsImp::Register(const string& clientName, IDisplayHDMIHotPlugNotification* notification) {
+        DELEGATE_TO_COMPONENT(_displaySettings, Register, clientName, notification)
     }
 
     Core::hresult DeviceSettingsImp::Unregister(IDisplayHDMIHotPlugNotification* notification) {
@@ -1073,8 +1073,8 @@ namespace Plugin {
     // IDeviceSettingsCompositeIn interface implementation - delegate to _compositeInSettings interface
     // ============================================================================
 
-    Core::hresult DeviceSettingsImp::Register(Exchange::IDeviceSettingsCompositeIn::INotification* notification) {
-        DELEGATE_TO_COMPONENT(_compositeInSettings, Register, notification)
+    Core::hresult DeviceSettingsImp::Register(const string& clientName, Exchange::IDeviceSettingsCompositeIn::INotification* notification) {
+        DELEGATE_TO_COMPONENT(_compositeInSettings, Register, clientName, notification)
     }
 
     Core::hresult DeviceSettingsImp::Unregister(Exchange::IDeviceSettingsCompositeIn::INotification* notification) {

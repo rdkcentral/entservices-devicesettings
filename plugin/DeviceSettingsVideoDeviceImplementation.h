@@ -65,13 +65,13 @@ namespace Plugin {
 
         // Template methods for notification management
         template <typename T>
-        Core::hresult Register(std::list<T*>& list, T* notification);
+        Core::hresult Register(std::list<std::pair<string, T*>>& list, const string& clientName, T* notification);
 
         template <typename T>
-        Core::hresult Unregister(std::list<T*>& list, const T* notification);
+        Core::hresult Unregister(std::list<std::pair<string, T*>>& list, const T* notification);
 
         // Public notification registration methods called by DeviceSettingsImp
-        Core::hresult Register(Exchange::IDeviceSettingsVideoDevice::INotification* notification);
+        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsVideoDevice::INotification* notification);
         Core::hresult Unregister(Exchange::IDeviceSettingsVideoDevice::INotification* notification);
 
         // Required VideoDevice::INotification interface implementations
@@ -96,7 +96,7 @@ namespace Plugin {
         void getCachedConfigs(std::vector<Exchange::IDeviceSettings::VideoDeviceConfigInfo>& videoConfigs) const;
 
     private:
-        std::list<Exchange::IDeviceSettingsVideoDevice::INotification*> _VideoDeviceNotifications;
+        std::list<std::pair<string, Exchange::IDeviceSettingsVideoDevice::INotification*>> _VideoDeviceNotifications;
 
         // Thread-safety locks
         mutable Core::CriticalSection _apiLock;

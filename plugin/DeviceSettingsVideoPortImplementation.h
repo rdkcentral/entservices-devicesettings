@@ -66,13 +66,13 @@ namespace Plugin {
 
         // Template methods for notification management
         template <typename T>
-        Core::hresult Register(std::list<T*>& list, T* notification);
+        Core::hresult Register(std::list<std::pair<string, T*>>& list, const string& clientName, T* notification);
 
         template <typename T>
-        Core::hresult Unregister(std::list<T*>& list, const T* notification);
+        Core::hresult Unregister(std::list<std::pair<string, T*>>& list, const T* notification);
 
         // Public notification registration methods called by DeviceSettingsImp
-        Core::hresult Register(Exchange::IDeviceSettingsVideoPort::INotification* notification);
+        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsVideoPort::INotification* notification);
         Core::hresult Unregister(Exchange::IDeviceSettingsVideoPort::INotification* notification);
 
         // Event notification methods removed - DS HAL callbacks now directly call dispatchVideoPortEvent
@@ -135,7 +135,7 @@ namespace Plugin {
                               std::vector<Exchange::IDeviceSettings::VideoPortResolutionConfig>& videoPortResolutions) const;
 
     private:
-        std::list<Exchange::IDeviceSettingsVideoPort::INotification*> _VideoPortNotifications;
+        std::list<std::pair<string, Exchange::IDeviceSettingsVideoPort::INotification*>> _VideoPortNotifications;
 
         // Thread-safety locks
         mutable Core::CriticalSection _apiLock;
