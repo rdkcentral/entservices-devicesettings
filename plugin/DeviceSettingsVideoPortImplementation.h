@@ -144,7 +144,6 @@ namespace Plugin {
         std::vector<VideoPortTypeConfig> _cachedVideoPortTypes;
         std::vector<VideoPortPortConfig> _cachedVideoPorts;
         std::vector<VideoPortResolution> _cachedVideoPortResolutions;
-        std::shared_ptr<std::mutex> _eventDispatchMutex;
 
         VideoPort _videoPort;
 

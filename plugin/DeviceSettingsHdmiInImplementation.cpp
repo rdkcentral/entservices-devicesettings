@@ -19,6 +19,7 @@
 #include "DeviceSettingsHdmiInImplementation.h"
 
 #include <syscall.h>
+#include <vector>
 
 using namespace std;
 
@@ -38,16 +39,23 @@ namespace Plugin {
     template<typename Func, typename... Args>
     void DeviceSettingsHdmiInImp::dispatchHDMIInEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
+        std::vector<std::pair<string, Exchange::IDeviceSettingsHDMIIn::INotification*>> notifications;
         _callbackLock.Lock();
         for (auto& entry : _HDMIInNotifications) {
+            entry.second->AddRef();
+            notifications.push_back(entry);
+        }
+        _callbackLock.Unlock();
+
+        for (auto& entry : notifications) {
             const string& clientName = entry.first;
             auto* notification = entry.second;
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
             DSLOG_INFO("client '%s' took %" PRId64 "ms to process IHDMIIn event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            notification->Release();
         }
-        _callbackLock.Unlock();
         DSLOG_INFO("<<");
     }
 

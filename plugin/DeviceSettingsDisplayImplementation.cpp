@@ -20,6 +20,7 @@
 #include "DeviceSettingsDisplayImplementation.h"
 
 #include <syscall.h>
+#include <vector>
 
 using namespace std;
 
@@ -43,32 +44,46 @@ namespace Plugin {
     template<typename Func, typename... Args>
     void DeviceSettingsDisplayImpl::dispatchDisplayEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
+        std::vector<std::pair<string, IDisplayNotification*>> notifications;
         _callbackLock.Lock();
         for (auto& entry : _DisplayNotifications) {
+            entry.second->AddRef();
+            notifications.push_back(entry);
+        }
+        _callbackLock.Unlock();
+
+        for (auto& entry : notifications) {
             const string& clientName = entry.first;
             auto* notification = entry.second;
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
             DSLOG_INFO("client '%s' took %" PRId64 "ms to process IDisplay event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            notification->Release();
         }
-        _callbackLock.Unlock();
         DSLOG_INFO("<<");
     }
 
     template<typename Func, typename... Args>
     void DeviceSettingsDisplayImpl::dispatchDisplayHDMIHotPlugEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
+        std::vector<std::pair<string, IDisplayHDMIHotPlugNotification*>> notifications;
         _callbackLock.Lock();
         for (auto& entry : _DisplayHDMIHotPlugNotifications) {
+            entry.second->AddRef();
+            notifications.push_back(entry);
+        }
+        _callbackLock.Unlock();
+
+        for (auto& entry : notifications) {
             const string& clientName = entry.first;
             auto* notification = entry.second;
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
             DSLOG_INFO("client '%s' took %" PRId64 "ms to process IDisplayHDMIHotPlug event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            notification->Release();
         }
-        _callbackLock.Unlock();
         DSLOG_INFO("<<");
     }
 

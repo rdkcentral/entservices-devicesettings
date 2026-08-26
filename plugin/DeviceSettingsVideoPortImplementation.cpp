@@ -19,13 +19,8 @@
 
 #include "DeviceSettingsVideoPortImplementation.h"
 
-#include <functional>
 #include <syscall.h>
-#include <set>
 #include <vector>
-
-#include <core/IAction.h>
-#include <core/WorkerPool.h>
 
 using namespace std;
 
@@ -34,35 +29,12 @@ using namespace std;
 namespace WPEFramework {
 namespace Plugin {
 
-namespace {
-    class VideoPortEventJob : public Core::IDispatch {
-    public:
-        VideoPortEventJob(std::shared_ptr<std::mutex> dispatchMutex,
-                          std::vector<std::function<void()>> callbacks)
-            : _dispatchMutex(std::move(dispatchMutex))
-            , _callbacks(std::move(callbacks))
-        {
-        }
 
-        void Dispatch() override
-        {
-            std::lock_guard<std::mutex> lock(*_dispatchMutex);
-            for (auto& callback : _callbacks) {
-                callback();
-            }
-        }
 
-    private:
-        std::shared_ptr<std::mutex> _dispatchMutex;
-        std::vector<std::function<void()>> _callbacks;
-    };
-}
-
-    DeviceSettingsVideoPortImpl::DeviceSettingsVideoPortImpl() : 
+    DeviceSettingsVideoPortImpl::DeviceSettingsVideoPortImpl() :
         _VideoPortNotifications(),
         _apiLock(),
         _callbackLock(),
-        _eventDispatchMutex(std::make_shared<std::mutex>()),
         _videoPort(VideoPort::Create(*this))
     {
         DSLOG_INFO("Constructor - Instance Address: %p", this);
@@ -90,31 +62,15 @@ namespace {
         }
         _callbackLock.Unlock();
 
-        std::vector<std::function<void()>> callbacks;
-        callbacks.reserve(notifications.size());
         for (auto& entry : notifications) {
-            string clientName = entry.first;
+            const string& clientName = entry.first;
             auto* notification = entry.second;
-            auto callback = std::bind(notifyFunc, notification, std::forward<Args>(args)...);
-            callbacks.emplace_back([clientName, notification, callback]() mutable {
-                auto start = std::chrono::steady_clock::now();
-                try {
-                    callback();
-                } catch (...) {
-                    DSLOG_ERR("client %s threw while processing IVideoPort event", clientName.c_str());
-                }
-                auto elapsed = std::chrono::steady_clock::now() - start;
-                DSLOG_INFO("client '%s' took %" PRId64 "ms to process IVideoPort event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-                notification->Release();
-            });
+            auto start = std::chrono::steady_clock::now();
+            (notification->*notifyFunc)(std::forward<Args>(args)...);
+            auto elapsed = std::chrono::steady_clock::now() - start;
+            DSLOG_INFO("client '%s' took %" PRId64 "ms to process IVideoPort event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            notification->Release();
         }
-
-        if (!callbacks.empty()) {
-            Core::ProxyType<Core::IDispatch> job(
-                Core::ProxyType<VideoPortEventJob>::Create(_eventDispatchMutex, std::move(callbacks)));
-            Core::IWorkerPool::Instance().Submit(job);
-        }
-
         DSLOG_INFO("<<");
     }
 
@@ -123,9 +79,7 @@ namespace {
     {
         uint32_t status = Core::ERROR_GENERAL;
         ASSERT(nullptr != notification);
-
         _callbackLock.Lock();
-        // Make sure we can't register the same notification callback multiple times
         auto it = std::find_if(list.begin(), list.end(), [notification](const std::pair<string, T*>& p){ return p.second == notification; });
         if (it == list.end()) {
             list.push_back({clientName, notification});
@@ -135,7 +89,6 @@ namespace {
             DSLOG_WARN("Notification %p already registered - skipping", notification);
         }
         _callbackLock.Unlock();
-
         return status;
     }
 
@@ -145,26 +98,23 @@ namespace {
         uint32_t status = Core::ERROR_GENERAL;
         ASSERT(nullptr != notification);
         _callbackLock.Lock();
-
-        // Make sure we can't unregister the same notification callback multiple times
         auto itr = std::find_if(list.begin(), list.end(), [notification](const std::pair<string, T*>& p){ return p.second == notification; });
         if (itr != list.end()) {
             itr->second->Release();
             list.erase(itr);
             status = Core::ERROR_NONE;
         }
-
         _callbackLock.Unlock();
         return status;
     }
 
-    Core::hresult DeviceSettingsVideoPortImpl::Register(const string& clientName, Exchange::IDeviceSettingsVideoPort::INotification* notification)
+    Core::hresult DeviceSettingsVideoPortImpl::Register(const string clientName, Exchange::IDeviceSettingsVideoPort::INotification* notification)
     {
         Core::hresult errorCode = Register(_VideoPortNotifications, clientName, notification);
         if (errorCode != Core::ERROR_NONE) {
-            DSLOG_ERR("IVideoPort %p, errorCode: %u", notification, errorCode);
+            DSLOG_ERR("IVideoPort %p [%s], errorCode: %u", notification, clientName.c_str(), errorCode);
         } else {
-            DSLOG_INFO("IVideoPort %p registered successfully", notification);
+            DSLOG_INFO("IVideoPort %p [%s] registered successfully", notification, clientName.c_str());
         }
         return errorCode;
     }
