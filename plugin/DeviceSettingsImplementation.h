@@ -94,7 +94,7 @@ namespace Plugin {
         Core::hresult GetDeviceSettingConfigs(Exchange::IDeviceSettings::DeviceSettingConfigs& configs) override;
 
         // IDeviceSettingsFPD interface implementation - delegate to _fpdSettings interface
-        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsFPD::INotification* notification) override;
+        Core::hresult Register(const string clientName, Exchange::IDeviceSettingsFPD::INotification* notification) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsFPD::INotification* notification) override;
         Core::hresult SetFPDTime(const FPDTimeFormat timeFormat, const uint32_t minutes, const uint32_t seconds) override;
         Core::hresult SetFPDScroll(const uint32_t scrollHoldDuration, const uint32_t nHorizontalScrollIterations, const uint32_t nVerticalScrollIterations) override;
@@ -113,7 +113,7 @@ namespace Plugin {
         Core::hresult SetFPDMode(const FPDMode fpdMode) override;
         
         // IDeviceSettingsHDMIIn interface implementation - delegate to _hdmiInSettings interface
-        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsHDMIIn::INotification* notification) override;
+        Core::hresult Register(const string clientName, Exchange::IDeviceSettingsHDMIIn::INotification* notification) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsHDMIIn::INotification* notification) override;
             Core::hresult GetHDMIInNumberOfInputs(int32_t &count) override;
         Core::hresult GetHDMIInStatus(HDMIInStatus &hdmiStatus, IHDMIInPortConnectionStatusIterator*& portConnectionStatus) override;
@@ -136,7 +136,7 @@ namespace Plugin {
         Core::hresult GetVRRStatus(const HDMIInPort port, HDMIInVRRStatus &vrrStatus) override;
         
         // IDeviceSettingsAudio interface implementation - delegate to _audioSettings interface
-        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsAudio::INotification* notification) override;
+        Core::hresult Register(const string clientName, Exchange::IDeviceSettingsAudio::INotification* notification) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsAudio::INotification* notification) override;
         Core::hresult GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) override;
         Core::hresult GetMS12Capabilities(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions);
@@ -260,7 +260,7 @@ namespace Plugin {
         Core::hresult GetAudioHDMIARCPortId(const int32_t handle, int32_t &portId) override;
         
         // IDeviceSettingsVideoPort interface implementation - delegate to _videoPortSettings interface
-        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsVideoPort::INotification* notification) override;
+        Core::hresult Register(const string clientName, Exchange::IDeviceSettingsVideoPort::INotification* notification) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsVideoPort::INotification* notification) override;
         Core::hresult GetVideoPort(const VideoPortType videoPort, const int32_t index, int32_t &handle) override;
         Core::hresult IsVideoPortEnabled(const int32_t handle, bool &enabled) override;
@@ -307,7 +307,7 @@ namespace Plugin {
         //=========================================================================
         // IDeviceSettingsVideoDevice interface methods
         //=========================================================================
-        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsVideoDevice::INotification* notification ) override;
+        Core::hresult Register(const string clientName, Exchange::IDeviceSettingsVideoDevice::INotification* notification ) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsVideoDevice::INotification* notification ) override;
         
         Core::hresult GetVideoDeviceHandle(const int32_t index, int32_t &handle /* @out */) override;
@@ -331,9 +331,9 @@ namespace Plugin {
         //=========================================================================
         // IDeviceSettingsDisplay interface methods
         //=========================================================================
-        Core::hresult Register(const string& clientName, IDisplayNotification* notification ) override;
+        Core::hresult Register(const string clientName, IDisplayNotification* notification ) override;
         Core::hresult Unregister(IDisplayNotification* notification ) override;
-        Core::hresult Register(const string& clientName, IDisplayHDMIHotPlugNotification* notification ) override;
+        Core::hresult Register(const string clientName, IDisplayHDMIHotPlugNotification* notification ) override;
         Core::hresult Unregister(IDisplayHDMIHotPlugNotification* notification ) override;
 
         Core::hresult GetDisplayEdid(const int32_t handle, DisplayEDID &edId /* @out */, IDSVideoPortResolutionIterator*& supportedResolutionList /* @out */) override;
@@ -347,7 +347,7 @@ namespace Plugin {
         //=========================================================================
         // IDeviceSettingsCompositeIn interface methods
         //=========================================================================
-        Core::hresult Register(const string& clientName, Exchange::IDeviceSettingsCompositeIn::INotification* notification ) override;
+        Core::hresult Register(const string clientName, Exchange::IDeviceSettingsCompositeIn::INotification* notification ) override;
         Core::hresult Unregister(Exchange::IDeviceSettingsCompositeIn::INotification* notification ) override;
 
         Core::hresult GetNrOfCompositeInputs(int32_t &nrCompositeInputs /* @out */) override;

@@ -282,9 +282,9 @@ namespace Plugin {
     {
         try {
             if (_deviceSettings) {
-                _deviceSettings->Register(static_cast<IDisplayHDMIHotPlugNotification*>(this));
-                _deviceSettings->Register(static_cast<IDisplayNotification*>(this));
-                _deviceSettings->Register(static_cast<Exchange::IDeviceSettingsVideoPort::INotification*>(this));
+                _deviceSettings->Register("DSController", static_cast<IDisplayHDMIHotPlugNotification*>(this));
+                _deviceSettings->Register("DSController", static_cast<IDisplayNotification*>(this));
+                _deviceSettings->Register("DSController", static_cast<Exchange::IDeviceSettingsVideoPort::INotification*>(this));
             } else {
                 DSLOG_ERR("Failed to get DeviceSettings implementation instance");
             }

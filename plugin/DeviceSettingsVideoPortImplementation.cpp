@@ -74,8 +74,8 @@ namespace {
         _callbackLock.Lock();
         notifications.swap(_VideoPortNotifications);
         _callbackLock.Unlock();
-        for (auto& [clientName, notification] : notifications) {
-            notification->Release();
+        for (auto& entry : notifications) {
+            entry.second->Release();
         }
     }
 
@@ -84,15 +84,17 @@ namespace {
         DSLOG_INFO(">>");
         std::vector<std::pair<string, Exchange::IDeviceSettingsVideoPort::INotification*>> notifications;
         _callbackLock.Lock();
-        for (auto& [clientName, notification] : _VideoPortNotifications) {
-            notification->AddRef();
-            notifications.push_back({clientName, notification});
+        for (auto& entry : _VideoPortNotifications) {
+            entry.second->AddRef();
+            notifications.push_back(entry);
         }
         _callbackLock.Unlock();
 
         std::vector<std::function<void()>> callbacks;
         callbacks.reserve(notifications.size());
-        for (auto& [clientName, notification] : notifications) {
+        for (auto& entry : notifications) {
+            string clientName = entry.first;
+            auto* notification = entry.second;
             auto callback = std::bind(notifyFunc, notification, std::forward<Args>(args)...);
             callbacks.emplace_back([clientName, notification, callback]() mutable {
                 auto start = std::chrono::steady_clock::now();

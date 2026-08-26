@@ -191,31 +191,31 @@ namespace Plugin
                 
                 // Register for HDMIIn event notifications
                 if (_mDeviceSettingsHDMIIn != nullptr) {
-                    _mDeviceSettingsHDMIIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHDMIIn::INotification>());
+                    _mDeviceSettingsHDMIIn->Register("DeviceSettings", mNotificationSink.baseInterface<Exchange::IDeviceSettingsHDMIIn::INotification>());
                     DSLOG_INFO("Registered for HDMIIn event notifications");
                 }
                 
                 // Register for VideoPort event notifications
                 if (_mDeviceSettingsVideoPort != nullptr) {
-                    _mDeviceSettingsVideoPort->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoPort::INotification>());
+                    _mDeviceSettingsVideoPort->Register("DeviceSettings", mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoPort::INotification>());
                     DSLOG_INFO("Registered for VideoPort event notifications");
                 }
                 
                 // Register for VideoDevice event notifications
                 if (_mDeviceSettingsVideoDevice != nullptr) {
-                    _mDeviceSettingsVideoDevice->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
+                    _mDeviceSettingsVideoDevice->Register("DeviceSettings", mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
                     DSLOG_INFO("Registered for VideoDevice event notifications");
                 }
                 
                 // Register for CompositeIn event notifications
                 if (_mDeviceSettingsCompositeIn != nullptr) {
-                    _mDeviceSettingsCompositeIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
+                    _mDeviceSettingsCompositeIn->Register("DeviceSettings", mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
                     DSLOG_INFO("Registered for CompositeIn event notifications");
                 }
                 
                 // Register for Display event notifications
                 if (_mDeviceSettingsDisplay != nullptr) {
-                    _mDeviceSettingsDisplay->Register(mNotificationSink.baseInterface<IDisplayNotification>());
+                    _mDeviceSettingsDisplay->Register("DeviceSettings", mNotificationSink.baseInterface<IDisplayNotification>());
                     DSLOG_INFO("Registered for Display event notifications");
                 }
             }
@@ -289,31 +289,31 @@ namespace Plugin
                 
                 // Register for HDMIIn event notifications
                 if (_mDeviceSettingsHDMIIn != nullptr) {
-                    _mDeviceSettingsHDMIIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsHDMIIn::INotification>());
+                    _mDeviceSettingsHDMIIn->Register("DeviceSettings", mNotificationSink.baseInterface<Exchange::IDeviceSettingsHDMIIn::INotification>());
                     DSLOG_INFO("Registered for HDMIIn event notifications");
                 }
                 
                 // Register for VideoPort event notifications
                 if (_mDeviceSettingsVideoPort != nullptr) {
-                    _mDeviceSettingsVideoPort->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoPort::INotification>());
+                    _mDeviceSettingsVideoPort->Register("DeviceSettings", mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoPort::INotification>());
                     DSLOG_INFO("Registered for VideoPort event notifications");
                 }
                 
                 // Register for VideoDevice event notifications
                 if (_mDeviceSettingsVideoDevice != nullptr) {
-                    _mDeviceSettingsVideoDevice->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
+                    _mDeviceSettingsVideoDevice->Register("DeviceSettings", mNotificationSink.baseInterface<Exchange::IDeviceSettingsVideoDevice::INotification>());
                     DSLOG_INFO("Registered for VideoDevice event notifications");
                 }
                 
                 // Register for CompositeIn event notifications
                 if (_mDeviceSettingsCompositeIn != nullptr) {
-                    _mDeviceSettingsCompositeIn->Register(mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
+                    _mDeviceSettingsCompositeIn->Register("DeviceSettings", mNotificationSink.baseInterface<Exchange::IDeviceSettingsCompositeIn::INotification>());
                     DSLOG_INFO("Registered for CompositeIn event notifications");
                 }
                 
                 // Register for Display event notifications
                 if (_mDeviceSettingsDisplay != nullptr) {
-                    _mDeviceSettingsDisplay->Register(mNotificationSink.baseInterface<IDisplayNotification>());
+                    _mDeviceSettingsDisplay->Register("DeviceSettings", mNotificationSink.baseInterface<IDisplayNotification>());
                     DSLOG_INFO("Registered for Display event notifications");
                 }
             }

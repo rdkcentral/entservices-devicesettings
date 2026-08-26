@@ -45,7 +45,9 @@ namespace Plugin {
     void DeviceSettingsAudioImpl::dispatchAudioEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
         _callbackLock.Lock();
-        for (auto& [clientName, notification] : _AudioNotifications) {
+        for (auto& entry : _AudioNotifications) {
+            const string& clientName = entry.first;
+            auto* notification = entry.second;
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;

@@ -44,7 +44,9 @@ namespace Plugin {
     void DeviceSettingsDisplayImpl::dispatchDisplayEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
         _callbackLock.Lock();
-        for (auto& [clientName, notification] : _DisplayNotifications) {
+        for (auto& entry : _DisplayNotifications) {
+            const string& clientName = entry.first;
+            auto* notification = entry.second;
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
@@ -58,7 +60,9 @@ namespace Plugin {
     void DeviceSettingsDisplayImpl::dispatchDisplayHDMIHotPlugEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
         _callbackLock.Lock();
-        for (auto& [clientName, notification] : _DisplayHDMIHotPlugNotifications) {
+        for (auto& entry : _DisplayHDMIHotPlugNotifications) {
+            const string& clientName = entry.first;
+            auto* notification = entry.second;
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
