@@ -663,7 +663,7 @@ namespace Plugin {
             }
             
             AudioStereoMode currentMode;
-            result = _deviceSettings->GetStereoMode(handle, currentMode);
+            result = _deviceSettings->GetStereoMode(handle, currentMode, false);
             if (result != Core::ERROR_NONE) {
                 continue;
             }
@@ -731,7 +731,7 @@ namespace Plugin {
             }
             
             AudioStereoMode currentMode;
-            result = _deviceSettings->GetStereoMode(handle, currentMode);
+            result = _deviceSettings->GetStereoMode(handle, currentMode, false);
             if (result != Core::ERROR_NONE) {
                 continue;
             }

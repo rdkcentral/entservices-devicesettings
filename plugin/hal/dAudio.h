@@ -82,7 +82,7 @@ namespace dAudio {
         virtual uint32_t SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level) = 0;
 
         // Stereo mode (needs to use AudioStereoMode to avoid HAL conflict)
-        virtual uint32_t GetStereoMode(const int32_t handle, AudioStereoMode &mode) = 0;
+        virtual uint32_t GetStereoMode(const int32_t handle, AudioStereoMode &mode, const bool persist) = 0;
         virtual uint32_t SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) = 0;
 
         // Associated audio mixing

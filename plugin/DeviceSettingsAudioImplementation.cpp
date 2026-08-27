@@ -265,9 +265,9 @@ namespace Plugin {
     }
 
     // Stereo mode
-    Core::hresult DeviceSettingsAudioImpl::GetStereoMode(const int32_t handle, AudioStereoMode &mode) {
-        DSLOG_INFO("handle=%d", handle);
-        uint32_t result = _audio.GetStereoMode(handle, mode);
+    Core::hresult DeviceSettingsAudioImpl::GetStereoMode(const int32_t handle, AudioStereoMode &mode, const bool persist) {
+        DSLOG_INFO("handle=%d, persist=%s", handle, persist ? "true" : "false");
+        uint32_t result = _audio.GetStereoMode(handle, mode, persist);
         return result;
     }
 

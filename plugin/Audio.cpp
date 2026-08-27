@@ -312,11 +312,11 @@ uint32_t Audio::SetAudioDucking(const int32_t handle, const AudioDuckingType duc
     return result;
 }
 
-uint32_t Audio::GetStereoMode(const int32_t handle, AudioStereoMode &mode) {
-    DSLOG_INFO("handle=%d", handle);
+uint32_t Audio::GetStereoMode(const int32_t handle, AudioStereoMode &mode, const bool persist) {
+    DSLOG_INFO("handle=%d, persist=%s", handle, persist ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
-        result = this->platform().GetStereoMode(handle, mode);
+        result = this->platform().GetStereoMode(handle, mode, persist);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
         DSLOG_INFO("SUCCESS - handle=%d, mode=%d", handle, mode);

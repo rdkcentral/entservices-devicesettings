@@ -488,8 +488,8 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_audioSettings, SetAudioDucking, handle, duckingType, duckingAction, level)
     }
     
-    Core::hresult DeviceSettingsImp::GetStereoMode(const int32_t handle, AudioStereoMode &mode) {
-        DELEGATE_TO_COMPONENT(_audioSettings, GetStereoMode, handle, mode)
+    Core::hresult DeviceSettingsImp::GetStereoMode(const int32_t handle, AudioStereoMode &mode, const bool persist) {
+        DELEGATE_TO_COMPONENT(_audioSettings, GetStereoMode, handle, mode, persist)
     }
     
     Core::hresult DeviceSettingsImp::SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) {

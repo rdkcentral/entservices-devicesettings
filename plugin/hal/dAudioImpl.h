@@ -604,6 +604,67 @@ public:
         }
     }
 
+    bool getPersistedStereoMode(const dsAudioPortType_t portType, dsAudioStereoMode_t& mode) const
+    {
+        const char* property = nullptr;
+        switch (portType) {
+            case dsAUDIOPORT_TYPE_HDMI:     property = "HDMI0.AudioMode"; break;
+            case dsAUDIOPORT_TYPE_SPDIF:    property = "SPDIF0.AudioMode"; break;
+            case dsAUDIOPORT_TYPE_HDMI_ARC: property = "HDMI_ARC0.AudioMode"; break;
+            case dsAUDIOPORT_TYPE_SPEAKER:  property = "SPEAKER0.AudioMode"; break;
+            default: return false;
+        }
+
+        std::string value;
+        try {
+            value = device::HostPersistence::getInstance().getProperty(property);
+        } catch (...) {
+            try {
+                value = device::HostPersistence::getInstance().getDefaultProperty(property);
+            } catch (...) {
+                return false;
+            }
+        }
+
+        if (value == "SURROUND") {
+            mode = dsAUDIO_STEREO_SURROUND;
+        } else if (value == "PASSTHRU") {
+            mode = dsAUDIO_STEREO_PASSTHRU;
+        } else if (value == "DOLBYDIGITAL") {
+            mode = dsAUDIO_STEREO_DD;
+        } else if (value == "DOLBYDIGITALPLUS") {
+            mode = dsAUDIO_STEREO_DDPLUS;
+        } else {
+            mode = dsAUDIO_STEREO_STEREO;
+        }
+        return true;
+    }
+
+    bool getPersistedStereoAuto(const dsAudioPortType_t portType, int32_t& autoMode) const
+    {
+        const char* property = nullptr;
+        switch (portType) {
+            case dsAUDIOPORT_TYPE_HDMI:     property = "HDMI0.AudioMode.AUTO"; break;
+            case dsAUDIOPORT_TYPE_SPDIF:    property = "SPDIF0.AudioMode.AUTO"; break;
+            case dsAUDIOPORT_TYPE_HDMI_ARC: property = "HDMI_ARC0.AudioMode.AUTO"; break;
+            case dsAUDIOPORT_TYPE_SPEAKER:  property = "SPEAKER0.AudioMode.AUTO"; break;
+            default: return false;
+        }
+
+        std::string value;
+        try {
+            value = device::HostPersistence::getInstance().getProperty(property);
+        } catch (...) {
+            try {
+                value = device::HostPersistence::getInstance().getDefaultProperty(property);
+            } catch (...) {
+                return false;
+            }
+        }
+        autoMode = (value == "TRUE") ? 1 : 0;
+        return true;
+    }
+
     // IPlatform interface implementation
     uint32_t GetAudioPort(const AudioPortType type, const int32_t index, int32_t &handle) override {
         ENTRY_LOG;
@@ -1335,7 +1396,7 @@ public:
         return WPEFramework::Core::ERROR_NONE;
     }
 
-    uint32_t GetStereoMode(const int32_t handle, AudioStereoMode &mode) override {
+    uint32_t GetStereoMode(const int32_t handle, AudioStereoMode &mode, const bool persist) override {
         ENTRY_LOG;
         if (!_isInitialized) {
             DSLOG_ERR("Audio platform not initialized");
@@ -1348,7 +1409,12 @@ public:
             dsAudioStereoMode_t dsMode = dsAUDIO_STEREO_UNKNOWN;
             dsError_t ret = dsERR_NONE;
 
-            if (isStereoAutoEnabled(portType) || portType == dsAUDIOPORT_TYPE_SPEAKER) {
+            if (persist) {
+                if (!getPersistedStereoMode(portType, dsMode)) {
+                    DSLOG_ERR("No persisted stereo mode for handle=%d", handle);
+                    return WPEFramework::Core::ERROR_GENERAL;
+                }
+            } else if (isStereoAutoEnabled(portType) || portType == dsAUDIOPORT_TYPE_SPEAKER) {
                 ret = dsGetStereoMode(dsHandle, &dsMode);
             } else {
                 dsMode = getConfiguredStereoMode(portType);
@@ -1356,7 +1422,7 @@ public:
             
             if (ret == dsERR_NONE) {
                 mode = convertFromDS(dsMode);
-                DSLOG_INFO("success: handle=%d, mode=%d", handle, static_cast<int>(mode));
+                DSLOG_INFO("success: handle=%d, mode=%d, persist=%s", handle, static_cast<int>(mode), persist ? "true" : "false");
             } else {
                 DSLOG_ERR("dsGetStereoMode failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -3931,30 +3997,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            int dsAutoMode;
-            // Use resolve function for dsGetStereoAuto
-            typedef dsError_t (*dsGetStereoAuto_t)(intptr_t handle, int* autoMode);
-            static dsGetStereoAuto_t dsGetStereoAutoFunc = 0;
-            if (dsGetStereoAutoFunc == 0) {
-                dsGetStereoAutoFunc = (dsGetStereoAuto_t)resolve(RDK_DSHAL_NAME, "dsGetStereoAuto");
-                if (dsGetStereoAutoFunc == 0) {
-                    DSLOG_ERR("dsGetStereoAuto is not defined");
-                    return WPEFramework::Core::ERROR_GENERAL;
-                }
-            }
-            
-            dsError_t ret = dsERR_GENERAL;
-            if (0 != dsGetStereoAutoFunc) {
-                ret = dsGetStereoAutoFunc(dsHandle, &dsAutoMode);
-            }
-            if (ret == dsERR_NONE) {
-                autoMode = dsAutoMode;
-                DSLOG_INFO("success: handle=%d, autoMode=%d", handle, autoMode);
-            } else {
-                DSLOG_ERR("dsGetStereoAuto failed with error: %d", ret);
-                return WPEFramework::Core::ERROR_GENERAL;
-            }
+            const dsAudioPortType_t portType = getAudioPortType(static_cast<intptr_t>(handle));
+            /* Mirrors _dsGetStereoAuto: returns current runtime auto-state only, no persistence path. */
+            autoMode = isStereoAutoEnabled(portType) ? 1 : 0;
+            DSLOG_INFO("success: handle=%d, autoMode=%d", handle, autoMode);
         } catch (...) {
             DSLOG_ERR("Exception in GetStereoAuto");
             return WPEFramework::Core::ERROR_GENERAL;

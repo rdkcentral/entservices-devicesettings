@@ -100,7 +100,7 @@ public:
     uint32_t SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level);
 
     // Stereo Mode
-    uint32_t GetStereoMode(const int32_t handle, AudioStereoMode &mode);
+    uint32_t GetStereoMode(const int32_t handle, AudioStereoMode &mode, const bool persist);
     uint32_t SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist);
     uint32_t GetStereoAuto(const int32_t handle, int32_t &mode);
     uint32_t SetStereoAuto(const int32_t handle, const int32_t mode, const bool persist);

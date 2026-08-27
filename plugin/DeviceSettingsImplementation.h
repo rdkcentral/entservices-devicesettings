@@ -154,7 +154,7 @@ namespace Plugin {
         Core::hresult SetAudioMute(const int32_t handle, const bool mute) override;
         Core::hresult IsAudioMuted(const int32_t handle, bool &muted) override;
         Core::hresult SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level) override;
-        Core::hresult GetStereoMode(const int32_t handle, AudioStereoMode &mode) override;
+        Core::hresult GetStereoMode(const int32_t handle, AudioStereoMode &mode, const bool persist) override;
         Core::hresult SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist) override;
         Core::hresult GetStereoAuto(const int32_t handle, int32_t &mode) override;
         Core::hresult SetStereoAuto(const int32_t handle, const int32_t mode, const bool persist) override;

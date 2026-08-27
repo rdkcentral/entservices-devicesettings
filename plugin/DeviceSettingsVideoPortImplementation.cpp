@@ -20,6 +20,7 @@
 #include "DeviceSettingsVideoPortImplementation.h"
 
 #include <syscall.h>
+#include <set>
 #include <vector>
 
 using namespace std;
@@ -108,7 +109,7 @@ namespace Plugin {
         return status;
     }
 
-    Core::hresult DeviceSettingsVideoPortImpl::Register(const string clientName, Exchange::IDeviceSettingsVideoPort::INotification* notification)
+    Core::hresult DeviceSettingsVideoPortImpl::Register(const string& clientName, Exchange::IDeviceSettingsVideoPort::INotification* notification)
     {
         Core::hresult errorCode = Register(_VideoPortNotifications, clientName, notification);
         if (errorCode != Core::ERROR_NONE) {

@@ -122,7 +122,7 @@ namespace Plugin {
         Core::hresult SetAudioDucking(const int32_t handle, const AudioDuckingType duckingType, const AudioDuckingAction duckingAction, const uint8_t level);
 
         // Stereo Mode
-        Core::hresult GetStereoMode(const int32_t handle, AudioStereoMode &mode);
+        Core::hresult GetStereoMode(const int32_t handle, AudioStereoMode &mode, const bool persist);
         Core::hresult SetStereoMode(const int32_t handle, const AudioStereoMode mode, const bool persist);
         Core::hresult GetStereoAuto(const int32_t handle, int32_t &mode);
         Core::hresult SetStereoAuto(const int32_t handle, const int32_t mode, const bool persist);
