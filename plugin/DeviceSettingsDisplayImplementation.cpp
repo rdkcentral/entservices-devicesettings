@@ -52,13 +52,15 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
+        DSLOG_INFO(">>> Dispatching Display event to %zu clients", notifications.size());
+
         for (auto& entry : notifications) {
             const string& clientName = entry.first;
             auto* notification = entry.second;
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            DSLOG_INFO("client '%s' took %" PRId64 "ms to process IDisplay event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client '%s' took %" PRId64 "ms to process Display event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
             notification->Release();
         }
         DSLOG_INFO("<<");
@@ -75,13 +77,15 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
+        DSLOG_INFO(">>> Dispatching DisplayHDMIHotPlug event to %zu clients", notifications.size());
+
         for (auto& entry : notifications) {
             const string& clientName = entry.first;
             auto* notification = entry.second;
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            DSLOG_INFO("client '%s' took %" PRId64 "ms to process IDisplayHDMIHotPlug event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client '%s' took %" PRId64 "ms to process DisplayHDMIHotPlug event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
             notification->Release();
         }
         DSLOG_INFO("<<");

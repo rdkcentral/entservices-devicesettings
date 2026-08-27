@@ -63,6 +63,8 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
+        DSLOG_INFO(">>> Dispatching VideoPort event to %zu clients", notifications.size());
+
         for (auto& entry : notifications) {
             const string& clientName = entry.first;
             auto* notification = entry.second;
