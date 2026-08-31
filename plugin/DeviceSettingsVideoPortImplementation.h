@@ -26,6 +26,7 @@
 #include <unordered_map>
 #include <chrono>
 #include <cstdint>
+#include <tuple>
 #include <vector>
 
 #include <com/com.h>
@@ -59,8 +60,40 @@ namespace Plugin {
         // DeviceSettingsImp handles QueryInterface for all component interfaces
 
     public:
+        enum Event { EV_RESOLUTION_POST_CHANGE = 0 };
+        using ParamsType = std::tuple<uint32_t, uint32_t>;  // width, height
 
-        // Template method for dispatching VideoPort Events
+        // Worker-pool job: mirrors DispatchJob in DisplaySettings; calls impl->Dispatch(ev, params) on worker thread.
+        class EXTERNAL VideoPortNotificationJob : public Core::IDispatch {
+        protected:
+            VideoPortNotificationJob(DeviceSettingsVideoPortImpl* impl, Event ev, ParamsType params)
+                : _impl(impl), _ev(ev), _params(std::move(params))
+            {}
+        public:
+            VideoPortNotificationJob() = delete;
+            VideoPortNotificationJob(const VideoPortNotificationJob&) = delete;
+            VideoPortNotificationJob& operator=(const VideoPortNotificationJob&) = delete;
+            ~VideoPortNotificationJob() = default;
+
+            static Core::ProxyType<Core::IDispatch> Create(DeviceSettingsVideoPortImpl* impl, Event ev, ParamsType params) {
+                return Core::ProxyType<Core::IDispatch>(
+                    Core::ProxyType<VideoPortNotificationJob>::Create(impl, ev, std::move(params)));
+            }
+
+            void Dispatch() override { _impl->Dispatch(_ev, _params); }
+        private:
+            DeviceSettingsVideoPortImpl* _impl;
+            Event _ev;
+            const ParamsType _params;
+        };
+
+        // Submit async job to worker pool; HAL callback thread returns immediately.
+        void submitVideoPortEvent(Event ev, ParamsType params);
+
+        // Called on worker thread by VideoPortNotificationJob::Dispatch().
+        void Dispatch(Event ev, const ParamsType& params);
+
+        // Sync: delivers notification on the calling thread (used for all other events)
         template<typename Func, typename... Args>
         void dispatchVideoPortEvent(Func notifyFunc, Args&&... args);
 

@@ -19,6 +19,7 @@
 
 #include "DeviceSettingsVideoPortImplementation.h"
 
+#include <cinttypes>
 #include <syscall.h>
 #include <set>
 #include <vector>
@@ -52,6 +53,43 @@ namespace Plugin {
         }
     }
 
+    void DeviceSettingsVideoPortImpl::submitVideoPortEvent(Event ev, ParamsType params) {
+        Core::IWorkerPool::Instance().Submit(
+            VideoPortNotificationJob::Create(this, ev, std::move(params)));
+    }
+
+    void DeviceSettingsVideoPortImpl::Dispatch(Event ev, const ParamsType& params) {
+        DSLOG_INFO(">>");
+        std::vector<std::pair<string, Exchange::IDeviceSettingsVideoPort::INotification*>> notifications;
+        _callbackLock.Lock();
+        for (auto& entry : _VideoPortNotifications) {
+            entry.second->AddRef();
+            notifications.push_back(entry);
+        }
+        _callbackLock.Unlock();
+
+        for (auto& entry : notifications) {
+            switch (ev) {
+            case EV_RESOLUTION_POST_CHANGE:
+                const string& clientName = entry.first;
+                auto* notification = entry.second;
+                ResolutionChange res;
+                res.width = std::get<0>(params);
+                res.height = std::get<1>(params);
+                auto start = std::chrono::steady_clock::now();
+                notification->OnResolutionPostChange(res);
+                auto elapsed = std::chrono::steady_clock::now() - start;
+                DSLOG_INFO("client '%s' took %" PRId64 "ms to process OnResolutionPostChange event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+                notification->Release();
+                break;
+            default:
+                DSLOG_WARN("Unknown event %d", ev);
+                break;
+            }
+        }
+        DSLOG_INFO("<<");
+    }
+
     template<typename Func, typename... Args>
     void DeviceSettingsVideoPortImpl::dispatchVideoPortEvent(Func notifyFunc, Args&&... args) {
         DSLOG_INFO(">>");
@@ -63,7 +101,7 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
-        DSLOG_INFO(">>> Dispatching VideoPort event to %zu clients", notifications.size());
+        DSLOG_INFO(">>> Dispatching VideoPort event to %zu clients (sync)", notifications.size());
 
         for (auto& entry : notifications) {
             const string& clientName = entry.first;
@@ -71,7 +109,7 @@ namespace Plugin {
             auto start = std::chrono::steady_clock::now();
             (notification->*notifyFunc)(std::forward<Args>(args)...);
             auto elapsed = std::chrono::steady_clock::now() - start;
-            DSLOG_INFO("client '%s' took %" PRId64 "ms to process IVideoPort event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+            DSLOG_INFO("client '%s' took %" PRId64 "ms to process IVideoPort event",clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
             notification->Release();
         }
         DSLOG_INFO("<<");
@@ -145,7 +183,7 @@ namespace Plugin {
     void DeviceSettingsVideoPortImpl::OnResolutionPostChange(const ResolutionChange resolution)
     {
         DSLOG_INFO("DS HAL OnResolutionPostChange event: width=%u, height=%u", resolution.width, resolution.height);
-        dispatchVideoPortEvent(&Exchange::IDeviceSettingsVideoPort::INotification::OnResolutionPostChange, resolution);
+        submitVideoPortEvent(EV_RESOLUTION_POST_CHANGE, std::make_tuple(resolution.width, resolution.height));
     }
 
     void DeviceSettingsVideoPortImpl::OnHDCPStatusChange(const VideoPortHdcpStatus hdcpStatus)
