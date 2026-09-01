@@ -68,23 +68,26 @@ namespace Plugin {
         }
         _callbackLock.Unlock();
 
+        DSLOG_INFO(">>> Dispatching VideoPort event to %zu clients (async)", notifications.size());
+
         for (auto& entry : notifications) {
             switch (ev) {
-            case EV_RESOLUTION_POST_CHANGE:
-                const string& clientName = entry.first;
-                auto* notification = entry.second;
-                ResolutionChange res;
-                res.width = std::get<0>(params);
-                res.height = std::get<1>(params);
-                auto start = std::chrono::steady_clock::now();
-                notification->OnResolutionPostChange(res);
-                auto elapsed = std::chrono::steady_clock::now() - start;
-                DSLOG_INFO("client '%s' took %" PRId64 "ms to process OnResolutionPostChange event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-                notification->Release();
-                break;
-            default:
-                DSLOG_WARN("Unknown event %d", ev);
-                break;
+                case EV_RESOLUTION_POST_CHANGE: {
+                    const string& clientName = entry.first;
+                    auto* notification = entry.second;
+                    ResolutionChange res;
+                    res.width = std::get<0>(params);
+                    res.height = std::get<1>(params);
+                    auto start = std::chrono::steady_clock::now();
+                    notification->OnResolutionPostChange(res);
+                    auto elapsed = std::chrono::steady_clock::now() - start;
+                    DSLOG_INFO("client '%s' took %" PRId64 "ms to process OnResolutionPostChange event", clientName.c_str(), std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+                    notification->Release();
+                    break;
+                }
+                default:
+                    DSLOG_WARN("Unknown event %d", ev);
+                    break;
             }
         }
         DSLOG_INFO("<<");
