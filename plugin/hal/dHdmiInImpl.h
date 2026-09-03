@@ -23,6 +23,7 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <list>
 #include <algorithm>
 #include <cctype>
 #include <functional>
@@ -914,75 +915,35 @@ public:
 
     uint32_t GetSupportedGameFeaturesList(IHDMIInGameFeatureListIterator *& gameFeatureList) override
     {
-        uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        dsSupportedGameFeatureList_t fList;
-
-        // Initialize the structure
-        memset(&fList, 0, sizeof(fList));
-
-        dsError_t dsResult = getSupportedGameFeaturesList(&fList);
-        DSLOG_INFO(" dsGetSupportedGameFeaturesList returned: %d", dsResult);
-
-        if (dsResult == dsERR_NONE) {
-            DSLOG_INFO(" Raw HAL data - gameFeatureList='%s', count=%d",
-                    fList.gameFeatureList, fList.gameFeatureCount);
-
-            try {
-                // Parse the comma-separated game features string
-                std::vector<DeviceSettingsHDMIIn::HDMIInGameFeatureList> features;
-
-                if (strlen(fList.gameFeatureList) > 0) {
-                    std::string featureStr(fList.gameFeatureList);
-                    std::stringstream ss(featureStr);
-                    std::string feature;
-
-                    // Split by comma and create feature entries
-                    while (std::getline(ss, feature, ',')) {
-                        // Remove quotes and whitespace
-                        feature.erase(std::remove(feature.begin(), feature.end(), '"'), feature.end());
-                        feature.erase(std::remove(feature.begin(), feature.end(), ' '), feature.end());
-
-                        if (!feature.empty()) {
-                            DeviceSettingsHDMIIn::HDMIInGameFeatureList gameFeature;
-                            gameFeature.gameFeature = feature;
-                            features.push_back(gameFeature);
-                            DSLOG_INFO(" Added feature: '%s'", feature.c_str());
-                        }
-                    }
-                }
-
-                DSLOG_INFO(" Parsed %zu features from HAL data", features.size());
-
-                // Create iterator using the GameFeatureListIteratorImpl type already defined in dHdmiIn.h
-                // This uses WPEFramework's standard iterator pattern with explicit interface template parameter
-                //gameFeatureList = GameFeatureListIteratorImpl::Create<IHDMIInGameFeatureListIterator>(features);
-
-                if (gameFeatureList != nullptr) {
-                    DSLOG_INFO(" Successfully created iterator with %zu features", features.size());
-                    retCode = WPEFramework::Core::ERROR_NONE;
-
-                    // Log all parsed features for debugging
-                    DSLOG_INFO(" Feature summary:");
-                    for (size_t i = 0; i < features.size(); i++) {
-                        DSLOG_INFO("  Feature[%zu]: '%s'", i, features[i].gameFeature.c_str());
-                    }
-                } else {
-                    // Empty feature list or RPC iterator allocation failure — treat as no features
-                    DSLOG_WARN(" iterator creation failed (features=%zu), returning empty list", features.size());
-                    retCode = WPEFramework::Core::ERROR_NONE;
-                    gameFeatureList = nullptr;
-                }
-            } catch (const std::exception& e) {
-                DSLOG_ERR(" Exception while parsing features: %s", e.what());
-                gameFeatureList = nullptr;
-                retCode = WPEFramework::Core::ERROR_GENERAL;
-            }
-        } else {
-            DSLOG_ERR(" dsGetSupportedGameFeaturesList failed with error: %d", dsResult);
+        dsSupportedGameFeatureList_t featureList = {};
+        const dsError_t result = getSupportedGameFeaturesList(&featureList);
+        if (result != dsERR_NONE) {
+            DSLOG_ERR("dsGetSupportedGameFeaturesList failed with error: %d", result);
             gameFeatureList = nullptr;
+            return WPEFramework::Core::ERROR_GENERAL;
         }
 
-        return retCode;
+        std::list<DeviceSettingsHDMIIn::HDMIInGameFeatureList> features;
+        std::stringstream stream(featureList.gameFeatureList);
+        std::string feature;
+        int32_t featureCount = 0;
+
+        while ((featureCount < featureList.gameFeatureCount) && std::getline(stream, feature, ',')) {
+            feature.erase(std::remove(feature.begin(), feature.end(), '"'), feature.end());
+            feature.erase(std::remove(feature.begin(), feature.end(), ' '), feature.end());
+            if (!feature.empty()) {
+                DeviceSettingsHDMIIn::HDMIInGameFeatureList gameFeature;
+                gameFeature.gameFeature = feature;
+                features.emplace_back(gameFeature);
+                ++featureCount;
+            }
+        }
+
+        gameFeatureList = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInGameFeatureListIterator>>
+                              ::Create<IHDMIInGameFeatureListIterator>(features);
+        DSLOG_INFO("HAL reported %d game features; returned %zu features", featureList.gameFeatureCount, features.size());
+
+        return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t SelectHDMIInPort(const HDMIInPort port, const bool requestAudioMix, const bool topMostPlane, const HDMIVideoPlaneType videoPlaneType) override
