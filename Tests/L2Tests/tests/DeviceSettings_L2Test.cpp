@@ -1,0 +1,107 @@
+/*
+* If not stated otherwise in this file or this component's LICENSE
+* file the following copyright and licenses apply:
+*
+* Copyright 2026 RDK Management
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
+#include "L2Tests.h"
+#include "L2TestsMock.h"
+#include <interfaces/IDeviceSettings.h>
+
+#include <mutex>
+#include <condition_variable>
+#include <fstream>
+
+#define TEST_LOG(x, ...)                                                                                                                         \
+    fprintf(stderr, "\033[1;32m[%s:%d](%s)<PID:%d><TID:%d>" x "\n\033[0m", __FILE__, __LINE__, __FUNCTION__, getpid(), gettid(), ##__VA_ARGS__); \
+    fflush(stderr);
+
+using ::testing::NiceMock;
+using namespace WPEFramework;
+
+class DeviceSettings_L2Test : public L2TestMocks {
+protected:
+    PluginHost::IShell* m_controller_DeviceSettings;
+    Exchange::IDeviceSettings* m_deviceSettingsPlugin;
+
+public:
+    DeviceSettings_L2Test();
+    ~DeviceSettings_L2Test() override;
+
+    uint32_t CreateDeviceSettingsInterfaceObject();
+};
+
+DeviceSettings_L2Test::DeviceSettings_L2Test()
+    : L2TestMocks()
+    , m_controller_DeviceSettings(nullptr)
+    , m_deviceSettingsPlugin(nullptr)
+{
+    uint32_t status = Core::ERROR_GENERAL;
+
+    status = ActivateService("org.rdk.DeviceSettings");
+    EXPECT_EQ(Core::ERROR_NONE, status);
+}
+
+DeviceSettings_L2Test::~DeviceSettings_L2Test()
+{
+    if (m_deviceSettingsPlugin != nullptr) {
+        m_deviceSettingsPlugin->Release();
+        m_deviceSettingsPlugin = nullptr;
+    }
+
+    if (m_controller_DeviceSettings != nullptr) {
+        m_controller_DeviceSettings->Release();
+        m_controller_DeviceSettings = nullptr;
+    }
+
+    uint32_t status = DeactivateService("org.rdk.DeviceSettings");
+    EXPECT_EQ(Core::ERROR_NONE, status);
+}
+
+uint32_t DeviceSettings_L2Test::CreateDeviceSettingsInterfaceObject()
+{
+    uint32_t return_value = Core::ERROR_GENERAL;
+    Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> DeviceSettings_Engine;
+    Core::ProxyType<RPC::CommunicatorClient> DeviceSettings_Client;
+
+    TEST_LOG("Creating DeviceSettings_Engine");
+    DeviceSettings_Engine = Core::ProxyType<RPC::InvokeServerType<1, 0, 4>>::Create();
+    DeviceSettings_Client = Core::ProxyType<RPC::CommunicatorClient>::Create(Core::NodeId("/tmp/communicator"), Core::ProxyType<Core::IIPCServer>(DeviceSettings_Engine));
+
+    TEST_LOG("Creating DeviceSettings_Engine Announcements");
+#if ((THUNDER_VERSION == 2) || ((THUNDER_VERSION == 4) && (THUNDER_VERSION_MINOR == 2)))
+    DeviceSettings_Engine->Announcements(DeviceSettings_Client->Announcement());
+#endif
+    if (!DeviceSettings_Client.IsValid()) {
+        TEST_LOG("Invalid DeviceSettings_Client");
+    } else {
+        m_controller_DeviceSettings = DeviceSettings_Client->Open<PluginHost::IShell>(_T("org.rdk.DeviceSettings"), ~0, 3000);
+        if (m_controller_DeviceSettings) {
+            m_deviceSettingsPlugin = m_controller_DeviceSettings->QueryInterface<Exchange::IDeviceSettings>();
+            return_value = Core::ERROR_NONE;
+        }
+    }
+    return return_value;
+}
+
+TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_MethodTest)
+{
+    EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
+    ASSERT_NE(nullptr, m_deviceSettingsPlugin);
+}
