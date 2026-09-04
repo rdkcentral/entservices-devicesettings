@@ -2528,63 +2528,49 @@ public:
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
-            
-            dsError_t dsResult = dsERR_GENERAL;
-            if (0 != dsSetAudioDelayFunc) {
-                dsResult = dsSetAudioDelayFunc(static_cast<intptr_t>(handle), audioDelay);
-            }
-            
-            if (dsResult == dsERR_NONE) {
-                DSLOG_INFO("success: handle=%d, delay=%u", handle, audioDelay);
-#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
-                std::string _delay = std::to_string(audioDelay);
-                dsAudioPortType_t _portType = getAudioPortType(static_cast<intptr_t>(handle));
-                switch (_portType) {
-                    case dsAUDIOPORT_TYPE_SPDIF:    device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.Delay",    _delay); break;
-                    case dsAUDIOPORT_TYPE_HDMI:     device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.Delay",     _delay); break;
-                    case dsAUDIOPORT_TYPE_SPEAKER:  device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.Delay",  _delay); break;
-                    case dsAUDIOPORT_TYPE_HDMI_ARC: device::HostPersistence::getInstance().persistHostProperty("HDMI_ARC0.audio.Delay", _delay); break;
-                    default: break;
+
+            // dsAudio.c _dsSetAudioDelay: only invoke the HAL setter while the port is enabled;
+            // persistence still happens unconditionally afterward.
+            dsAudioPortType_t _portType = getAudioPortType(static_cast<intptr_t>(handle));
+            uint32_t retCode = WPEFramework::Core::ERROR_NONE;
+            if (_portType < dsAUDIOPORT_TYPE_MAX && _audioPortEnabled[_portType]) {
+                dsError_t dsResult = dsSetAudioDelayFunc(static_cast<intptr_t>(handle), audioDelay);
+                if (dsResult == dsERR_NONE) {
+                    DSLOG_INFO("success: handle=%d, delay=%u", handle, audioDelay);
+                } else {
+                    DSLOG_ERR("dsSetAudioDelay failed with error: %d", dsResult);
+                    retCode = WPEFramework::Core::ERROR_GENERAL;
                 }
-#endif
             } else {
-                DSLOG_ERR("dsSetAudioDelay failed with error: %d", dsResult);
-                return WPEFramework::Core::ERROR_GENERAL;
+                DSLOG_INFO("Not setting audiodelay as port is not enabled: handle=%d", handle);
             }
+
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+            std::string _delay = std::to_string(audioDelay);
+            switch (_portType) {
+                case dsAUDIOPORT_TYPE_SPDIF:    device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.Delay",    _delay); break;
+                case dsAUDIOPORT_TYPE_HDMI:     device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.Delay",     _delay); break;
+                case dsAUDIOPORT_TYPE_SPEAKER:  device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.Delay",  _delay); break;
+                case dsAUDIOPORT_TYPE_HDMI_ARC: device::HostPersistence::getInstance().persistHostProperty("HDMI_ARC0.audio.Delay", _delay); break;
+                default: break;
+            }
+#endif
+            EXIT_LOG;
+            return retCode;
         } catch (...) {
             DSLOG_ERR("Exception in SetAudioDelay");
             return WPEFramework::Core::ERROR_GENERAL;
         }
-        EXIT_LOG;
-        return WPEFramework::Core::ERROR_NONE;
     }
 
     uint32_t GetAudioDelay(const int32_t handle, uint32_t &audioDelay) override {
         ENTRY_LOG;
         try {
-            uint32_t delay = 0;
-            // Use resolve function for dsGetAudioDelay
-            typedef dsError_t (*dsGetAudioDelay_t)(intptr_t handle, uint32_t* delay);
-            static dsGetAudioDelay_t dsGetAudioDelayFunc = 0;
-            if (dsGetAudioDelayFunc == 0) {
-                dsGetAudioDelayFunc = (dsGetAudioDelay_t)resolve(RDK_DSHAL_NAME, "dsGetAudioDelay");
-                if (dsGetAudioDelayFunc == 0) {
-                    DSLOG_ERR("dsGetAudioDelay is not defined");
-                    return WPEFramework::Core::ERROR_GENERAL;
-                }
-            }
-            
-            dsError_t dsResult = dsERR_GENERAL;
-            if (0 != dsGetAudioDelayFunc) {
-                dsResult = dsGetAudioDelayFunc(static_cast<intptr_t>(handle), &delay);
-            }
-            if (dsResult == dsERR_NONE) {
-                audioDelay = delay;
-                DSLOG_INFO("success: handle=%d, delay=%u", handle, audioDelay);
-            } else {
-                DSLOG_ERR("dsGetAudioDelay failed with error: %d", dsResult);
-                return WPEFramework::Core::ERROR_GENERAL;
-            }
+            // dsAudio.c _dsGetAudioDelay never calls a HAL getter; it always reads the
+            // persisted value via dsGetAudioDelayInternal(). Mirror that exactly here.
+            dsAudioPortType_t _portType = getAudioPortType(static_cast<intptr_t>(handle));
+            audioDelay = getAudioDelayInternal(_portType);
+            DSLOG_INFO("success: handle=%d, delay=%u", handle, audioDelay);
         } catch (...) {
             DSLOG_ERR("Exception in GetAudioDelay");
             return WPEFramework::Core::ERROR_GENERAL;
