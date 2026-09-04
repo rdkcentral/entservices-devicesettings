@@ -36,6 +36,7 @@
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsHALConfig.h"
 #include "DeviceSettingsHdmiStatus.h"
+#include "DeviceSettingsTelemetry.h"
 
 // Resolution defaults — matches dsVideoPort.c naming
 #define DS_VP_DEFAULT_RESOLUTION       "720p"
@@ -1501,6 +1502,11 @@ public:
             
             _dsHDMIResolution = device::HostPersistence::getInstance().getProperty("HDMI0.resolution", defaultResolution);
             DSLOG_INFO("Persistent HDMI resolution read: %s", _dsHDMIResolution.c_str());
+            if (_dsHDMIResolution == "2160p") {
+                char telemetryValue[128] = {0};
+                snprintf(telemetryValue, sizeof(telemetryValue), "The Persistent HDMI resolution read is %s", _dsHDMIResolution.c_str());
+                TELEMETRY_EVENT_STRING("SYS_INFO_4KResolution_split", telemetryValue);
+            }
             
             #ifdef HAS_ONLY_COMPOSITE
                 _dsCompResolution = device::HostPersistence::getInstance().getProperty("Baseband0.resolution", defaultResolution);

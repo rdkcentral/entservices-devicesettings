@@ -27,6 +27,7 @@
 #include "dsError.h"
 #include "dsTypes.h"
 #include "dsUtl.h"
+#include "DeviceSettingsTelemetry.h"
 #include <core/core.h>
 #include <com/com.h>
 
@@ -624,6 +625,13 @@ public:
             } catch (...) {
                 return false;
             }
+        }
+
+        // dsAudio.c _GetAudioModeFromPersistent: HDMI reads always report the persisted mode via telemetry.
+        if (portType == dsAUDIOPORT_TYPE_HDMI) {
+            char telemetryValue[128] = {0};
+            snprintf(telemetryValue, sizeof(telemetryValue), "The HDMI Audio Mode Setting From Persistent is %s", value.c_str());
+            TELEMETRY_EVENT_STRING("hdmiAudioMode_split", telemetryValue);
         }
 
         if (value == "SURROUND") {
@@ -1456,6 +1464,11 @@ public:
 
             if (ret == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, mode=%d, persist=%s", handle, static_cast<int>(mode), persist ? "true" : "false");
+
+                // dsAudio.c _dsSetStereoMode: fires once per call when persisting a user-requested PASSTHRU mode.
+                if (mode == AudioStereoMode::AUDIO_STEREO_PASSTHROUGH && persist) {
+                    TELEMETRY_EVENT_INT("SYS_INFO_Userpassthruenable", 1);
+                }
 
                 AudioPortType portType = AudioPortType::AUDIO_PORT_TYPE_SPEAKER; // Default
                 
@@ -5639,6 +5652,12 @@ private:
             if (dsGetAudioPort(dsAUDIOPORT_TYPE_HDMI_ARC, 0, &handle) == dsERR_NONE) {
                 if (dsSetStereoMode(handle, arcAudioMode) == dsERR_NONE) {
                     DSLOG_INFO("HDMI_ARC0: Applied audio mode: %d", arcAudioMode);
+                    // dsAudio.c dsAudioMgr_init: telemetry when the persisted HDMI ARC mode is PASSTHRU.
+                    if (arcAudioMode == dsAUDIO_STEREO_PASSTHRU) {
+                        char telemetryValue[128] = {0};
+                        snprintf(telemetryValue, sizeof(telemetryValue), "dsSetStereoMode The HDMI ARC Port Audio Settings Mode is %d", arcAudioMode);
+                        TELEMETRY_EVENT_INT("SYS_INFO_PASSTHRUENABLED", 1);
+                    }
                 }
                 if (dsSetStereoAuto(handle, arcAutoMode ? 1 : 0) == dsERR_NONE) {
                     DSLOG_INFO("HDMI_ARC0: Applied auto mode: %s", arcAutoMode ? "TRUE" : "FALSE");

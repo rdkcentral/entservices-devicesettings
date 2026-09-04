@@ -24,6 +24,7 @@
 #include "DeviceSettingsAudioImplementation.h"
 #include "DeviceSettingsHostImplementation.h"
 #include "DeviceSettingsHALConfig.h"
+#include "DeviceSettingsTelemetry.h"
 
 #include <dlfcn.h>
 #include <chrono>
@@ -103,6 +104,9 @@ namespace Plugin {
     {
         // Set the static instance for backward compatibility (if still needed)
         DeviceSettingsImp::_instance = this;
+
+        // Matches iarmmgrs dsMgr.c DSMgr_Start(): TELEMETRY_INIT(IARM_BUS_DSMGR_NAME)
+        TELEMETRY_INIT("DSMgr");
 
         // Initialize profile type only — Start() is deferred to Configure()
         // to avoid blocking the WPEFramework plugin activation thread.
@@ -188,7 +192,9 @@ namespace Plugin {
 
         DeviceSettingsHALLoader::ReleaseAllLibraries();
         DSLOG_INFO("Destructor - Released all HAL libraries");
-        
+
+        // Matches iarmmgrs dsMgr.c DSMgr_Stop(): TELEMETRY_UNINIT()
+        TELEMETRY_UNINIT();
     }
 
     Core::hresult DeviceSettingsImp::Configure(PluginHost::IShell* service)

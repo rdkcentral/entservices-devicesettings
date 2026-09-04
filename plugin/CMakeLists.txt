@@ -33,6 +33,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 find_library(PROCPS_LIBRARIES NAMES procps)
 find_library(OEMHAL_LIBRARIES NAMES ds-hal)
+find_library(TELEMETRY_LIBRARIES NAMES telemetry_msgsender)
 
 add_library(${MODULE_NAME} SHARED
     Module.cpp
@@ -121,6 +122,10 @@ set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
 
 if(PROCPS_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${PROCPS_LIBRARIES})
+endif()
+
+if(TELEMETRY_LIBRARIES)
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${TELEMETRY_LIBRARIES})
 endif()
 
 if (MFR_FOUND)

@@ -36,6 +36,7 @@
 #include "DeviceSettingsHdmiStatus.h"
 #include "DeviceSettingsHALConfig.h"
 #include "dVideoPortImpl.h"
+#include "DeviceSettingsTelemetry.h"
 
 #ifndef RDK_DSHAL_NAME
 #warning   "RDK_DSHAL_NAME is not defined"
@@ -443,6 +444,7 @@ public:
             memcpy(&s_edidStructCache, &halEdid, sizeof(dsDisplayEDID_t));
             isEdidCached = true;
             dumpEDIDInformation(&halEdid);
+            dumpHdmiEdidInfo(&halEdid);
 
             // Convert DS HAL type to WPE Framework type
             edId.productCode            = halEdid.productCode;
@@ -564,6 +566,29 @@ public:
                 edid->hdmiDeviceType ? "HDMI" : "DVI",
                 edid->isRepeater);
         DSLOG_INFO("[DsMgr]numOfSupportedResolution=%d", edid->numOfSupportedResolution);
+
+        char telemetryValue[512] = {0};
+        snprintf(telemetryValue, sizeof(telemetryValue),
+                "[DsMgr]dumpEDIDInformation values Product Code:%x, Serial Number:%x, Manufacture Year:%d, Manufacture Week:%d, Monitor Name:%s, Device Type:%s, IsRepeater:%x",
+                edid->productCode, edid->serialNumber, edid->manufactureYear, edid->manufactureWeek,
+                edid->monitorName, edid->hdmiDeviceType ? "HDMI" : "DVI", edid->isRepeater);
+        TELEMETRY_EVENT_STRING("SYST_INFO_TVData_split", telemetryValue);
+    }
+
+    /* Mirror iarmmgrs dsMgr.c dumpHdmiEdidInfo — emits monitor name / DVI-device
+     * telemetry markers on top of the dsDisplay.c dump, from the same EDID read. */
+    static void dumpHdmiEdidInfo(dsDisplayEDID_t *edid)
+    {
+        if (!edid || strlen(edid->monitorName) == 0) {
+            DSLOG_INFO("Received EDID is NULL or monitorName is empty");
+            return;
+        }
+        char eventMsg[256] = {0};
+        snprintf(eventMsg, sizeof(eventMsg), "HDMI  Monitor Name is %s", edid->monitorName);
+        TELEMETRY_EVENT_STRING("HDMI_INFO_MonitorName_split", eventMsg);
+        if (!edid->hdmiDeviceType) {
+            TELEMETRY_EVENT_INT("HDMI_INFO_DVIDevice", 1);
+        }
     }
 
     uint32_t SetAllmEnabled(const int32_t handle, const bool enabled) override
@@ -757,6 +782,7 @@ private:
                 break;
                 
             case dsDISPLAY_RXSENSE_OFF: // DS_DISPLAY_RXSENSE_OFF equivalent  
+                TELEMETRY_EVENT_INT("HDMI_INFO_tv_off", 1);
                 if (g_DisplayRxSenseCallback) {
                     g_DisplayRxSenseCallback(port, false);
                 }
