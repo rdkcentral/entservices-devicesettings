@@ -413,14 +413,34 @@ private:
             funcVideoMode = (dsCompositeInRegisterVideoModeUpdateCB_t) resolve(RDK_DSHAL_NAME, "dsCompositeInRegisterVideoModeUpdateCB");
         }
         
-        if (funcConnect && funcSignal && funcStatus && funcVideoMode) {
+        // dsCompositeIn.c registers each callback independently — a platform missing one
+        // callback symbol must not prevent registering the others.
+        if (funcConnect) {
             funcConnect(dsCompositeInConnectCallback);
-            funcSignal(dsCompositeInSignalChangeCallback);
-            funcStatus(dsCompositeInStatusChangeCallback);
-            funcVideoMode(dsCompositeInVideoModeUpdateCallback);
-            DSLOG_INFO(" SUCCESS");
+            DSLOG_INFO(" dsCompositeInRegisterConnectCB SUCCESS");
         } else {
-            DSLOG_ERR(" FAILED - callbacks not available");
+            DSLOG_ERR(" dsCompositeInRegisterConnectCB not available");
+        }
+
+        if (funcSignal) {
+            funcSignal(dsCompositeInSignalChangeCallback);
+            DSLOG_INFO(" dsCompositeInRegisterSignalChangeCB SUCCESS");
+        } else {
+            DSLOG_ERR(" dsCompositeInRegisterSignalChangeCB not available");
+        }
+
+        if (funcStatus) {
+            funcStatus(dsCompositeInStatusChangeCallback);
+            DSLOG_INFO(" dsCompositeInRegisterStatusChangeCB SUCCESS");
+        } else {
+            DSLOG_ERR(" dsCompositeInRegisterStatusChangeCB not available");
+        }
+
+        if (funcVideoMode) {
+            funcVideoMode(dsCompositeInVideoModeUpdateCallback);
+            DSLOG_INFO(" dsCompositeInRegisterVideoModeUpdateCB SUCCESS");
+        } else {
+            DSLOG_ERR(" dsCompositeInRegisterVideoModeUpdateCB not available");
         }
     }
 
