@@ -179,11 +179,7 @@ public:
         typedef dsError_t (*dsIsDisplayConnected_t)(intptr_t handle, bool *connected);
         static dsIsDisplayConnected_t func = 0;
         if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsIsDisplayConnected_t) dlsym(dllib, "dsIsDisplayConnected");
-                dlclose(dllib);
-            }
+            func = (dsIsDisplayConnected_t) resolve(RDK_DSHAL_NAME, "dsIsDisplayConnected");
         }
         
         if (func != 0) {
@@ -213,11 +209,7 @@ public:
         typedef dsError_t (*dsGetDisplaySurroundMode_t)(intptr_t handle, int *surroundMode);
         static dsGetDisplaySurroundMode_t func = 0;
         if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsGetDisplaySurroundMode_t) dlsym(dllib, "dsGetDisplaySurroundMode");
-                dlclose(dllib);
-            }
+            func = (dsGetDisplaySurroundMode_t) resolve(RDK_DSHAL_NAME, "dsGetDisplaySurroundMode");
         }
         
         if (func != 0) {
@@ -254,11 +246,7 @@ public:
         typedef dsError_t (*dsGetEDIDBytes_t)(intptr_t handle, unsigned char *edid, int *length);
         static dsGetEDIDBytes_t func = 0;
         if (func == 0) {
-            void *dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                func = (dsGetEDIDBytes_t) dlsym(dllib, "dsGetEDIDBytes");
-                dlclose(dllib);
-            }
+            func = (dsGetEDIDBytes_t) resolve(RDK_DSHAL_NAME, "dsGetEDIDBytes");
         }
         
         if (func != 0) {

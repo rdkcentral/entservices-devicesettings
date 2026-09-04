@@ -660,18 +660,11 @@ public:
         static _dsFramerateStatusPreChangeCB_t frameratePreChangeCB = 0;
         
         if (frameratePreChangeCB == 0) {
-            void* dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                frameratePreChangeCB = (_dsFramerateStatusPreChangeCB_t) dlsym(dllib, "dsRegisterFrameratePreChangeCB");
-                if (frameratePreChangeCB == 0) {
-                    DSLOG_INFO("dsRegisterFrameratePreChangeCB is not defined");
-                } else {
-                    DSLOG_INFO("dsRegisterFrameratePreChangeCB loaded");
-                }
-                dlclose(dllib);
+            frameratePreChangeCB = (_dsFramerateStatusPreChangeCB_t) resolve(RDK_DSHAL_NAME, "dsRegisterFrameratePreChangeCB");
+            if (frameratePreChangeCB == 0) {
+                DSLOG_INFO("dsRegisterFrameratePreChangeCB is not defined");
             } else {
-                DSLOG_ERR("Failed to open RDK_DSHAL_NAME [%s]: %s", RDK_DSHAL_NAME, dlerror());
-                eRet = dsERR_GENERAL;
+                DSLOG_INFO("dsRegisterFrameratePreChangeCB loaded");
             }
         }
         
@@ -696,18 +689,11 @@ public:
         static _dsFramerateStatusPostChangeCB_t frameratePostChangeCB = 0;
         
         if (frameratePostChangeCB == 0) {
-            void* dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-            if (dllib) {
-                frameratePostChangeCB = (_dsFramerateStatusPostChangeCB_t) dlsym(dllib, "dsRegisterFrameratePostChangeCB");
-                if (frameratePostChangeCB == 0) {
-                    DSLOG_INFO("dsRegisterFrameratePostChangeCB is not defined");
-                } else {
-                    DSLOG_INFO("dsRegisterFrameratePostChangeCB loaded");
-                }
-                dlclose(dllib);
+            frameratePostChangeCB = (_dsFramerateStatusPostChangeCB_t) resolve(RDK_DSHAL_NAME, "dsRegisterFrameratePostChangeCB");
+            if (frameratePostChangeCB == 0) {
+                DSLOG_INFO("dsRegisterFrameratePostChangeCB is not defined");
             } else {
-                DSLOG_ERR("Failed to open RDK_DSHAL_NAME [%s]: %s", RDK_DSHAL_NAME, dlerror());
-                eRet = dsERR_GENERAL;
+                DSLOG_INFO("dsRegisterFrameratePostChangeCB loaded");
             }
         }
         

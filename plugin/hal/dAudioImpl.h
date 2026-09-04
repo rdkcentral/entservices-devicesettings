@@ -4199,7 +4199,6 @@ private:
         try {
             DSLOG_INFO("Starting comprehensive audio configuration initialization...");
             
-            void *dllib = nullptr;
             intptr_t handle = 0;
             
             // 1. Initialize LE (Loudness Equivalence) Configuration
@@ -4307,11 +4306,9 @@ private:
             static dsSetAudioLevel_t dsSetAudioLevelFunc = nullptr;
             
             if (dsSetAudioLevelFunc == nullptr) {
-                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-                if (dllib) {
-                    dsSetAudioLevelFunc = (dsSetAudioLevel_t) dlsym(dllib, "dsSetAudioLevel");
-                    if (dsSetAudioLevelFunc) {
-                        DSLOG_INFO("dsSetAudioLevel_t(int, float) is defined and loaded");
+                dsSetAudioLevelFunc = (dsSetAudioLevel_t) resolve(RDK_DSHAL_NAME, "dsSetAudioLevel");
+                if (dsSetAudioLevelFunc) {
+                    DSLOG_INFO("dsSetAudioLevel_t(int, float) is defined and loaded");
                         std::string audioLevel("0");
                         float audioLevelValue = 0;
                         float lastAudioLevel = 0;
@@ -4421,13 +4418,8 @@ private:
                             g_LastVolumeLevel.store(lastAudioLevel);
                             DSLOG_INFO("Initialized cached audio level: %f", lastAudioLevel);
                         }
-                    } else {
-                        DSLOG_INFO("dsSetAudioLevel_t(int, float) is not defined");
-                    }
-                    dlclose(dllib);
-                    dllib = nullptr;
                 } else {
-                    DSLOG_ERR("Opening libdshal.so failed");
+                    DSLOG_INFO("dsSetAudioLevel_t(int, float) is not defined");
                 }
             }
             
@@ -4436,11 +4428,9 @@ private:
             static dsSetAudioDelay_t dsSetAudioDelayFunc = nullptr;
             
             if (dsSetAudioDelayFunc == nullptr) {
-                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-                if (dllib) {
-                    dsSetAudioDelayFunc = (dsSetAudioDelay_t) dlsym(dllib, "dsSetAudioDelay");
-                    if (dsSetAudioDelayFunc) {
-                        DSLOG_INFO("dsSetAudioDelay_t(int, uint32_t) is defined and loaded");
+                dsSetAudioDelayFunc = (dsSetAudioDelay_t) resolve(RDK_DSHAL_NAME, "dsSetAudioDelay");
+                if (dsSetAudioDelayFunc) {
+                    DSLOG_INFO("dsSetAudioDelay_t(int, uint32_t) is defined and loaded");
                         std::string audioDelay("0");
                         int audioDelayValue = 0;
                         
@@ -4500,13 +4490,8 @@ private:
                                 DSLOG_INFO("Port HDMI_ARC0: Initialized audio delay: %d ms", audioDelayValue);
                             }
                         }
-                    } else {
-                        DSLOG_INFO("dsSetAudioDelay_t(int, uint32_t) is not defined");
-                    }
-                    dlclose(dllib);
-                    dllib = nullptr;
                 } else {
-                    DSLOG_ERR("Opening libdshal.so failed");
+                    DSLOG_INFO("dsSetAudioDelay_t(int, uint32_t) is not defined");
                 }
             }
             
@@ -4515,11 +4500,9 @@ private:
             static dsSetPrimaryLanguage_t dsSetPrimaryLanguageFunc = nullptr;
             
             if (dsSetPrimaryLanguageFunc == nullptr) {
-                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-                if (dllib) {
-                    dsSetPrimaryLanguageFunc = (dsSetPrimaryLanguage_t) dlsym(dllib, "dsSetPrimaryLanguage");
-                    if (dsSetPrimaryLanguageFunc) {
-                        DSLOG_INFO("dsSetPrimaryLanguage_t(int, char*) is defined and loaded");
+                dsSetPrimaryLanguageFunc = (dsSetPrimaryLanguage_t) resolve(RDK_DSHAL_NAME, "dsSetPrimaryLanguage");
+                if (dsSetPrimaryLanguageFunc) {
+                    DSLOG_INFO("dsSetPrimaryLanguage_t(int, char*) is defined and loaded");
                         std::string primaryLanguage("eng");
                         handle = 0;
                         
@@ -4537,13 +4520,8 @@ private:
                         if (dsSetPrimaryLanguageFunc(handle, primaryLanguage.c_str()) == dsERR_NONE) {
                             DSLOG_INFO("Initialized Primary Language: %s", primaryLanguage.c_str());
                         }
-                    } else {
-                        DSLOG_INFO("dsSetPrimaryLanguage_t(int, char*) is not defined");
-                    }
-                    dlclose(dllib);
-                    dllib = nullptr;
                 } else {
-                    DSLOG_ERR("Opening libdshal.so failed");
+                    DSLOG_INFO("dsSetPrimaryLanguage_t(int, char*) is not defined");
                 }
             }
             
@@ -4552,11 +4530,9 @@ private:
             static dsSetSecondaryLanguage_t dsSetSecondaryLanguageFunc = nullptr;
             
             if (dsSetSecondaryLanguageFunc == nullptr) {
-                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-                if (dllib) {
-                    dsSetSecondaryLanguageFunc = (dsSetSecondaryLanguage_t) dlsym(dllib, "dsSetSecondaryLanguage");
-                    if (dsSetSecondaryLanguageFunc) {
-                        DSLOG_INFO("dsSetSecondaryLanguage_t(int, char*) is defined and loaded");
+                dsSetSecondaryLanguageFunc = (dsSetSecondaryLanguage_t) resolve(RDK_DSHAL_NAME, "dsSetSecondaryLanguage");
+                if (dsSetSecondaryLanguageFunc) {
+                    DSLOG_INFO("dsSetSecondaryLanguage_t(int, char*) is defined and loaded");
                         std::string secondaryLanguage("eng");
                         handle = 0;
                         
@@ -4574,13 +4550,8 @@ private:
                         if (dsSetSecondaryLanguageFunc(handle, secondaryLanguage.c_str()) == dsERR_NONE) {
                             DSLOG_INFO("Initialized Secondary Language: %s", secondaryLanguage.c_str());
                         }
-                    } else {
-                        DSLOG_INFO("dsSetSecondaryLanguage_t(int, char*) is not defined");
-                    }
-                    dlclose(dllib);
-                    dllib = nullptr;
                 } else {
-                    DSLOG_ERR("Opening libdshal.so failed");
+                    DSLOG_INFO("dsSetSecondaryLanguage_t(int, char*) is not defined");
                 }
             }
             
@@ -4589,11 +4560,9 @@ private:
             static dsSetFaderControl_t dsSetFaderControlFunc = nullptr;
             
             if (dsSetFaderControlFunc == nullptr) {
-                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-                if (dllib) {
-                    dsSetFaderControlFunc = (dsSetFaderControl_t) dlsym(dllib, "dsSetFaderControl");
-                    if (dsSetFaderControlFunc) {
-                        DSLOG_INFO("dsSetFaderControl_t(int, int) is defined and loaded");
+                dsSetFaderControlFunc = (dsSetFaderControl_t) resolve(RDK_DSHAL_NAME, "dsSetFaderControl");
+                if (dsSetFaderControlFunc) {
+                    DSLOG_INFO("dsSetFaderControl_t(int, int) is defined and loaded");
                         std::string faderControl("0");
                         int faderControlValue = 0;
                         handle = 0;
@@ -4613,13 +4582,8 @@ private:
                         if (dsSetFaderControlFunc(handle, faderControlValue) == dsERR_NONE) {
                             DSLOG_INFO("Initialized Fader Control, mixing: %d", faderControlValue);
                         }
-                    } else {
-                        DSLOG_INFO("dsSetFaderControl_t(int, int) is not defined");
-                    }
-                    dlclose(dllib);
-                    dllib = nullptr;
                 } else {
-                    DSLOG_ERR("Opening libdshal.so failed");
+                    DSLOG_INFO("dsSetFaderControl_t(int, int) is not defined");
                 }
             }
             
@@ -4628,11 +4592,9 @@ private:
             static dsSetAssociatedAudioMixing_t dsSetAssociatedAudioMixingFunc = nullptr;
             
             if (dsSetAssociatedAudioMixingFunc == nullptr) {
-                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-                if (dllib) {
-                    dsSetAssociatedAudioMixingFunc = (dsSetAssociatedAudioMixing_t) dlsym(dllib, "dsSetAssociatedAudioMixing");
-                    if (dsSetAssociatedAudioMixingFunc) {
-                        DSLOG_INFO("dsSetAssociatedAudioMixing_t (intptr_t handle, bool mixing) is defined and loaded");
+                dsSetAssociatedAudioMixingFunc = (dsSetAssociatedAudioMixing_t) resolve(RDK_DSHAL_NAME, "dsSetAssociatedAudioMixing");
+                if (dsSetAssociatedAudioMixingFunc) {
+                    DSLOG_INFO("dsSetAssociatedAudioMixing_t (intptr_t handle, bool mixing) is defined and loaded");
                         std::string associatedAudioMixing("Disabled");
                         bool associatedAudioMixingValue = false;
                         handle = 0;
@@ -4655,12 +4617,7 @@ private:
                     } else {
                         DSLOG_INFO("dsSetAssociatedAudioMixing_t (intptr_t handle, bool enable) is not defined");
                     }
-                    dlclose(dllib);
-                    dllib = nullptr;
-                } else {
-                    DSLOG_ERR("Opening libdshal.so failed");
                 }
-            }
             #endif // DS_AUDIO_SETTINGS_PERSISTENCE
             
             // 9. Initialize MS12 Audio Profile Support
@@ -4679,42 +4636,35 @@ private:
                 // MS12 Profile is supported - initialize MS12 Audio Profile
                 typedef dsError_t (*dsSetMS12AudioProfile_t)(intptr_t handle, const char* profile);
                 static dsSetMS12AudioProfile_t dsSetMS12AudioProfileFunc = nullptr;
-                
+
                 if (dsSetMS12AudioProfileFunc == nullptr) {
-                    dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
-                    if (dllib) {
-                        dsSetMS12AudioProfileFunc = (dsSetMS12AudioProfile_t) dlsym(dllib, "dsSetMS12AudioProfile");
-                        if (dsSetMS12AudioProfileFunc) {
-                            DSLOG_INFO("dsSetMS12AudioProfile_t(int, const char*) is defined and loaded");
-                            
+                    dsSetMS12AudioProfileFunc = (dsSetMS12AudioProfile_t) resolve(RDK_DSHAL_NAME, "dsSetMS12AudioProfile");
+                    if (dsSetMS12AudioProfileFunc) {
+                        DSLOG_INFO("dsSetMS12AudioProfile_t(int, const char*) is defined and loaded");
+
+                        try {
+                            ms12Profile = device::HostPersistence::getInstance().getProperty("audio.MS12Profile");
+                        } catch(...) {
                             try {
-                                ms12Profile = device::HostPersistence::getInstance().getProperty("audio.MS12Profile");
+                                DSLOG_INFO("audio.MS12Profile not found in persistence store. Try system default");
+                                ms12Profile = device::HostPersistence::getInstance().getDefaultProperty("audio.MS12Profile");
                             } catch(...) {
-                                try {
-                                    DSLOG_INFO("audio.MS12Profile not found in persistence store. Try system default");
-                                    ms12Profile = device::HostPersistence::getInstance().getDefaultProperty("audio.MS12Profile");
-                                } catch(...) {
-                                    ms12Profile = "Off";
-                                }
+                                ms12Profile = "Off";
                             }
-                            
-                            // SPEAKER init for MS12 profile
-                            handle = 0;
-                            if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
-                                if (dsSetMS12AudioProfileFunc(handle, ms12Profile.c_str()) == dsERR_NONE) {
-                                    DSLOG_INFO("Port SPEAKER0: Initialized MS12 Audio Profile: %s", ms12Profile.c_str());
-                                    device::HostPersistence::getInstance().persistHostProperty("audio.MS12Profile", ms12Profile.c_str());
-                                } else {
-                                    DSLOG_INFO("Port SPEAKER0: Initialization failed !!! MS12 Audio Profile: %s", ms12Profile.c_str());
-                                }
-                            }
-                        } else {
-                            DSLOG_INFO("dsSetMS12AudioProfile_t(int, const char*) is not defined");
                         }
-                        dlclose(dllib);
-                        dllib = nullptr;
+
+                        // SPEAKER init for MS12 profile
+                        handle = 0;
+                        if (dsGetAudioPort(dsAUDIOPORT_TYPE_SPEAKER, 0, &handle) == dsERR_NONE) {
+                            if (dsSetMS12AudioProfileFunc(handle, ms12Profile.c_str()) == dsERR_NONE) {
+                                DSLOG_INFO("Port SPEAKER0: Initialized MS12 Audio Profile: %s", ms12Profile.c_str());
+                                device::HostPersistence::getInstance().persistHostProperty("audio.MS12Profile", ms12Profile.c_str());
+                            } else {
+                                DSLOG_INFO("Port SPEAKER0: Initialization failed !!! MS12 Audio Profile: %s", ms12Profile.c_str());
+                            }
+                        }
                     } else {
-                        DSLOG_ERR("Opening libdshal.so failed");
+                        DSLOG_INFO("dsSetMS12AudioProfile_t(int, const char*) is not defined");
                     }
                 }
             }
