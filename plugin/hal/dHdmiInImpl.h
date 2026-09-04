@@ -550,78 +550,55 @@ public:
     void getPersistenceValue() override
     {
         if (!m_hdmiInInitialized && m_hdmiInPlatInitialized) {
+            // Mirrors dsHdmiIn.c _dsHdmiInInit: bound all per-port loops by the HAL-reported input count
+            // so every supported port (not just a hardcoded subset) gets its ARC/ALLM/VRR/EDID state loaded.
+            uint8_t noOfSupportedHdmiInputs = 0;
+            dsHdmiInGetNumberOfInputs(&noOfSupportedHdmiInputs);
+            DSLOG_INFO("Number of Inputs: %d", noOfSupportedHdmiInputs);
+
             int itr = 0;
             bool isARCCapable = false;
-            for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {
+            for (itr = 0; itr < noOfSupportedHdmiInputs; itr++) {
                 isARCCapable = false;
                 isHdmiARCPort (itr, &isARCCapable);
                 hdmiInCap_gs.isPortArcCapable[itr] = isARCCapable; 
             }
 
-            std::string _EdidAllmSupport("TRUE");
-            m_edidallmsupport[dsHDMI_IN_PORT_0] = getHdmiInPortPersistValue("HDMI0.edidallmEnable", dsHDMI_IN_PORT_0);
-            m_edidallmsupport[dsHDMI_IN_PORT_1] = getHdmiInPortPersistValue("HDMI1.edidallmEnable", dsHDMI_IN_PORT_1);
-            m_edidallmsupport[dsHDMI_IN_PORT_2] = getHdmiInPortPersistValue("HDMI2.edidallmEnable", dsHDMI_IN_PORT_2);
-            m_edidallmsupport[dsHDMI_IN_PORT_3] = getHdmiInPortPersistValue("HDMI3.edidallmEnable", dsHDMI_IN_PORT_3);
+            for (itr = 0; itr < noOfSupportedHdmiInputs; itr++) {
+                std::string port_edidAllmSupport = "HDMI" + std::to_string(itr) + ".edidallmEnable";
+                m_edidallmsupport[itr] = getHdmiInPortPersistValue(port_edidAllmSupport, itr);
+            }
 
-            std::string _VRRSupport("TRUE");
-            m_vrrsupport[dsHDMI_IN_PORT_0] = getHdmiInPortPersistValue("HDMI0.vrrEnable", dsHDMI_IN_PORT_0);
-            m_vrrsupport[dsHDMI_IN_PORT_1] = getHdmiInPortPersistValue("HDMI1.vrrEnable", dsHDMI_IN_PORT_1);
-            m_vrrsupport[dsHDMI_IN_PORT_2] = getHdmiInPortPersistValue("HDMI2.vrrEnable", dsHDMI_IN_PORT_2);
-            m_vrrsupport[dsHDMI_IN_PORT_3] = getHdmiInPortPersistValue("HDMI3.vrrEnable", dsHDMI_IN_PORT_3);
+            for (itr = 0; itr < noOfSupportedHdmiInputs; itr++) {
+                std::string port_vrrSupport = "HDMI" + std::to_string(itr) + ".vrrEnable";
+                m_vrrsupport[itr] = getHdmiInPortPersistValue(port_vrrSupport, itr);
+            }
 
-            std::string _EdidVersion("1");
-            try {
-                _EdidVersion = device::HostPersistence::getInstance().getProperty("HDMI0.edidversion");
-                m_edidversion[dsHDMI_IN_PORT_0] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
-            } catch(...) {
+            for (itr = 0; itr < noOfSupportedHdmiInputs; itr++) {
+                std::string port_edidVer = "HDMI" + std::to_string(itr) + ".edidversion";
+                std::string _EdidVersion("1");
                 try {
-                    DSLOG_ERR("Port %s: Exception in Getting the HDMI0 EDID version from persistence storage. Try system default...", "HDMI0");
-                    _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI0.edidversion");
-                    m_edidversion[dsHDMI_IN_PORT_0] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
-                }
-                catch(...) {
-                    DSLOG_ERR("Port %s: Exception in Getting the HDMI0 EDID version from system default.....", "HDMI0");
-                    m_edidversion[dsHDMI_IN_PORT_0] = HDMI_EDID_VER_20;
+                    _EdidVersion = device::HostPersistence::getInstance().getProperty(port_edidVer);
+                    m_edidversion[itr] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
+                } catch(...) {
+                    try {
+                        DSLOG_ERR("Port HDMI%d: Exception in Getting the EDID version from persistence storage. Try system default...", itr);
+                        _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty(port_edidVer);
+                        m_edidversion[itr] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
+                    }
+                    catch(...) {
+                        DSLOG_ERR("Port HDMI%d: Exception in Getting the EDID version from system default.....", itr);
+                        m_edidversion[itr] = HDMI_EDID_VER_20;
+                    }
                 }
             }
 
-            try {
-                _EdidVersion = device::HostPersistence::getInstance().getProperty("HDMI1.edidversion");
-                m_edidversion[dsHDMI_IN_PORT_1] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
-            } catch(...) {
-                try {
-                    DSLOG_ERR("Port %s: Exception in Getting the HDMI1 EDID version from persistence storage. Try system default...", "HDMI1");
-                    _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI1.edidversion");
-                    m_edidversion[dsHDMI_IN_PORT_1] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
-                }
-                catch(...) {
-                    DSLOG_ERR("Port %s: Exception in Getting the HDMI1 EDID version from system default.....", "HDMI1");
-                    m_edidversion[dsHDMI_IN_PORT_1] = HDMI_EDID_VER_20;
-                }
-            }
-
-            try {
-                _EdidVersion = device::HostPersistence::getInstance().getProperty("HDMI2.edidversion");
-                m_edidversion[dsHDMI_IN_PORT_2] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
-            } catch(...) {
-                try {
-                    DSLOG_ERR("Port %s: Exception in Getting the HDMI2 EDID version from persistence storage. Try system default...", "HDMI2");
-                    _EdidVersion = device::HostPersistence::getInstance().getDefaultProperty("HDMI2.edidversion");
-                    m_edidversion[dsHDMI_IN_PORT_2] = static_cast<tv_hdmi_edid_version_t>(atoi (_EdidVersion.c_str()));
-                }
-                catch(...) {
-                    DSLOG_ERR("Port %s: Exception in Getting the HDMI2 EDID version from system default.....", "HDMI2");
-                    m_edidversion[dsHDMI_IN_PORT_2] = HDMI_EDID_VER_20;
-                }
-            }
-
-            for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {
+            for (itr = 0; itr < noOfSupportedHdmiInputs; itr++) {
                 if (getVRRSupport(static_cast<dsHdmiInPort_t>(itr), &m_hdmiPortVrrCaps[itr]) >= 0) {
                     DSLOG_INFO("Port HDMI%d: VRR capability : %d", itr, m_hdmiPortVrrCaps[itr]);
                 }
             }
-            for (itr = 0; itr < dsHDMI_IN_PORT_MAX; itr++) {
+            for (itr = 0; itr < noOfSupportedHdmiInputs; itr++) {
                 if (setEdidVersion (static_cast<dsHdmiInPort_t>(itr), m_edidversion[itr]) >= 0) {
                     DSLOG_INFO("Port HDMI%d: Initialized EDID Version : %d", itr, m_edidversion[itr]);
                 }

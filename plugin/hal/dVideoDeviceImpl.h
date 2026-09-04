@@ -517,8 +517,8 @@ public:
             }
         }
         
-        // Send post-change callback
-        if (g_VideoDeviceDisplayFrameratePostChangeCallback) {
+        // Send post-change callback (skip on invalid param, matching dsVideoDevice.c broadcast guard)
+        if (result != dsERR_INVALID_PARAM && g_VideoDeviceDisplayFrameratePostChangeCallback) {
             g_VideoDeviceDisplayFrameratePostChangeCallback(framerate);
         }
         
@@ -806,9 +806,17 @@ private:
 
     IDeviceSettingsVideoCodecProfileSupportIterator* createCodecInfoIterator(const dsVideoCodecInfo_t& info)
     {
-        // This is a placeholder implementation
-        // In a real implementation, this would create an iterator from the codec info
-        DSLOG_WARN(" Not implemented - returning nullptr");
-        return nullptr;
+        std::vector<VideoDeviceCodecProfileSupport> profiles;
+        const unsigned int count = std::min(info.num_entries, static_cast<unsigned int>(sizeof(info.entries) / sizeof(info.entries[0])));
+        for (unsigned int i = 0; i < count; i++) {
+            VideoDeviceCodecProfileSupport entry;
+            entry.profile = static_cast<VideoDeviceCodecHEVCProfile>(info.entries[i].profile);
+            entry.level = info.entries[i].level;
+            profiles.push_back(entry);
+        }
+
+        DSLOG_INFO(" created iterator with %zu codec profile entries", profiles.size());
+        using CodecProfileIterator = WPEFramework::RPC::IteratorType<IDeviceSettingsVideoCodecProfileSupportIterator>;
+        return WPEFramework::Core::Service<CodecProfileIterator>::Create<IDeviceSettingsVideoCodecProfileSupportIterator>(profiles);
     }
 };

@@ -898,42 +898,52 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, colorDepth=%d, persist=%s", handle, static_cast<int>(colorDepth), persist ? "true" : "false");
-        
-        typedef dsError_t (*dsSetPreferredColorDepth_t)(intptr_t handle, dsDisplayColorDepth_t colorDepth);
-        static dsSetPreferredColorDepth_t dsSetPreferredColorDepthFunc = 0;
 
-        if (dsSetPreferredColorDepthFunc == 0) {
-            dsSetPreferredColorDepthFunc = (dsSetPreferredColorDepth_t)resolve(RDK_DSHAL_NAME, "dsSetPreferredColorDepth");
-            if(dsSetPreferredColorDepthFunc == 0) {
-                DSLOG_ERR("dsSetPreferredColorDepth is not defined");
-            }
-            else {
-                DSLOG_INFO("dsSetPreferredColorDepth loaded");
-            }
+        // dsVideoPort.c setPreferredColorDepth: ignore the request entirely if the port isn't connected.
+        bool isConnected = false;
+        dsError_t connectedError = dsIsDisplayConnected(static_cast<intptr_t>(handle), &isConnected);
+        if (connectedError == dsERR_NONE && !isConnected) {
+            DSLOG_INFO(" port not connected, ignoring set color depth request");
+            return WPEFramework::Core::ERROR_GENERAL;
         }
 
-        if (dsSetPreferredColorDepthFunc != 0) {
-            dsDisplayColorDepth_t dsColorDepth = static_cast<dsDisplayColorDepth_t>(colorDepth);
-            dsError_t eError = dsSetPreferredColorDepthFunc(handle, dsColorDepth);
-            if (eError == dsERR_NONE) {
-                retCode = WPEFramework::Core::ERROR_NONE;
-                DSLOG_INFO(" SUCCESS");
-                
-                // Persist color depth setting if requested - following dsVideoPort.c pattern
-                if (persist) {
-                    try {
-                        std::string colorDepthStr = std::to_string(static_cast<int>(colorDepth));
-                        device::HostPersistence::getInstance().persistHostProperty("HDMI0.colorDepth", colorDepthStr);
-                        DSLOG_INFO("Color depth persisted: %s", colorDepthStr.c_str());
-                    } catch(...) {
-                        DSLOG_ERR("Failed to persist color depth setting");
-                    }
+        const dsDisplayColorDepth_t requestedColorDepth = static_cast<dsDisplayColorDepth_t>(colorDepth);
+
+        // dsVideoPort.c: if the requested depth already matches the platform's current depth, skip the HAL set call.
+        dsDisplayColorDepth_t platformColorDepth = dsDISPLAY_COLORDEPTH_UNKNOWN;
+        if (getCurrentPreferredColorDepth(static_cast<intptr_t>(handle), &platformColorDepth) == dsERR_NONE &&
+            requestedColorDepth == platformColorDepth) {
+            DSLOG_INFO(" Same color depth requested, skipping HAL set");
+            retCode = WPEFramework::Core::ERROR_NONE;
+            if (persist) {
+                try {
+                    device::HostPersistence::getInstance().persistHostProperty("HDMI0.colorDepth", std::to_string(static_cast<int>(colorDepth)));
+                } catch(...) {
+                    DSLOG_ERR("Failed to persist color depth setting");
                 }
-            } else {
-                DSLOG_ERR(" dsSetPreferredColorDepth failed with error: %d", eError);
+            }
+            return retCode;
+        }
+
+        // dsVideoPort.c: negotiate the requested depth against sink EDID capabilities before setting.
+        const dsDisplayColorDepth_t colorDepthToSet = getBestSupportedColorDepth(static_cast<intptr_t>(handle), requestedColorDepth);
+        dsError_t eError = setPreferredColorDepthHAL(static_cast<intptr_t>(handle), colorDepthToSet);
+        if (eError == dsERR_NONE) {
+            retCode = WPEFramework::Core::ERROR_NONE;
+            DSLOG_INFO(" SUCCESS - negotiated colorDepth=0x%x (requested=0x%x)", colorDepthToSet, requestedColorDepth);
+            
+            // Persist the originally-requested color depth (not the negotiated value) — matches dsVideoPort.c
+            if (persist) {
+                try {
+                    std::string colorDepthStr = std::to_string(static_cast<int>(colorDepth));
+                    device::HostPersistence::getInstance().persistHostProperty("HDMI0.colorDepth", colorDepthStr);
+                    DSLOG_INFO("Color depth persisted: %s", colorDepthStr.c_str());
+                } catch(...) {
+                    DSLOG_ERR("Failed to persist color depth setting");
+                }
             }
         } else {
-            DSLOG_ERR(" dsSetPreferredColorDepth function not available");
+            DSLOG_ERR(" dsSetPreferredColorDepth failed with error: %d", eError);
         }
         
         return retCode;
@@ -2229,17 +2239,22 @@ private:
                 DSLOG_INFO("Persisted HDMI resolution: %s", resolutionName.c_str());
                 _dsHDMIResolution = resolutionName;
                 
-                if (forceCompatible) {
+                /* dsVideoPort.c persistResolution: compatibility is ALWAYS checked (cache always
+                 * updated); only the disk persistence of the cross-port resolution is gated by forceCompatible. */
+                if (!IsCompatibleResolution(resolution.pixelResolution, getPixelResolutionByName(_dsCompResolution))) {
+                    DSLOG_INFO("HDMI Resolution is not Compatible with Analog ports");
                     std::string compatibleResolution = getCompatibleAnalogResolution(resolution);
-                    if (!compatibleResolution.empty() && compatibleResolution != _dsCompResolution) {
+                    DSLOG_INFO("New Compatible resolution is %s", compatibleResolution.c_str());
+                    _dsCompResolution = compatibleResolution;
+                    if (forceCompatible) {
                         #ifdef HAS_ONLY_COMPOSITE
                             device::HostPersistence::getInstance().persistHostProperty("Baseband0.resolution", compatibleResolution);
                         #else
                             device::HostPersistence::getInstance().persistHostProperty("COMPONENT0.resolution", compatibleResolution);
                         #endif
-                        _dsCompResolution = compatibleResolution;
-                        DSLOG_INFO("Force compatible: Updated analog resolution to %s", compatibleResolution.c_str());
                     }
+                } else {
+                    DSLOG_INFO("HDMI and Analog Ports Resolutions are Compatible");
                 }
             } else if (portType == dsVIDEOPORT_TYPE_COMPONENT) {
                 #ifdef HAS_ONLY_COMPOSITE
@@ -2250,29 +2265,70 @@ private:
                 DSLOG_INFO("Persisted Component resolution: %s", resolutionName.c_str());
                 _dsCompResolution = resolutionName;
                 
-                if (forceCompatible) {
+                if (!IsCompatibleResolution(resolution.pixelResolution, getPixelResolutionByName(_dsHDMIResolution))) {
+                    DSLOG_INFO("HDMI Resolution is not Compatible with Analog ports");
                     std::string compatibleResolution = getCompatibleHDMIResolution(resolution);
-                    if (!compatibleResolution.empty() && compatibleResolution != _dsHDMIResolution) {
+                    DSLOG_INFO("New Compatible resolution is %s", compatibleResolution.c_str());
+                    _dsHDMIResolution = compatibleResolution;
+                    if (forceCompatible) {
                         device::HostPersistence::getInstance().persistHostProperty("HDMI0.resolution", compatibleResolution);
-                        _dsHDMIResolution = compatibleResolution;
-                        DSLOG_INFO("Force compatible: Updated HDMI resolution to %s", compatibleResolution.c_str());
                     }
+                } else {
+                    DSLOG_INFO("HDMI and Analog Ports Resolutions are Compatible");
                 }
             } else if (portType == dsVIDEOPORT_TYPE_BB) {
                 /* dsVideoPort.c: _dsSetResolution BB case persists Baseband0.resolution */
                 device::HostPersistence::getInstance().persistHostProperty("Baseband0.resolution", resolutionName);
                 DSLOG_INFO("Persisted Baseband resolution: %s", resolutionName.c_str());
                 _dsBBResolution = resolutionName;
+
+                /* dsVideoPort.c: BB/RF branches always update the HDMI cache on mismatch, never persist it. */
+                if (!IsCompatibleResolution(resolution.pixelResolution, getPixelResolutionByName(_dsHDMIResolution))) {
+                    std::string compatibleResolution = getCompatibleHDMIResolution(resolution);
+                    DSLOG_INFO("New Compatible resolution is %s", compatibleResolution.c_str());
+                    _dsHDMIResolution = compatibleResolution;
+                }
             } else if (portType == dsVIDEOPORT_TYPE_RF) {
                 /* dsVideoPort.c: _dsSetResolution RF case persists RF0.resolution */
                 device::HostPersistence::getInstance().persistHostProperty("RF0.resolution", resolutionName);
                 DSLOG_INFO("Persisted RF resolution: %s", resolutionName.c_str());
                 _dsRFResolution = resolutionName;
+
+                if (!IsCompatibleResolution(resolution.pixelResolution, getPixelResolutionByName(_dsHDMIResolution))) {
+                    std::string compatibleResolution = getCompatibleHDMIResolution(resolution);
+                    DSLOG_INFO("New Compatible resolution is %s", compatibleResolution.c_str());
+                    _dsHDMIResolution = compatibleResolution;
+                }
             }
             
         } catch(...) {
             DSLOG_ERR("Exception in persistVideoPortResolution");
         }
+    }
+
+    // dsVideoPort.c: IsHDCompatible(p) macro — (p) >= dsVIDEO_PIXELRES_1280x720 && (p) < dsVIDEO_PIXELRES_MAX
+    static bool IsHDCompatible(const dsVideoResolution_t pixelResolution)
+    {
+        return pixelResolution >= dsVIDEO_PIXELRES_1280x720 && pixelResolution < dsVIDEO_PIXELRES_MAX;
+    }
+
+    // Mirrors dsVideoPort.c IsCompatibleResolution(): equal, or both HD-and-above.
+    static bool IsCompatibleResolution(const dsVideoResolution_t pixelResolution1, const dsVideoResolution_t pixelResolution2)
+    {
+        return (pixelResolution1 == pixelResolution2) || (IsHDCompatible(pixelResolution1) && IsHDCompatible(pixelResolution2));
+    }
+
+    // Mirrors dsVideoPort.c getPixelResolution(): resolve a cached resolution name to its pixelResolution enum.
+    static dsVideoResolution_t getPixelResolutionByName(const std::string& resolutionName)
+    {
+        std::vector<VideoPortResolution> platformResolutions;
+        DeviceSettingsHAL::PopulateVideoPortResolutionConfig(VideoPortType::DS_VIDEO_PORT_TYPE_HDMI, platformResolutions);
+        for (const auto& res : platformResolutions) {
+            if (res.name == resolutionName) {
+                return static_cast<dsVideoResolution_t>(static_cast<int>(res.pixelResolution));
+            }
+        }
+        return dsVIDEO_PIXELRES_MAX;
     }
 
     // Helper function to get compatible analog resolution - simplified from dsVideoPort.c

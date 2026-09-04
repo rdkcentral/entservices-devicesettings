@@ -3583,6 +3583,9 @@ public:
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.MS12Profile", profile);
 #endif
+                if (profile != "Off") {
+                    applyMS12ProfileSettingsOverride(dsHandle);
+                }
             } else {
                 DSLOG_ERR("dsSetMS12AudioProfile failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -4090,6 +4093,82 @@ public:
     }
 
 private:
+    void applyMS12ProfileSettingsOverride(const intptr_t handle)
+    {
+#ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+        const std::string enhancerProperty = getCurrentProfileProperty("EnhancerLevel");
+        const std::string bassProperty = getCurrentProfileProperty("BassBoost");
+        const std::string volumeModeProperty = getCurrentProfileProperty("VolumeLeveller.mode");
+        const std::string volumeLevelProperty = getCurrentProfileProperty("VolumeLeveller.level");
+        const std::string virtualizerModeProperty = getCurrentProfileProperty("SurroundVirtualizer.mode");
+        const std::string virtualizerBoostProperty = getCurrentProfileProperty("SurroundVirtualizer.boost");
+
+        try {
+            typedef dsError_t (*dsSetDialogEnhancement_t)(intptr_t, int);
+            const dsSetDialogEnhancement_t setDialogEnhancement =
+                reinterpret_cast<dsSetDialogEnhancement_t>(resolve(RDK_DSHAL_NAME, "dsSetDialogEnhancement"));
+            if (setDialogEnhancement != nullptr) {
+                const int value = atoi(device::HostPersistence::getInstance().getProperty(enhancerProperty).c_str());
+                if (setDialogEnhancement(handle, value) == dsERR_NONE) {
+                    device::HostPersistence::getInstance().persistHostProperty(enhancerProperty, std::to_string(value));
+                }
+            }
+        } catch (...) {
+            DSLOG_INFO("No persisted dialog enhancement value for active MS12 profile");
+        }
+
+        try {
+            typedef dsError_t (*dsSetBassEnhancer_t)(intptr_t, int);
+            const dsSetBassEnhancer_t setBassEnhancer =
+                reinterpret_cast<dsSetBassEnhancer_t>(resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer"));
+            if (setBassEnhancer != nullptr) {
+                const int value = atoi(device::HostPersistence::getInstance().getProperty("audio.BassBoost").c_str());
+                if (setBassEnhancer(handle, value) == dsERR_NONE) {
+                    device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", std::to_string(value));
+                }
+            }
+        } catch (...) {
+            DSLOG_INFO("No persisted bass boost value for active MS12 profile");
+        }
+
+        try {
+            typedef dsError_t (*dsSetVolumeLeveller_t)(intptr_t, dsVolumeLeveller_t);
+            const dsSetVolumeLeveller_t setVolumeLeveller =
+                reinterpret_cast<dsSetVolumeLeveller_t>(resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller"));
+            if (setVolumeLeveller != nullptr) {
+                dsVolumeLeveller_t value;
+                value.mode = atoi(device::HostPersistence::getInstance().getProperty(volumeModeProperty).c_str());
+                value.level = atoi(device::HostPersistence::getInstance().getProperty(volumeLevelProperty).c_str());
+                if (setVolumeLeveller(handle, value) == dsERR_NONE) {
+                    device::HostPersistence::getInstance().persistHostProperty(volumeModeProperty, std::to_string(value.mode));
+                    device::HostPersistence::getInstance().persistHostProperty(volumeLevelProperty, std::to_string(value.level));
+                }
+            }
+        } catch (...) {
+            DSLOG_INFO("No persisted volume leveller value for active MS12 profile");
+        }
+
+        try {
+            typedef dsError_t (*dsSetSurroundVirtualizer_t)(intptr_t, dsSurroundVirtualizer_t);
+            const dsSetSurroundVirtualizer_t setSurroundVirtualizer =
+                reinterpret_cast<dsSetSurroundVirtualizer_t>(resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer"));
+            if (setSurroundVirtualizer != nullptr) {
+                dsSurroundVirtualizer_t value;
+                value.mode = atoi(device::HostPersistence::getInstance().getProperty(virtualizerModeProperty).c_str());
+                value.boost = atoi(device::HostPersistence::getInstance().getProperty(virtualizerBoostProperty).c_str());
+                if (setSurroundVirtualizer(handle, value) == dsERR_NONE) {
+                    device::HostPersistence::getInstance().persistHostProperty(virtualizerModeProperty, std::to_string(value.mode));
+                    device::HostPersistence::getInstance().persistHostProperty(virtualizerBoostProperty, std::to_string(value.boost));
+                }
+            }
+        } catch (...) {
+            DSLOG_INFO("No persisted surround virtualizer value for active MS12 profile");
+        }
+#else
+        (void)handle;
+#endif
+    }
+
     // Implementation of audio settings initialization from dsAudioMgr_init
     void initializeAudioSettings()
     {
@@ -4358,7 +4437,7 @@ private:
             static dsSetAudioDelay_t dsSetAudioDelayFunc = nullptr;
             
             if (dsSetAudioDelayFunc == nullptr) {
-                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
+                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
                 if (dllib) {
                     dsSetAudioDelayFunc = (dsSetAudioDelay_t) dlsym(dllib, "dsSetAudioDelay");
                     if (dsSetAudioDelayFunc) {
@@ -4437,7 +4516,7 @@ private:
             static dsSetPrimaryLanguage_t dsSetPrimaryLanguageFunc = nullptr;
             
             if (dsSetPrimaryLanguageFunc == nullptr) {
-                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
+                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
                 if (dllib) {
                     dsSetPrimaryLanguageFunc = (dsSetPrimaryLanguage_t) dlsym(dllib, "dsSetPrimaryLanguage");
                     if (dsSetPrimaryLanguageFunc) {
@@ -4474,7 +4553,7 @@ private:
             static dsSetSecondaryLanguage_t dsSetSecondaryLanguageFunc = nullptr;
             
             if (dsSetSecondaryLanguageFunc == nullptr) {
-                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
+                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
                 if (dllib) {
                     dsSetSecondaryLanguageFunc = (dsSetSecondaryLanguage_t) dlsym(dllib, "dsSetSecondaryLanguage");
                     if (dsSetSecondaryLanguageFunc) {
@@ -4511,7 +4590,7 @@ private:
             static dsSetFaderControl_t dsSetFaderControlFunc = nullptr;
             
             if (dsSetFaderControlFunc == nullptr) {
-                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
+                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
                 if (dllib) {
                     dsSetFaderControlFunc = (dsSetFaderControl_t) dlsym(dllib, "dsSetFaderControl");
                     if (dsSetFaderControlFunc) {
@@ -4550,7 +4629,7 @@ private:
             static dsSetAssociatedAudioMixing_t dsSetAssociatedAudioMixingFunc = nullptr;
             
             if (dsSetAssociatedAudioMixingFunc == nullptr) {
-                dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
+                dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
                 if (dllib) {
                     dsSetAssociatedAudioMixingFunc = (dsSetAssociatedAudioMixing_t) dlsym(dllib, "dsSetAssociatedAudioMixing");
                     if (dsSetAssociatedAudioMixingFunc) {
@@ -4603,7 +4682,7 @@ private:
                 static dsSetMS12AudioProfile_t dsSetMS12AudioProfileFunc = nullptr;
                 
                 if (dsSetMS12AudioProfileFunc == nullptr) {
-                    dllib = dlopen("RDK_DSHAL_NAME", RTLD_LAZY);
+                    dllib = dlopen(RDK_DSHAL_NAME, RTLD_LAZY);
                     if (dllib) {
                         dsSetMS12AudioProfileFunc = (dsSetMS12AudioProfile_t) dlsym(dllib, "dsSetMS12AudioProfile");
                         if (dsSetMS12AudioProfileFunc) {
@@ -5069,11 +5148,14 @@ private:
                 try {
                     dolbyMode = device::HostPersistence::getInstance().getProperty("audio.DolbyVolumeMode");
                     bDolbyVolumeOverrideCheck = false;
+                    DSLOG_INFO("audio.DolbyVolumeMode found in persistence store: %s", dolbyMode.c_str());
                 } catch(...) {
                     try {
                         DSLOG_INFO("audio.DolbyVolumeMode not found in persistence store. Try system default");
                         dolbyMode = device::HostPersistence::getInstance().getDefaultProperty("audio.DolbyVolumeMode");
-                    } catch(...) { dolbyMode = "FALSE"; }
+                    } catch(...) { 
+                        DSLOG_WARN("audio.DolbyVolumeMode not found in system default.");
+                    }
                 }
                 m_dolbyVolumeMode = (dolbyMode == "TRUE");
                 handle = 0;

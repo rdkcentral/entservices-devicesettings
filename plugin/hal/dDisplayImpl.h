@@ -34,6 +34,7 @@
 #include <WPEFramework/interfaces/IDeviceSettingsDisplay.h>
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsHdmiStatus.h"
+#include "DeviceSettingsHALConfig.h"
 #include "dVideoPortImpl.h"
 
 #ifndef RDK_DSHAL_NAME
@@ -434,6 +435,10 @@ public:
         memset(&halEdid, 0, sizeof(halEdid));
         dsError_t eError = dsGetEDID(handle, &halEdid);
         if (eError == dsERR_NONE) {
+            /* Mirror dsDisplay.c _dsGetEDID: filter the sink's advertised resolutions
+             * down to those the platform can actually output, before caching/dumping. */
+            filterEDIDResolution(handle, halEdid);
+
             /* Populate cache and dump EDID info — mirrors dsDisplay.c pattern */
             memcpy(&s_edidStructCache, &halEdid, sizeof(dsDisplayEDID_t));
             isEdidCached = true;
@@ -493,6 +498,58 @@ public:
 
         using ResolutionIterator = WPEFramework::RPC::IteratorType<IDSVideoPortResolutionIterator>;
         supportedResolutionList = WPEFramework::Core::Service<ResolutionIterator>::Create<IDSVideoPortResolutionIterator>(resolutions);
+    }
+
+    /* Mirror dsDisplay.c _GetDisplayPortType: find which configured video port a
+     * display handle belongs to, by matching dsGetDisplay() handles for each port. */
+    static dsVideoPortType_t GetDisplayPortType(const intptr_t handle)
+    {
+        std::vector<VideoPortTypeConfig> videoPortTypes;
+        std::vector<VideoPortPortConfig> videoPorts;
+        DeviceSettingsHAL::PopulateVideoPortConfig(videoPortTypes, videoPorts);
+
+        for (const auto& port : videoPorts) {
+            intptr_t halHandle = 0;
+            if (dsGetDisplay(static_cast<dsVideoPortType_t>(port.videoPortType), port.videoPortIndex, &halHandle) == dsERR_NONE &&
+                halHandle == handle) {
+                return static_cast<dsVideoPortType_t>(port.videoPortType);
+            }
+        }
+        DSLOG_INFO(" Requested Display handle=%d is not part of Platform Port Configuration", static_cast<int>(handle));
+        return dsVIDEOPORT_TYPE_MAX;
+    }
+
+    /* Mirror dsDisplay.c filterEDIDResolution: for HDMI displays, narrow the sink's
+     * advertised EDID resolution list down to resolutions the platform actually supports. */
+    static void filterEDIDResolution(const intptr_t handle, dsDisplayEDID_t& edid)
+    {
+        if (GetDisplayPortType(handle) != dsVIDEOPORT_TYPE_HDMI) {
+            DSLOG_INFO(" EDID for non-HDMI port; resolution list left unchanged");
+            return;
+        }
+        DSLOG_INFO(" EDID for HDMI port; filtering against platform-supported resolutions");
+
+        std::vector<VideoPortResolution> platformResolutions;
+        DeviceSettingsHAL::PopulateVideoPortResolutionConfig(VideoPortType::DS_VIDEO_PORT_TYPE_HDMI, platformResolutions);
+
+        const int maxResolutions = static_cast<int>(dsEEDID_MAX_VIDEO_CODE * dsVIDEO_SSMODE_MAX);
+        const int originalCount = (edid.numOfSupportedResolution < maxResolutions)
+            ? edid.numOfSupportedResolution
+            : maxResolutions;
+        const std::vector<dsVideoPortResolution_t> originalList(edid.suppResolutionList, edid.suppResolutionList + originalCount);
+
+        DSLOG_INFO(" Total Resolution Count from HAL: %d", originalCount);
+        int filteredCount = 0;
+        for (const auto& platformRes : platformResolutions) {
+            for (int j = 0; j < originalCount && filteredCount < maxResolutions; ++j) {
+                if (platformRes.name == std::string(originalList[j].name)) {
+                    edid.suppResolutionList[filteredCount] = originalList[j];
+                    ++filteredCount;
+                    DSLOG_INFO(" matched resolution: %s, count=%d", platformRes.name.c_str(), filteredCount);
+                }
+            }
+        }
+        edid.numOfSupportedResolution = filteredCount;
     }
 
     /* Mirror dsDisplay.c dumpEDIDInformation — logs EDID product/serial/year/
