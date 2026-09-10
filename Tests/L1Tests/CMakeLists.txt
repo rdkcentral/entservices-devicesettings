@@ -49,4 +49,4 @@ set_source_files_properties(
     PROPERTIES COMPILE_FLAGS "-fexceptions")
 
 install(TARGETS ${MODULE_NAME} DESTINATION lib)
-write_config(${PLUGIN_NAME})
+write_config(PLUGINS ${PLUGIN_NAME})
