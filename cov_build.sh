@@ -79,7 +79,7 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-devicesettings \
     -DCLOCK_BRIGHTNESS_ENABLED \
     -DUSE_DS \
     -DENABLE_DEVICE_MANUFACTURER_INFO \
-    -DUSE_THUNDER_R4=ON -DTHUNDER_VERSION=4 -DTHUNDER_VERSION_MAJOR=4 -DTHUNDER_VERSION_MINOR=4" \
+    -DTHUNDER_VERSION=4 -DTHUNDER_VERSION_MAJOR=4 -DTHUNDER_VERSION_MINOR=4" \
 
 cmake --build build/entservices-devicesettings --target install
 echo "======================================================================================"
