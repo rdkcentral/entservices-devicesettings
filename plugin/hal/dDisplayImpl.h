@@ -777,12 +777,18 @@ private:
                 break;
                 
             case dsDISPLAY_HDCPPROTOCOL_CHANGE: // DS_DISPLAY_HDCPPROTOCOL_CHANGE equivalent
-                if (g_DisplayHDCPStatusCallback && eventData) {
-                    int32_t hdcpStatusValue = *reinterpret_cast<int32_t*>(eventData);
-                    DSLOG_INFO(" HDCP status changed, invoking callback with status=%d", hdcpStatusValue);
-                    g_DisplayHDCPStatusCallback(port, static_cast<int32_t>(hdcpStatusValue));
+            {
+                if (!eventData) {
+                    DSLOG_ERR(" HDCP protocol version change has NULL event data");
+                    return;
                 }
+
+                dsHdcpProtocolVersion_t protocolVersion =
+                    *reinterpret_cast<dsHdcpProtocolVersion_t*>(eventData);
+                DSLOG_INFO(" HDCP protocol version changed: version=%d", protocolVersion);
+                _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPVERSION, protocolVersion);
                 break;
+            }
                 
             case dsDISPLAY_EVENT_CONNECTED: // DS_DISPLAY_EVENT_CONNECTED equivalent
                 // Legacy parity: reconcile persisted preferred color depth against

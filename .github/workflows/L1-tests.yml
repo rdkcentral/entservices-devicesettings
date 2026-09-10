@@ -160,7 +160,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-helpers
           path: entservices-helpers
-          ref: DeviceSetting_Plugin
+          ref: develop
 
       - name: Create parent helpers compatibility path
         run: >
