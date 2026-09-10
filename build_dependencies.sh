@@ -55,6 +55,7 @@ mkdir -p "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus"
 touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/libIARM.h"
 touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus/libIBus.h"
 touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/iarm.h"
+touch "$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/telemetry_busmessage_sender.h"
 
 echo "======================================================================================"
 echo "building thunderTools"
