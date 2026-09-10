@@ -22,7 +22,6 @@ ninja -C build
 ninja -C build install
 cd ..
 
-git clone --branch  R4.4.3 https://github.com/rdkcentral/ThunderTools.git
 git clone --branch R4_4-RDK https://github.com/rdkcentral/ThunderTools.git
 cd ThunderTools
 git checkout $THUNDER_TOOLS_COMMIT_SHA
@@ -39,7 +38,7 @@ git clone --branch main https://github.com/rdkcentral/rdk-halif-device_settings.
 git clone --branch main https://github.com/rdkcentral/devicesettings.git
 git clone --branch develop https://github.com/rdkcentral/iarmbus.git
 git clone https://github.com/rdkcentral/iarmmgrs.git
-git clone --branch DeviceSetting_Plugin https://github.com/rdkcentral/entservices-helpers.git
+git clone --branch develop https://github.com/rdkcentral/entservices-helpers.git
 
 # Keep backward-compatible parent path expected by some test CMake files.
 if [ ! -e "$GITHUB_WORKSPACE/../entservices-helpers" ]; then
