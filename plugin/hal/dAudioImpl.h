@@ -506,14 +506,7 @@ public:
 #endif
 
         if (_isInitialized) {
-            try {
-                dsError_t ret = dsAudioPortTerm();
-                if (ret != dsERR_NONE) {
-                    DSLOG_ERR("dsAudioPortTerm failed with error: %d", ret);
-                }
-            } catch (...) {
-                DSLOG_ERR("Exception during Audio platform termination");
-            }
+            DSLOG_INFO("Preserving externally owned audio flow during DeviceSettings teardown");
             _isInitialized = false;
         }
         EXIT_LOG;

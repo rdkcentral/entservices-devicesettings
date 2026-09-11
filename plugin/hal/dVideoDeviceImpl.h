@@ -106,7 +106,7 @@ public:
     {
         if (videoDevice_isPlatInitialized)
         {
-            dsVideoDeviceTerm();
+            DSLOG_INFO("Preserving externally owned video device flow during DeviceSettings teardown");
             videoDevice_isPlatInitialized = 0;
         }
         videoDevice_isInitialized = 0;

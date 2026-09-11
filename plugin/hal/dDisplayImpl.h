@@ -134,7 +134,7 @@ public:
     {
         if (display_isPlatInitialized)
         {
-            dsDisplayTerm();
+            DSLOG_INFO("Preserving externally owned display flow during DeviceSettings teardown");
             display_isPlatInitialized = 0;
         }
         display_isInitialized = 0;

@@ -180,7 +180,7 @@ public:
     {
         if (videoPort_isPlatInitialized)
         {
-            dsVideoPortTerm();
+            DSLOG_INFO("Preserving externally owned video port flow during DeviceSettings teardown");
             videoPort_isPlatInitialized = 0;
         }
         videoPort_isInitialized = 0;
