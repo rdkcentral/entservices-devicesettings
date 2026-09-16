@@ -616,6 +616,9 @@ public:
             default: return false;
         }
 
+        // dsAudio.c _GetAudioModeFromPersistent: ultimate fallback is "STEREO" for
+        // HDMI/SPDIF/HDMI_ARC, but "SURROUND" specifically for SPEAKER.
+        const char* fallback = (portType == dsAUDIOPORT_TYPE_SPEAKER) ? "SURROUND" : "STEREO";
         std::string value;
         try {
             value = device::HostPersistence::getInstance().getProperty(property);
@@ -623,11 +626,10 @@ public:
             try {
                 value = device::HostPersistence::getInstance().getDefaultProperty(property);
             } catch (...) {
-                return false;
+                value = fallback;
             }
         }
 
-        // dsAudio.c _GetAudioModeFromPersistent: HDMI reads always report the persisted mode via telemetry.
         if (portType == dsAUDIOPORT_TYPE_HDMI) {
             char telemetryValue[128] = {0};
             snprintf(telemetryValue, sizeof(telemetryValue), "The HDMI Audio Mode Setting From Persistent is %s", value.c_str());
