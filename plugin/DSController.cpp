@@ -24,6 +24,7 @@
 #include <syscall.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdio.h>
 
 // C headers with built-in C++ protection
 extern "C" {
@@ -331,6 +332,7 @@ namespace Plugin {
     void DSController::Init()
     {
         DSLOG_INFO("Initializing Device Settings subsystems");
+        printf("Test Coverity workflow %s\n");
     }
     
     void DSController::Deinit()
