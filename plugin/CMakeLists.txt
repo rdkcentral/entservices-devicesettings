@@ -133,6 +133,17 @@ endif()
 
 if(TELEMETRY_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${TELEMETRY_LIBRARIES})
+elseif(RDK_SERVICES_L1_TEST OR RDK_SERVICES_L2_TEST)
+    # For L1/L2 tests: link against TestMocklib which provides telemetry mock symbols
+    find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)
+    if(TESTMOCKLIB_LIBRARIES)
+        target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${TESTMOCKLIB_LIBRARIES})
+        message(STATUS "Linking ${PLUGIN_IMPLEMENTATION} against TestMocklib for telemetry mocks")
+    else()
+        message(WARNING "TestMocklib not found - telemetry mock symbols may not be available for tests")
+    endif()
+else()
+    message(WARNING "Telemetry library not found - telemetry functionality will not be available")
 endif()
 
 if (MFR_FOUND)
