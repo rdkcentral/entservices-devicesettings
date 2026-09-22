@@ -133,7 +133,7 @@ endif()
 
 if(TELEMETRY_LIBRARIES)
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${TELEMETRY_LIBRARIES})
-elseif(RDK_SERVICES_L1_TEST OR RDK_SERVICES_L2_TEST)
+elseif(RDK_SERVICES_L1_TEST OR RDK_SERVICE_L2_TEST)
     # For L1/L2 tests: link against TestMocklib which provides telemetry mock symbols
     find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)
     if(TESTMOCKLIB_LIBRARIES)
