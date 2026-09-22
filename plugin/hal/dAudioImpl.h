@@ -460,6 +460,17 @@ public:
         for (int i = 0; i < dsAUDIOPORT_TYPE_MAX; i++) {
             _audioPortEnabled[i] = false;
         }
+        // Precheck: drop any callback left over from a prior (already destroyed) instance.
+        g_AudioOutHotPlugCallback = nullptr;
+        g_AudioFormatUpdateCallback = nullptr;
+        g_DolbyAtmosCapabilitiesChangedCallback = nullptr;
+        g_AssociatedAudioMixingChangedCallback = nullptr;
+        g_AudioFaderControlChangedCallback = nullptr;
+        g_AudioPrimaryLanguageChangedCallback = nullptr;
+        g_AudioSecondaryLanguageChangedCallback = nullptr;
+        g_AudioPortStateChangedCallback = nullptr;
+        g_AudioLevelChangedCallback = nullptr;
+        g_AudioModeChangedCallback = nullptr;
         InitialiseHAL();
     }
 
@@ -500,6 +511,20 @@ public:
     virtual ~dAudioImpl()
     {
         ENTRY_LOG;
+
+        // Clear stale global callbacks first: otherwise the next dAudioImpl instance's
+        // constructor fires notifyAudioPortStateChanged() (via InitialiseHAL()) before it
+        // re-registers its own callbacks, dispatching into this (about to be destroyed) instance.
+        g_AudioOutHotPlugCallback = nullptr;
+        g_AudioFormatUpdateCallback = nullptr;
+        g_DolbyAtmosCapabilitiesChangedCallback = nullptr;
+        g_AssociatedAudioMixingChangedCallback = nullptr;
+        g_AudioFaderControlChangedCallback = nullptr;
+        g_AudioPrimaryLanguageChangedCallback = nullptr;
+        g_AudioSecondaryLanguageChangedCallback = nullptr;
+        g_AudioPortStateChangedCallback = nullptr;
+        g_AudioLevelChangedCallback = nullptr;
+        g_AudioModeChangedCallback = nullptr;
 
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
         stopAudioLevelPersistThread();
