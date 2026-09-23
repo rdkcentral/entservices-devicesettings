@@ -77,12 +77,21 @@ public:
     {
         DSLOG_INFO("Constructor");
         getInstance() = this; // Set static instance for callback access
+        // Precheck: drop any callback left over from a prior (already destroyed) instance.
+        g_DisplayRxSenseCallback = nullptr;
+        g_DisplayHDCPStatusCallback = nullptr;
+        g_DisplayHDMIHotPlugCallback = nullptr;
         InitialiseHAL();
     }
 
     virtual ~dDisplayImpl()
     {
         DSLOG_INFO("Destructor");
+        // Clear stale global callbacks first: prevents a subsequently constructed instance's
+        // init-time HAL notification from dispatching into this (about to be destroyed) instance.
+        g_DisplayRxSenseCallback = nullptr;
+        g_DisplayHDCPStatusCallback = nullptr;
+        g_DisplayHDMIHotPlugCallback = nullptr;
         DeInitialiseHAL();
         getInstance() = nullptr; // Clear static instance
     }

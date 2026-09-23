@@ -71,12 +71,23 @@ public:
     {
         DSLOG_INFO("Constructor");
         getInstance() = this; // Set static instance for callback access
+        // Precheck: drop any callback left over from a prior (already destroyed) instance.
+        g_CompositeInHotPlugCallback = nullptr;
+        g_CompositeInSignalStatusCallback = nullptr;
+        g_CompositeInStatusCallback = nullptr;
+        g_CompositeInVideoModeUpdateCallback = nullptr;
         InitialiseHAL();
     }
 
     virtual ~dCompositeInImpl()
     {
         DSLOG_INFO("Destructor");
+        // Clear stale global callbacks first: prevents a subsequently constructed instance's
+        // init-time HAL notification from dispatching into this (about to be destroyed) instance.
+        g_CompositeInHotPlugCallback = nullptr;
+        g_CompositeInSignalStatusCallback = nullptr;
+        g_CompositeInStatusCallback = nullptr;
+        g_CompositeInVideoModeUpdateCallback = nullptr;
         DeInitialiseHAL();
         getInstance() = nullptr; // Clear static instance
     }

@@ -63,12 +63,21 @@ public:
     dVideoDeviceImpl()
     {
         DSLOG_INFO("Constructor");
+        // Precheck: drop any callback left over from a prior (already destroyed) instance.
+        g_VideoDeviceZoomSettingsChangedCallback = nullptr;
+        g_VideoDeviceDisplayFrameratePreChangeCallback = nullptr;
+        g_VideoDeviceDisplayFrameratePostChangeCallback = nullptr;
         InitialiseHAL();
     }
 
     virtual ~dVideoDeviceImpl()
     {
         DSLOG_ERR("Destructor");
+        // Clear stale global callbacks first: prevents a subsequently constructed instance's
+        // init-time HAL notification from dispatching into this (about to be destroyed) instance.
+        g_VideoDeviceZoomSettingsChangedCallback = nullptr;
+        g_VideoDeviceDisplayFrameratePreChangeCallback = nullptr;
+        g_VideoDeviceDisplayFrameratePostChangeCallback = nullptr;
         DeInitialiseHAL();
     }
 
