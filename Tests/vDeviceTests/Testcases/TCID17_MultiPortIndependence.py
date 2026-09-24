@@ -86,7 +86,7 @@ def run_test():
 
         log_info(f"Step 2: provision port {PORT_B} -> HDMI1.4 + ALLM false")
         if _provision(PORT_B, AVInputApis.EDID_VERSION_14, False):
-            log_error("TCID17_MultiPortIndependence Failed ❌ (port B provisioning accepted when it should be rejected)")
+            log_error("TCID17_MultiPortIndependence Failed ❌ (port B provisioning accepted unexpectedly)")
             return False
 
         log_info("Step 3: re-read both ports and confirm isolation")
