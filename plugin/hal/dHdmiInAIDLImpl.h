@@ -1120,6 +1120,31 @@ public:
         int activePort = -1;
         bool alreadyStarted = false;
 
+        if (portId == -1) {
+            sp<IHDMIInputController> activeController;
+            {
+                std::lock_guard<std::mutex> lk(m_aidlMutex);
+                activePort = m_aidlActivePort;
+                auto active = m_aidlPorts.find(activePort);
+                if (active != m_aidlPorts.end() && active->second.isStarted)
+                    activeController = active->second.controller;
+            }
+
+            if (activeController && !activeController->stop().isOk()) {
+                LOGERR("SelectHDMIInPort: stop failed while deselecting active port %d", activePort);
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+
+            {
+                std::lock_guard<std::mutex> lk(m_aidlMutex);
+                auto active = m_aidlPorts.find(activePort);
+                if (active != m_aidlPorts.end()) active->second.isStarted = false;
+                if (m_aidlActivePort == activePort) m_aidlActivePort = -1;
+            }
+            LOGINFO("SelectHDMIInPort: deselected active port %d; no replacement port started", activePort);
+            return WPEFramework::Core::ERROR_NONE;
+        }
+
         {
             std::lock_guard<std::mutex> lk(m_aidlMutex);
             auto selected = m_aidlPorts.find(portId);
