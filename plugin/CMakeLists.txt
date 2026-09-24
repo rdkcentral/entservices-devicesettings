@@ -83,7 +83,14 @@ include_directories(
 
 # DS HAL headers (dsUtl.h, dsError.h, dsTypes.h etc.) — previously pulled in by
 # find_package(DS) via DS_INCLUDE_DIRS. Now resolved directly without the full DS package.
-find_path(DSHAL_INCLUDE_DIRS NAMES dsTypes.h PATH_SUFFIXES rdk/halif/ds-hal)
+find_path(DSHAL_INCLUDE_DIRS
+    NAMES dsTypes.h
+    PATHS
+        ${CMAKE_SOURCE_DIR}/../rdk-halif-device_settings/include
+        ${CMAKE_SYSROOT}/usr/include
+    PATH_SUFFIXES
+        rdk/ds
+        rdk/halif/ds-hal)
 if(NOT DSHAL_INCLUDE_DIRS)
     message(FATAL_ERROR "DS HAL headers not found (dsTypes.h). Check sysroot.")
 endif()
