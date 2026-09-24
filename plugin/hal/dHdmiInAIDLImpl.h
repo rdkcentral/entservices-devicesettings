@@ -1359,33 +1359,59 @@ public:
 
     uint32_t SetHDMIEdidVersion(const HDMIInPort port, const HDMIInEdidVersion edidVersion) override
     {
-        if (!ensureAidlService()) return WPEFramework::Core::ERROR_UNAVAILABLE;
         dsHdmiInPort_t hdmiPort    = static_cast<dsHdmiInPort_t>(port);
         tv_hdmi_edid_version_t ver = static_cast<tv_hdmi_edid_version_t>(edidVersion);
+        LOGINFO("SetHDMIEdidVersion: requested port=%d, EDID version=%d", (int)hdmiPort, (int)ver);
+
+        if (!ensureAidlService()) {
+            LOGERR("SetHDMIEdidVersion: AIDL service unavailable for port=%d, version=%d", (int)hdmiPort, (int)ver);
+            return WPEFramework::Core::ERROR_UNAVAILABLE;
+        }
 
         HDMIVersion aidlVersion;
-        if (!aidlMapEdidVersion(ver, &aidlVersion)) return WPEFramework::Core::ERROR_INVALID_PARAMETER;
+        if (!aidlMapEdidVersion(ver, &aidlVersion)) {
+            LOGERR("SetHDMIEdidVersion: unsupported legacy EDID version=%d for port=%d", (int)ver, (int)hdmiPort);
+            return WPEFramework::Core::ERROR_INVALID_PARAMETER;
+        }
 
         sp<IHDMIInput> hi;
         sp<IHDMIInputController> ctrl;
         {
             std::lock_guard<std::mutex> lk(m_aidlMutex);
             auto it = m_aidlPorts.find((int)hdmiPort);
-            if (it == m_aidlPorts.end() || !it->second.hdmiInput || !it->second.controller)
+            if (it == m_aidlPorts.end() || !it->second.hdmiInput || !it->second.controller) {
+                LOGERR("SetHDMIEdidVersion: missing HDMI input or controller for port=%d", (int)hdmiPort);
                 return WPEFramework::Core::ERROR_GENERAL;
+            }
             hi   = it->second.hdmiInput;
             ctrl = it->second.controller;
         }
         Capabilities caps;
-        if (!hi->getCapabilities(&caps).isOk()) return WPEFramework::Core::ERROR_GENERAL;
-        if (!aidlEdidVersionSupported(caps, aidlVersion)) return WPEFramework::Core::ERROR_UNAVAILABLE;
+        const bool capabilitiesOk = hi->getCapabilities(&caps).isOk();
+        if (!capabilitiesOk) {
+            LOGERR("SetHDMIEdidVersion: getCapabilities failed for port=%d, requested version=%d", (int)hdmiPort, (int)ver);
+            return WPEFramework::Core::ERROR_GENERAL;
+        }
+        if (!aidlEdidVersionSupported(caps, aidlVersion)) {
+            LOGERR("SetHDMIEdidVersion: EDID version=%d is not supported by port=%d", (int)ver, (int)hdmiPort);
+            return WPEFramework::Core::ERROR_UNAVAILABLE;
+        }
 
         std::vector<uint8_t> edidVec;
         bool ok = false;
-        if (!hi->getDefaultEDID(aidlVersion, &edidVec, &ok).isOk() || !ok || edidVec.size() < 128)
+        const bool defaultEdidCallOk = hi->getDefaultEDID(aidlVersion, &edidVec, &ok).isOk();
+        if (!defaultEdidCallOk || !ok || edidVec.size() < 128) {
+            LOGERR("SetHDMIEdidVersion: getDefaultEDID failed for port=%d, version=%d (callOk=%s, resultOk=%s, size=%zu)",
+                   (int)hdmiPort, (int)ver, defaultEdidCallOk ? "true" : "false", ok ? "true" : "false", edidVec.size());
             return WPEFramework::Core::ERROR_GENERAL;
+        }
         ok = false;
-        if (!ctrl->setEDID(edidVec, &ok).isOk() || !ok) return WPEFramework::Core::ERROR_GENERAL;
+        const bool setEdidCallOk = ctrl->setEDID(edidVec, &ok).isOk();
+        if (!setEdidCallOk || !ok) {
+            LOGERR("SetHDMIEdidVersion: setEDID failed for port=%d, version=%d (callOk=%s, resultOk=%s, size=%zu)",
+                   (int)hdmiPort, (int)ver, setEdidCallOk ? "true" : "false", ok ? "true" : "false", edidVec.size());
+            return WPEFramework::Core::ERROR_GENERAL;
+        }
 
         int port_no = (int)hdmiPort;
         if (port_no >= 0 && port_no < dsHDMI_IN_PORT_MAX) {
