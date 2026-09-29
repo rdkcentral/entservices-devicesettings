@@ -884,7 +884,7 @@ public:
         DeInitialiseHAL();
     }
 
-    void InitialiseHAL()
+    void InitialiseHAL() override
     {
         getDynamicAutoLatencyConfig();
         profileType = searchRdkProfile();
@@ -896,7 +896,7 @@ public:
         }
     }
 
-    void DeInitialiseHAL()
+    void DeInitialiseHAL() override
     {
         LOGINFO("profileType %d", profileType);
         if (TV == profileType) {
@@ -904,7 +904,7 @@ public:
         }
     }
 
-    void setAllCallbacks(const CallbackBundle bundle) override
+    void setAllCallbacks(const CallbackBundle& bundle) override
     {
         ENTRY_LOG;
         LOGINFO("setAllCallbacks: profileType %d", profileType);
