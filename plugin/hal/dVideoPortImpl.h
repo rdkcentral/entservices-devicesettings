@@ -80,12 +80,23 @@ public:
     {
         DSLOG_INFO("Constructor");
         getInstance() = this; // Set static instance for callback access
+        // Precheck: drop any callback left over from a prior (already destroyed) instance.
+        g_VideoPortResolutionPreChangeCallback = nullptr;
+        g_VideoPortResolutionPostChangeCallback = nullptr;
+        g_VideoPortHDCPStatusChangeCallback = nullptr;
+        g_VideoPortVideoFormatUpdateCallback = nullptr;
         InitialiseHAL();
     }
 
     virtual ~dVideoPortImpl()
     {
         DSLOG_INFO("Destructor");
+        // Clear stale global callbacks first: prevents a subsequently constructed instance's
+        // init-time HAL notification from dispatching into this (about to be destroyed) instance.
+        g_VideoPortResolutionPreChangeCallback = nullptr;
+        g_VideoPortResolutionPostChangeCallback = nullptr;
+        g_VideoPortHDCPStatusChangeCallback = nullptr;
+        g_VideoPortVideoFormatUpdateCallback = nullptr;
         DeInitialiseHAL();
         getInstance() = nullptr; // Clear static instance
     }

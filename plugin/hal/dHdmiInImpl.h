@@ -70,12 +70,31 @@ public:
     dHdmiInImpl()
     {
         DSLOG_INFO("Constructor");
+        // Precheck: drop any callback left over from a prior (already destroyed) instance.
+        g_HdmiInHotPlugCallback = nullptr;
+        g_HdmiInSignalStatusCallback = nullptr;
+        g_HdmiInVideoModeUpdateCallback = nullptr;
+        g_HdmiInAllmStatusCallback = nullptr;
+        g_HdmiInAviContentTypeCallback = nullptr;
+        g_HdmiInAVLatencyCallback = nullptr;
+        g_HdmiInVRRStatusCallback = nullptr;
+        g_HdmiInStatusCallback = nullptr;
         InitialiseHAL();
     }
 
     virtual ~dHdmiInImpl()
     {
         DSLOG_ERR("Destructor");
+        // Clear stale global callbacks first: prevents a subsequently constructed instance's
+        // init-time HAL notification from dispatching into this (about to be destroyed) instance.
+        g_HdmiInHotPlugCallback = nullptr;
+        g_HdmiInSignalStatusCallback = nullptr;
+        g_HdmiInVideoModeUpdateCallback = nullptr;
+        g_HdmiInAllmStatusCallback = nullptr;
+        g_HdmiInAviContentTypeCallback = nullptr;
+        g_HdmiInAVLatencyCallback = nullptr;
+        g_HdmiInVRRStatusCallback = nullptr;
+        g_HdmiInStatusCallback = nullptr;
         DeInitialiseHAL();
     }
 
