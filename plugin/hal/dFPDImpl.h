@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <condition_variable>
 #include <mutex>
 #include <unistd.h>
 #include "dFPD.h"
@@ -38,6 +39,9 @@
 static int fpd_isInitialized = 0;
 static int fpd_isPlatInitialized = 0;
 static std::mutex fpd_initMutex;
+static std::condition_variable fpd_initCv;
+static bool fpd_initInProgress = false;
+static bool fpd_shutdownRequested = false;
 
 /** Structure that defines internal data base for the FP */
 typedef struct _dsFPDSettings_t_
@@ -94,7 +98,11 @@ public:
 
     void DeInitialiseHAL()
     {
-        std::lock_guard<std::mutex> lock(fpd_initMutex);
+        std::unique_lock<std::mutex> lock(fpd_initMutex);
+        fpd_shutdownRequested = true;
+        fpd_initCv.wait(lock, [] { return !fpd_initInProgress; });
+        fpd_shutdownRequested = false;
+
         if (fpd_isPlatInitialized)
         {
             dsFPTerm();
@@ -110,23 +118,31 @@ public:
         if (fpd_isPlatInitialized)
             return true;
 
+        fpd_initInProgress = true;
+
         dsError_t errorCode = dsERR_NONE;
         unsigned int retryCount = 1;
         do {
+            if (fpd_shutdownRequested) {
+                break;
+            }
+
             errorCode = dsFPInit();
             if (dsERR_NONE == errorCode) {
                 fpd_isPlatInitialized = 1;
                 DSLOG_INFO(" dsFPInit succeeded");
             } else {
                 DSLOG_ERR(" dsFPInit failed with error[%d]. Retrying... (%d/20)", errorCode, retryCount);
-                // Release the lock while sleeping so other threads aren't blocked on it.
                 lock.unlock();
                 usleep(50000);
                 lock.lock();
-                if (fpd_isPlatInitialized)
+                if (fpd_shutdownRequested || fpd_isPlatInitialized)
                     break;
             }
         } while ((!fpd_isPlatInitialized) && (retryCount++ < 20));
+
+        fpd_initInProgress = false;
+        fpd_initCv.notify_all();
 
         if (!fpd_isPlatInitialized) {
             DSLOG_ERR(" dsFPInit failed after 20 retries");
