@@ -21,7 +21,6 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <condition_variable>
 #include <mutex>
 #include <unistd.h>
 #include "dFPD.h"
@@ -37,10 +36,8 @@
 #include "DeviceSettingsTypes.h"
 
 static int fpd_isInitialized = 0;
+static int fpd_isPlatInitialized = 0;
 static std::mutex fpd_initMutex;
-static std::condition_variable fpd_initCv;
-static bool fpd_initInProgress = false;
-static bool fpd_shutdownRequested = false;
 
 /** Structure that defines internal data base for the FP */
 typedef struct _dsFPDSettings_t_
