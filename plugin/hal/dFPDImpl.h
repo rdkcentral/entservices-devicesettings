@@ -37,7 +37,6 @@
 #include "DeviceSettingsTypes.h"
 
 static int fpd_isInitialized = 0;
-static int fpd_isPlatInitialized = 0;
 static std::mutex fpd_initMutex;
 static std::condition_variable fpd_initCv;
 static bool fpd_initInProgress = false;
@@ -98,11 +97,7 @@ public:
 
     void DeInitialiseHAL()
     {
-        std::unique_lock<std::mutex> lock(fpd_initMutex);
-        fpd_shutdownRequested = true;
-        fpd_initCv.wait(lock, [] { return !fpd_initInProgress; });
-        fpd_shutdownRequested = false;
-
+        std::lock_guard<std::mutex> lock(fpd_initMutex);
         if (fpd_isPlatInitialized)
         {
             dsFPTerm();
@@ -114,20 +109,13 @@ public:
     // Mirrors FrontPanelConfig::getInstance(): retry dsFPInit() up to 20 times on first HAL use.
     bool EnsurePlatInit()
     {
-        std::unique_lock<std::mutex> lock(fpd_initMutex);
-        if (fpd_shutdownRequested || fpd_isPlatInitialized) {
-            return fpd_isPlatInitialized;
-        }
-
-        fpd_initInProgress = true;
+        std::lock_guard<std::mutex> lock(fpd_initMutex);
+        if (fpd_isPlatInitialized)
+            return true;
 
         dsError_t errorCode = dsERR_NONE;
         unsigned int retryCount = 1;
         do {
-            if (fpd_shutdownRequested) {
-                break;
-            }
-
             errorCode = dsFPInit();
             if (dsERR_NONE == errorCode) {
                 fpd_isPlatInitialized = 1;
@@ -135,13 +123,8 @@ public:
             } else {
                 DSLOG_ERR(" dsFPInit failed with error[%d]. Retrying... (%d/20)", errorCode, retryCount);
                 usleep(50000);
-                if (fpd_shutdownRequested || fpd_isPlatInitialized)
-                    break;
             }
         } while ((!fpd_isPlatInitialized) && (retryCount++ < 20));
-
-        fpd_initInProgress = false;
-        fpd_initCv.notify_all();
 
         if (!fpd_isPlatInitialized) {
             DSLOG_ERR(" dsFPInit failed after 20 retries");
