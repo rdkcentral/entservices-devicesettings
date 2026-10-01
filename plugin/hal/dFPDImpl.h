@@ -115,8 +115,9 @@ public:
     bool EnsurePlatInit()
     {
         std::unique_lock<std::mutex> lock(fpd_initMutex);
-        if (fpd_isPlatInitialized)
-            return true;
+        if (fpd_shutdownRequested || fpd_isPlatInitialized) {
+            return fpd_isPlatInitialized;
+        }
 
         fpd_initInProgress = true;
 
@@ -133,9 +134,7 @@ public:
                 DSLOG_INFO(" dsFPInit succeeded");
             } else {
                 DSLOG_ERR(" dsFPInit failed with error[%d]. Retrying... (%d/20)", errorCode, retryCount);
-                lock.unlock();
                 usleep(50000);
-                lock.lock();
                 if (fpd_shutdownRequested || fpd_isPlatInitialized)
                     break;
             }
