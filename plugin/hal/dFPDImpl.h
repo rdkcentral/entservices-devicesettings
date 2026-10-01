@@ -106,7 +106,7 @@ public:
     // Mirrors FrontPanelConfig::getInstance(): retry dsFPInit() up to 20 times on first HAL use.
     bool EnsurePlatInit()
     {
-        std::lock_guard<std::mutex> lock(fpd_initMutex);
+        std::unique_lock<std::mutex> lock(fpd_initMutex);
         if (fpd_isPlatInitialized)
             return true;
 
@@ -119,7 +119,12 @@ public:
                 DSLOG_INFO(" dsFPInit succeeded");
             } else {
                 DSLOG_ERR(" dsFPInit failed with error[%d]. Retrying... (%d/20)", errorCode, retryCount);
+                // Release the lock while sleeping so other threads aren't blocked on it.
+                lock.unlock();
                 usleep(50000);
+                lock.lock();
+                if (fpd_isPlatInitialized)
+                    break;
             }
         } while ((!fpd_isPlatInitialized) && (retryCount++ < 20));
 
@@ -379,6 +384,7 @@ public:
                 /* Persist Power.Color for POWER indicator
                  * Mirrors dsFPD.c _dsSetFPColor + enumToColor helper. */
                 if (static_cast<int>(indicator) == dsFPD_INDICATOR_POWER) {
+                    std::lock_guard<std::mutex> lock(fpd_initMutex);
                     _dsPowerLedColor = static_cast<dsFPDColor_t>(maskedColor);
                     try {
                         const char* colorStr = "BLUE";
