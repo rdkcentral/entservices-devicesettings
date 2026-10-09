@@ -25,7 +25,9 @@
 #include <dlfcn.h>
 #include <iostream>
 #include <functional>
+#include <mutex>
 #include <string>
+#include <utility>
 #include "dVideoPort.h"
 #include "dsVideoPort.h"
 #include "dsError.h"
@@ -58,10 +60,12 @@ static const dsDisplayColorDepth_t DEFAULT_COLOR_DEPTH = dsDISPLAY_COLORDEPTH_AU
 // static dsDisplayColorDepth_t hdmiColorDepth = DEFAULT_COLOR_DEPTH; // Unused variable - commented out
 
 // Static global callback functions for VideoPort events - following HdmiIn pattern
-static std::function<void(const ResolutionChange)> g_VideoPortResolutionPreChangeCallback;
-static std::function<void(const ResolutionChange)> g_VideoPortResolutionPostChangeCallback;
-static std::function<void(const VideoPortHdcpStatus)> g_VideoPortHDCPStatusChangeCallback;
-static std::function<void(const HDRStandard)> g_VideoPortVideoFormatUpdateCallback;
+// Each callback owns its own mutex/condition-variable (GuardedCallback) so one
+// callback type's invocation never blocks registration/invocation of another.
+static GuardedCallback<void(const ResolutionChange)> g_VideoPortResolutionPreChangeCallback;
+static GuardedCallback<void(const ResolutionChange)> g_VideoPortResolutionPostChangeCallback;
+static GuardedCallback<void(const VideoPortHdcpStatus)> g_VideoPortHDCPStatusChangeCallback;
+static GuardedCallback<void(const HDRStandard)> g_VideoPortVideoFormatUpdateCallback;
 
 class dVideoPortImpl : public hal::dVideoPort::IPlatform {
 
@@ -80,13 +84,31 @@ public:
     {
         DSLOG_INFO("Constructor");
         getInstance() = this; // Set static instance for callback access
+        // Precheck: drop any callback left over from a prior (already destroyed) instance.
+        // Reset() blocks until any invocation still in flight from that prior instance completes.
+        g_VideoPortResolutionPreChangeCallback.Reset();
+        g_VideoPortResolutionPostChangeCallback.Reset();
+        g_VideoPortHDCPStatusChangeCallback.Reset();
+        g_VideoPortVideoFormatUpdateCallback.Reset();
         InitialiseHAL();
     }
 
     virtual ~dVideoPortImpl()
     {
         DSLOG_INFO("Destructor");
+        Terminate();
+    }
+
+    // Stops the HAL from generating further events and blocks until any callback
+    // invocation already in flight completes. Idempotent - safe to call explicitly
+    // (to quiesce before tearing down dependent state) and again from the destructor.
+    void Terminate()
+    {
         DeInitialiseHAL();
+        g_VideoPortResolutionPreChangeCallback.Reset();
+        g_VideoPortResolutionPostChangeCallback.Reset();
+        g_VideoPortHDCPStatusChangeCallback.Reset();
+        g_VideoPortVideoFormatUpdateCallback.Reset();
         getInstance() = nullptr; // Clear static instance
     }
 
@@ -1420,20 +1442,20 @@ public:
             // Register Resolution Pre/Post Change callbacks
             if (bundle.OnResolutionPreChange) {
                 DSLOG_INFO("VideoPort Resolution PreChange Event Callback Registered");
-                g_VideoPortResolutionPreChangeCallback = bundle.OnResolutionPreChange;
+                g_VideoPortResolutionPreChangeCallback.Set(bundle.OnResolutionPreChange);
                 // Resolution callbacks are handled manually during resolution setting
             }
             
             if (bundle.OnResolutionPostChange) {
                 DSLOG_INFO("VideoPort Resolution PostChange Event Callback Registered");
-                g_VideoPortResolutionPostChangeCallback = bundle.OnResolutionPostChange;
+                g_VideoPortResolutionPostChangeCallback.Set(bundle.OnResolutionPostChange);
                 // Resolution callbacks are handled manually during resolution setting
             }
             
             // Register HDCP Status Callback with DS HAL
             if (bundle.OnHDCPStatusChange) {
                 DSLOG_INFO("VideoPort HDCP Status Change Event Callback Registered");
-                g_VideoPortHDCPStatusChangeCallback = bundle.OnHDCPStatusChange;
+                g_VideoPortHDCPStatusChangeCallback.Set(bundle.OnHDCPStatusChange);
                 
                 intptr_t handle = 0;
                 dsError_t eReturn = dsGetVideoPort(dsVIDEOPORT_TYPE_HDMI, 0, &handle);
@@ -1465,7 +1487,7 @@ public:
             // Register Video Format Update Callback with DS HAL
             if (bundle.OnVideoFormatUpdate) {
                 DSLOG_INFO("VideoPort Video Format Update Event Callback Registered");
-                g_VideoPortVideoFormatUpdateCallback = bundle.OnVideoFormatUpdate;
+                g_VideoPortVideoFormatUpdateCallback.Set(bundle.OnVideoFormatUpdate);
                 
                 dsError_t eRet = VideoPortRegisterVideoFormatUpdateCB(VideoPortVideoFormatUpdateCallback);
                 if (dsERR_NONE != eRet) {
@@ -1612,9 +1634,7 @@ public:
         _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPVERSION, protocolVersion);
         
         // Call the stored global callback if available
-        if (g_VideoPortHDCPStatusChangeCallback) {
-            g_VideoPortHDCPStatusChangeCallback(hdcpStatus);
-        }
+        g_VideoPortHDCPStatusChangeCallback.Invoke(hdcpStatus);
     }
 
     static void VideoPortVideoFormatUpdateCallback(dsHDRStandard_t videoFormat)
@@ -1644,9 +1664,7 @@ public:
         }
         
         // Call the stored global callback if available
-        if (g_VideoPortVideoFormatUpdateCallback) {
-            g_VideoPortVideoFormatUpdateCallback(hdrStandard);
-        }
+        g_VideoPortVideoFormatUpdateCallback.Invoke(hdrStandard);
     }
 
     // DS HAL Video Format Update Callback Registration
@@ -1736,9 +1754,7 @@ public:
         }
         
         // Call the stored global callback if available
-        if (g_VideoPortResolutionPreChangeCallback) {
-            g_VideoPortResolutionPreChangeCallback(resolutionChange);
-        }
+        g_VideoPortResolutionPreChangeCallback.Invoke(resolutionChange);
     }
 
     static void VideoPortPostResolutionChange(dsVideoPortResolution_t* resolution)
@@ -1788,9 +1804,7 @@ public:
         }
 
         // Call the stored global callback if available
-        if (g_VideoPortResolutionPostChangeCallback) {
-            g_VideoPortResolutionPostChangeCallback(resolutionChange);
-        }
+        g_VideoPortResolutionPostChangeCallback.Invoke(resolutionChange);
     }
 
     static void convertDSResolutionToResolutionChange(dsVideoPortResolution_t* dsResolution, ResolutionChange& resolutionChange)
@@ -2269,7 +2283,7 @@ private:
                     device::HostPersistence::getInstance().persistHostProperty("COMPONENT0.resolution", resolutionName);
                 #endif
                 DSLOG_INFO("Persisted Component resolution: %s", resolutionName.c_str());
-                _dsCompResolution = resolutionName;
+                _dsCompResolution = std::move(resolutionName);
                 
                 if (!IsCompatibleResolution(resolution.pixelResolution, getPixelResolutionByName(_dsHDMIResolution))) {
                     DSLOG_INFO("HDMI Resolution is not Compatible with Analog ports");
@@ -2286,13 +2300,13 @@ private:
                 /* dsVideoPort.c: _dsSetResolution BB case persists Baseband0.resolution */
                 device::HostPersistence::getInstance().persistHostProperty("Baseband0.resolution", resolutionName);
                 DSLOG_INFO("Persisted Baseband resolution: %s", resolutionName.c_str());
-                _dsBBResolution = resolutionName;
+                _dsBBResolution = std::move(resolutionName);
 
                 /* dsVideoPort.c: BB/RF branches always update the HDMI cache on mismatch, never persist it. */
                 if (!IsCompatibleResolution(resolution.pixelResolution, getPixelResolutionByName(_dsHDMIResolution))) {
                     std::string compatibleResolution = getCompatibleHDMIResolution(resolution);
                     DSLOG_INFO("New Compatible resolution is %s", compatibleResolution.c_str());
-                    _dsHDMIResolution = compatibleResolution;
+                    _dsHDMIResolution = std::move(compatibleResolution);
                 }
             } else if (portType == dsVIDEOPORT_TYPE_RF) {
                 /* dsVideoPort.c: _dsSetResolution RF case persists RF0.resolution */
@@ -2303,7 +2317,7 @@ private:
                 if (!IsCompatibleResolution(resolution.pixelResolution, getPixelResolutionByName(_dsHDMIResolution))) {
                     std::string compatibleResolution = getCompatibleHDMIResolution(resolution);
                     DSLOG_INFO("New Compatible resolution is %s", compatibleResolution.c_str());
-                    _dsHDMIResolution = compatibleResolution;
+                    _dsHDMIResolution = std::move(compatibleResolution);
                 }
             }
             

@@ -23,7 +23,9 @@
 #include <dlfcn.h>
 #include <iostream>
 #include <functional>
+#include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 #include "dDisplay.h"
 #include "dsDisplay.h"
@@ -62,9 +64,11 @@ static int             s_edidBytesCacheLength = 0;
 static pthread_mutex_t dsDisplayLock = PTHREAD_MUTEX_INITIALIZER;
 
 // Static global callback functions for Display events
-static std::function<void(const uint8_t, const bool)> g_DisplayRxSenseCallback;
-static std::function<void(const uint8_t, const int32_t)> g_DisplayHDCPStatusCallback;
-static std::function<void(const uint8_t, const bool)> g_DisplayHDMIHotPlugCallback;
+// Each callback owns its own mutex/condition-variable (GuardedCallback) so one
+// callback type's invocation never blocks registration/invocation of another.
+static GuardedCallback<void(const uint8_t, const bool)> g_DisplayRxSenseCallback;
+static GuardedCallback<void(const uint8_t, const int32_t)> g_DisplayHDCPStatusCallback;
+static GuardedCallback<void(const uint8_t, const bool)> g_DisplayHDMIHotPlugCallback;
 
 class dDisplayImpl : public hal::dDisplay::IPlatform {
 
@@ -77,13 +81,24 @@ public:
     {
         DSLOG_INFO("Constructor");
         getInstance() = this; // Set static instance for callback access
+        // Precheck: drop any callback left over from a prior (already destroyed) instance.
+        // Reset() blocks until any invocation still in flight from that prior instance completes.
+        g_DisplayRxSenseCallback.Reset();
+        g_DisplayHDCPStatusCallback.Reset();
+        g_DisplayHDMIHotPlugCallback.Reset();
         InitialiseHAL();
     }
 
     virtual ~dDisplayImpl()
     {
         DSLOG_INFO("Destructor");
+        // Stop the HAL first so no further asynchronous callbacks can be
+        // dispatched, then Reset() below blocks until any invocation already
+        // in flight completes before this instance is destroyed.
         DeInitialiseHAL();
+        g_DisplayRxSenseCallback.Reset();
+        g_DisplayHDCPStatusCallback.Reset();
+        g_DisplayHDMIHotPlugCallback.Reset();
         getInstance() = nullptr; // Clear static instance
     }
 
@@ -146,9 +161,9 @@ public:
         
         if (!display_isInitialized) {
             // Set the global callback function pointers
-            g_DisplayRxSenseCallback = bundle.OnDisplayRxSense;
-            g_DisplayHDCPStatusCallback = bundle.OnDisplayHDCPStatus;
-            g_DisplayHDMIHotPlugCallback = bundle.OnDisplayHDMIHotPlug;
+            g_DisplayRxSenseCallback.Set(bundle.OnDisplayRxSense);
+            g_DisplayHDCPStatusCallback.Set(bundle.OnDisplayHDCPStatus);
+            g_DisplayHDMIHotPlugCallback.Set(bundle.OnDisplayHDMIHotPlug);
 
             // Register HAL callbacks
             registerDisplayEventCallbacks();
@@ -276,17 +291,19 @@ public:
             return retCode;
         }
 
+        pthread_mutex_lock(&dsDisplayLock);
+
         /* Mirror dsDisplay.c _dsGetEDIDBytes: serve from cache if available
-         * (reset to false on dsDISPLAY_EVENT_DISCONNECTED). */
+         * (reset to false on dsDISPLAY_EVENT_DISCONNECTED). Checked under
+         * dsDisplayLock since it is also written under the same lock below. */
         if (isEdidBytesCached && s_edidBytesCacheLength > 0 &&
             s_edidBytesCacheLength <= static_cast<int>(edidLength)) {
             memcpy(edIdBytes, s_edidBytesCache, s_edidBytesCacheLength);
             DSLOG_INFO(" returning cached EDID bytes, length=%d", s_edidBytesCacheLength);
+            pthread_mutex_unlock(&dsDisplayLock);
             return WPEFramework::Core::ERROR_NONE;
         }
-        
-        pthread_mutex_lock(&dsDisplayLock);
-        
+
         // Use resolve method for dsGetEDIDBytes (matches dsDisplay.c pattern)
         typedef dsError_t (*dsGetEDIDBytes_t)(intptr_t handle, uint8_t *edidBytes, int *actualLength);
         static dsGetEDIDBytes_t func = 0;
@@ -396,8 +413,12 @@ public:
         DSLOG_INFO(" handle=%d", handle);
         supportedResolutionList = nullptr;
 
+        pthread_mutex_lock(&dsDisplayLock);
+
         /* Mirror dsDisplay.c _dsGetEDID: serve from cache when available.
-         * Cache is reset to false on dsDISPLAY_EVENT_DISCONNECTED. */
+         * Cache is reset to false on dsDISPLAY_EVENT_DISCONNECTED.
+         * isEdidCached must be checked under dsDisplayLock since it is also
+         * written under the same lock below. */
         if (isEdidCached) {
             edId.productCode            = s_edidStructCache.productCode;
             edId.serialNumber           = s_edidStructCache.serialNumber;
@@ -414,13 +435,14 @@ public:
             buildSupportedResolutionIterator(s_edidStructCache, supportedResolutionList);
             DSLOG_INFO(" returned %d cached supported resolutions", s_edidStructCache.numOfSupportedResolution);
             DSLOG_INFO(" returning cached EDID");
+            pthread_mutex_unlock(&dsDisplayLock);
             return WPEFramework::Core::ERROR_NONE;
         }
-        
-        pthread_mutex_lock(&dsDisplayLock);
-        
-        // Use direct call for dsGetEDID (matches dsDisplay.c _dsGetEDID pattern)
-        dsDisplayEDID_t halEdid;
+
+        // Use direct call for dsGetEDID (matches dsDisplay.c _dsGetEDID pattern).
+        // Read straight into s_edidStructCache instead of a stack-local dsDisplayEDID_t
+        // (~13KB) to avoid an oversized stack frame; still guarded by dsDisplayLock.
+        dsDisplayEDID_t& halEdid = s_edidStructCache;
         memset(&halEdid, 0, sizeof(halEdid));
         dsError_t eError = dsGetEDID(handle, &halEdid);
         if (eError == dsERR_NONE) {
@@ -428,8 +450,7 @@ public:
              * down to those the platform can actually output, before caching/dumping. */
             filterEDIDResolution(handle, halEdid);
 
-            /* Populate cache and dump EDID info — mirrors dsDisplay.c pattern */
-            memcpy(&s_edidStructCache, &halEdid, sizeof(dsDisplayEDID_t));
+            /* halEdid already refers to s_edidStructCache — mirrors dsDisplay.c pattern */
             isEdidCached = true;
             dumpEDIDInformation(&halEdid);
             dumpHdmiEdidInfo(&halEdid);
@@ -469,7 +490,8 @@ public:
         std::vector<DisplayVideoPortResolution> resolutions;
         resolutions.reserve(static_cast<size_t>(halEdid.numOfSupportedResolution));
 
-        const int maxResolutions = static_cast<int>(dsEEDID_MAX_VIDEO_CODE * dsVIDEO_SSMODE_MAX);
+        // Bound by the actual array extent, not a macro product that may not match it.
+        const int maxResolutions = static_cast<int>(sizeof(halEdid.suppResolutionList) / sizeof(halEdid.suppResolutionList[0]));
         const int resolutionCount = (halEdid.numOfSupportedResolution < maxResolutions)
             ? halEdid.numOfSupportedResolution
             : maxResolutions;
@@ -483,7 +505,7 @@ public:
             resolution.stereoScopicMode = static_cast<DisplayInVideoStereoScopicMode>(halResolution.stereoScopicMode);
             resolution.frameRate = static_cast<DisplayInVideoFrameRate>(halResolution.frameRate);
             resolution.interlaced = halResolution.interlaced;
-            resolutions.push_back(resolution);
+            resolutions.push_back(std::move(resolution));
         }
 
         using ResolutionIterator = WPEFramework::RPC::IteratorType<IDSVideoPortResolutionIterator>;
@@ -519,10 +541,16 @@ public:
         }
         DSLOG_INFO(" EDID for HDMI port; filtering against platform-supported resolutions");
 
+        if (edid.numOfSupportedResolution <= 0) {
+            DSLOG_INFO(" no HAL-reported resolutions to filter");
+            return;
+        }
+
         std::vector<VideoPortResolution> platformResolutions;
         DeviceSettingsHAL::PopulateVideoPortResolutionConfig(VideoPortType::DS_VIDEO_PORT_TYPE_HDMI, platformResolutions);
 
-        const int maxResolutions = static_cast<int>(dsEEDID_MAX_VIDEO_CODE * dsVIDEO_SSMODE_MAX);
+        // Bound by the actual array extent, not a macro product that may not match it.
+        const int maxResolutions = static_cast<int>(sizeof(edid.suppResolutionList) / sizeof(edid.suppResolutionList[0]));
         const int originalCount = (edid.numOfSupportedResolution < maxResolutions)
             ? edid.numOfSupportedResolution
             : maxResolutions;
@@ -764,16 +792,12 @@ private:
 
         switch (dsDisplayEvent) {
             case dsDISPLAY_RXSENSE_ON: // DS_DISPLAY_RXSENSE_ON equivalent
-                if (g_DisplayRxSenseCallback) {
-                    g_DisplayRxSenseCallback(port, true);
-                }
+                g_DisplayRxSenseCallback.Invoke(port, true);
                 break;
                 
             case dsDISPLAY_RXSENSE_OFF: // DS_DISPLAY_RXSENSE_OFF equivalent  
                 TELEMETRY_EVENT_INT("HDMI_INFO_tv_off", 1);
-                if (g_DisplayRxSenseCallback) {
-                    g_DisplayRxSenseCallback(port, false);
-                }
+                g_DisplayRxSenseCallback.Invoke(port, false);
                 break;
                 
             case dsDISPLAY_HDCPPROTOCOL_CHANGE: // DS_DISPLAY_HDCPPROTOCOL_CHANGE equivalent
@@ -795,22 +819,22 @@ private:
                 // current sink capabilities before announcing connected state.
                 dVideoPortImpl::ApplyPreferredColorDepthAfterHdmiReset();
                 _dsSyncHdmiStatus(DS_HDMI_TAG_HOTPLUP, dsDISPLAY_EVENT_CONNECTED);
-                if (g_DisplayHDMIHotPlugCallback) {
-                    g_DisplayHDMIHotPlugCallback(port, true);
-                }
+                g_DisplayHDMIHotPlugCallback.Invoke(port, true);
                 break;
                 
             case dsDISPLAY_EVENT_DISCONNECTED: // DS_DISPLAY_EVENT_DISCONNECTED equivalent
                 /* Mirror dsDisplay.c _dsDisplayEventCallback: reset EDID caches
-                 * so next GetDisplayEdid/GetDisplayEdidBytes re-reads from HAL. */
+                 * so next GetDisplayEdid/GetDisplayEdidBytes re-reads from HAL.
+                 * Guarded by dsDisplayLock since the caches are also read/written
+                 * under that lock in GetDisplayEdid/GetDisplayEdidBytes. */
+                pthread_mutex_lock(&dsDisplayLock);
                 isEdidCached = false;
                 isEdidBytesCached = false;
                 s_edidBytesCacheLength = 0;
+                pthread_mutex_unlock(&dsDisplayLock);
                 DSLOG_INFO(" DISCONNECTED — EDID caches invalidated");
                 _dsSyncHdmiStatus(DS_HDMI_TAG_HOTPLUP, dsDISPLAY_EVENT_DISCONNECTED);
-                if (g_DisplayHDMIHotPlugCallback) {
-                    g_DisplayHDMIHotPlugCallback(port, false);
-                }
+                g_DisplayHDMIHotPlugCallback.Invoke(port, false);
                 break;
                 
             default:

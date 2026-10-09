@@ -23,7 +23,9 @@
 #include <dlfcn.h>
 #include <iostream>
 #include <functional>
+#include <mutex>
 #include <string>
+#include <utility>
 #include "dCompositeIn.h"
 #include "dsCompositeIn.h"
 #include "dsError.h"
@@ -55,10 +57,12 @@ static int compositeIn_isPlatInitialized = 0;
 static pthread_mutex_t dsCompositeInLock = PTHREAD_MUTEX_INITIALIZER;
 
 // Static global callback functions for CompositeIn events - using WPE Framework types
-static std::function<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const bool)> g_CompositeInHotPlugCallback;
-static std::function<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus)> g_CompositeInSignalStatusCallback;
-static std::function<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const bool)> g_CompositeInStatusCallback;
-static std::function<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution)> g_CompositeInVideoModeUpdateCallback;
+// Each callback owns its own mutex/condition-variable (GuardedCallback) so one
+// callback type's invocation never blocks registration/invocation of another.
+static GuardedCallback<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const bool)> g_CompositeInHotPlugCallback;
+static GuardedCallback<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus)> g_CompositeInSignalStatusCallback;
+static GuardedCallback<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const bool)> g_CompositeInStatusCallback;
+static GuardedCallback<void(const WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort, const WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution)> g_CompositeInVideoModeUpdateCallback;
 
 class dCompositeInImpl : public hal::dCompositeIn::IPlatform {
 
@@ -71,13 +75,26 @@ public:
     {
         DSLOG_INFO("Constructor");
         getInstance() = this; // Set static instance for callback access
+        // Precheck: drop any callback left over from a prior (already destroyed) instance.
+        // Reset() blocks until any invocation still in flight from that prior instance completes.
+        g_CompositeInHotPlugCallback.Reset();
+        g_CompositeInSignalStatusCallback.Reset();
+        g_CompositeInStatusCallback.Reset();
+        g_CompositeInVideoModeUpdateCallback.Reset();
         InitialiseHAL();
     }
 
     virtual ~dCompositeInImpl()
     {
         DSLOG_INFO("Destructor");
+        // Quiesce the HAL first so no further asynchronous callbacks can be
+        // dispatched, then Reset() below blocks until any invocation already
+        // in flight completes before this instance is destroyed.
         DeInitialiseHAL();
+        g_CompositeInHotPlugCallback.Reset();
+        g_CompositeInSignalStatusCallback.Reset();
+        g_CompositeInStatusCallback.Reset();
+        g_CompositeInVideoModeUpdateCallback.Reset();
         getInstance() = nullptr; // Clear static instance
     }
 
@@ -177,10 +194,10 @@ public:
         
         if (!compositeIn_isInitialized) {
             // Set the global callback function pointers from CallbackBundle
-            g_CompositeInHotPlugCallback = bundle.OnCompositeInHotPlug;
-            g_CompositeInSignalStatusCallback = bundle.OnCompositeInSignalStatus;
-            g_CompositeInStatusCallback = bundle.OnCompositeInStatus;
-            g_CompositeInVideoModeUpdateCallback = bundle.OnCompositeInVideoModeUpdate;
+            g_CompositeInHotPlugCallback.Set(bundle.OnCompositeInHotPlug);
+            g_CompositeInSignalStatusCallback.Set(bundle.OnCompositeInSignalStatus);
+            g_CompositeInStatusCallback.Set(bundle.OnCompositeInStatus);
+            g_CompositeInVideoModeUpdateCallback.Set(bundle.OnCompositeInVideoModeUpdate);
 
             // Register HAL callbacks
             registerCompositeInEventCallbacks();
@@ -349,10 +366,10 @@ public:
         return static_cast<CompositeInSignalStatus>(signalStatus);
     }
 
-    static WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution convertToWPEDisplayVideoPortResolution(const DisplayVideoPortResolution resolution)
+    static WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution convertToWPEDisplayVideoPortResolution(DisplayVideoPortResolution resolution)
     {
         WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution wpeResolution;
-        wpeResolution.name = resolution.name;
+        wpeResolution.name = std::move(resolution.name);
         wpeResolution.pixelResolution = static_cast<WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayTVResolution>(resolution.pixelResolution);
         wpeResolution.aspectRatio = static_cast<WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoAspectRatio>(resolution.aspectRatio);
         wpeResolution.frameRate = static_cast<WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayInVideoFrameRate>(resolution.frameRate);
@@ -449,23 +466,19 @@ private:
     {
         DSLOG_INFO(" port=%d, isPortConnected=%s", static_cast<int>(port), isPortConnected ? "true" : "false");
         
-        if (g_CompositeInHotPlugCallback) {
-            // Convert DS HAL type directly to WPE Framework type
-            WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort wpePort = convertToWPECompositeInPort(static_cast<CompositeInPort>(port));
-            g_CompositeInHotPlugCallback(wpePort, isPortConnected);
-        }
+        // Convert DS HAL type directly to WPE Framework type
+        WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort wpePort = convertToWPECompositeInPort(static_cast<CompositeInPort>(port));
+        g_CompositeInHotPlugCallback.Invoke(wpePort, isPortConnected);
     }
 
     static void dsCompositeInSignalChangeCallback(dsCompositeInPort_t port, dsCompInSignalStatus_t sigStatus)
     {
         DSLOG_INFO(" port=%d, sigStatus=%d", static_cast<int>(port), static_cast<int>(sigStatus));
         
-        if (g_CompositeInSignalStatusCallback) {
-            // Convert DS HAL types directly to WPE Framework types
-            WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort wpePort = convertToWPECompositeInPort(static_cast<CompositeInPort>(port));
-            WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus wpeSignalStatus = convertToWPECompositeInSignalStatus(static_cast<CompositeInSignalStatus>(sigStatus));
-            g_CompositeInSignalStatusCallback(wpePort, wpeSignalStatus);
-        }
+        // Convert DS HAL types directly to WPE Framework types
+        WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort wpePort = convertToWPECompositeInPort(static_cast<CompositeInPort>(port));
+        WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInSignalStatus wpeSignalStatus = convertToWPECompositeInSignalStatus(static_cast<CompositeInSignalStatus>(sigStatus));
+        g_CompositeInSignalStatusCallback.Invoke(wpePort, wpeSignalStatus);
     }
 
     static void dsCompositeInStatusChangeCallback(dsCompositeInStatus_t inputStatus)
@@ -473,11 +486,9 @@ private:
         DSLOG_INFO(" activePort=%d, isPresented=%s",
                 static_cast<int>(inputStatus.activePort), inputStatus.isPresented ? "true" : "false");
         
-        if (g_CompositeInStatusCallback) {
-            // Convert DS HAL type directly to WPE Framework type
-            WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort wpePort = convertToWPECompositeInPort(static_cast<CompositeInPort>(inputStatus.activePort));
-            g_CompositeInStatusCallback(wpePort, inputStatus.isPresented);
-        }
+        // Convert DS HAL type directly to WPE Framework type
+        WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort wpePort = convertToWPECompositeInPort(static_cast<CompositeInPort>(inputStatus.activePort));
+        g_CompositeInStatusCallback.Invoke(wpePort, inputStatus.isPresented);
     }
 
     static void dsCompositeInVideoModeUpdateCallback(dsCompositeInPort_t port, dsVideoPortResolution_t videoResolution)
@@ -487,21 +498,19 @@ private:
                 videoResolution.name, videoResolution.pixelResolution, videoResolution.aspectRatio, 
                 videoResolution.stereoScopicMode, videoResolution.frameRate);
         
-        if (g_CompositeInVideoModeUpdateCallback) {
-            // Convert DS HAL types to WPE Framework types
-            WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort wpePort = convertToWPECompositeInPort(static_cast<CompositeInPort>(port));
-            
-            // Convert DS HAL dsVideoPortResolution_t to DisplayVideoPortResolution
-            DisplayVideoPortResolution halResolution;
-            halResolution.name = std::string(videoResolution.name);
-            halResolution.pixelResolution = static_cast<DisplayTVResolution>(videoResolution.pixelResolution);
-            halResolution.aspectRatio = static_cast<DisplayVideoAspectRatio>(videoResolution.aspectRatio);
-            halResolution.stereoScopicMode = static_cast<DisplayInVideoStereoScopicMode>(videoResolution.stereoScopicMode);
-            halResolution.frameRate = static_cast<DisplayInVideoFrameRate>(videoResolution.frameRate);
-            halResolution.interlaced = videoResolution.interlaced;
-            
-            WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution wpeResolution = convertToWPEDisplayVideoPortResolution(halResolution);
-            g_CompositeInVideoModeUpdateCallback(wpePort, wpeResolution);
-        }
+        // Convert DS HAL types to WPE Framework types
+        WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort wpePort = convertToWPECompositeInPort(static_cast<CompositeInPort>(port));
+        
+        // Convert DS HAL dsVideoPortResolution_t to DisplayVideoPortResolution
+        DisplayVideoPortResolution halResolution;
+        halResolution.name = std::string(videoResolution.name);
+        halResolution.pixelResolution = static_cast<DisplayTVResolution>(videoResolution.pixelResolution);
+        halResolution.aspectRatio = static_cast<DisplayVideoAspectRatio>(videoResolution.aspectRatio);
+        halResolution.stereoScopicMode = static_cast<DisplayInVideoStereoScopicMode>(videoResolution.stereoScopicMode);
+        halResolution.frameRate = static_cast<DisplayInVideoFrameRate>(videoResolution.frameRate);
+        halResolution.interlaced = videoResolution.interlaced;
+        
+        WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution wpeResolution = convertToWPEDisplayVideoPortResolution(std::move(halResolution));
+        g_CompositeInVideoModeUpdateCallback.Invoke(wpePort, std::move(wpeResolution));
     }
 };
