@@ -238,6 +238,7 @@ jobs:
           rdk/iarmbus/libIARM.h
           rdk/iarmbus/libIBus.h
           rdk/iarmbus/libIBusDaemon.h
+          rdk/iarmbus/iarmUtil.h
           rdk/halif/deepsleep-manager/deepSleepMgr.h
           rdk/iarmmgrs-hal/mfrMgr.h
           rdk/iarmmgrs-hal/sysMgr.h
@@ -398,6 +399,7 @@ jobs:
           -Wall -Wno-unused-result -Wno-deprecated-declarations -Wno-error=format=
           -DUSE_IARMBUS
           -DRDK_SERVICE_L2_TEST
+          -DDS_MGR_EVENTID_T_PROVIDED_BY_DEVICESETTINGS
           -DENABLE_SYSTEM_GET_STORE_DEMO_LINK
           -DENABLE_DEEP_SLEEP
           -DENABLE_SET_WAKEUP_SRC_CONFIG

@@ -321,6 +321,7 @@ jobs:
           rdk/iarmbus/libIARM.h
           rdk/iarmbus/libIBus.h
           rdk/iarmbus/libIBusDaemon.h
+          rdk/iarmbus/iarmUtil.h
           rdk/halif/deepsleep-manager/deepSleepMgr.h
           rdk/iarmmgrs-hal/mfrMgr.h
           rdk/iarmmgrs-hal/sysMgr.h
