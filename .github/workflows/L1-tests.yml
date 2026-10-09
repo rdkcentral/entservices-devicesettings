@@ -49,7 +49,6 @@ jobs:
         with:
           path: |
             build/Thunder
-            build/entservices-apis
             build/entservices-helpers
             build/ThunderTools
             install
@@ -67,7 +66,8 @@ jobs:
             !install/usr/lib/pkgconfig/gtest.pc
             !install/usr/lib/pkgconfig/gtest_main.pc
             !install/usr/lib/wpeframework/plugins
-          key: ${{ runner.os }}-${{ env.THUNDER_COMMIT_SHA }}-${{ env.INTERFACES_REF }}-5
+          # Bumped -6 -> -7: do not restore stale ProxyStubGenerator output as APIs develop changes.
+          key: ${{ runner.os }}-${{ env.THUNDER_COMMIT_SHA }}-${{ env.INTERFACES_REF }}-7
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -126,7 +126,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: 2.0.3
+          ref: develop
 
       - name: Checkout rdk-halif-device_settings
         uses: actions/checkout@v3
@@ -276,11 +276,6 @@ jobs:
           &&
           cmake --install build/entservices-helpers
 
-      - name: Copy DeviceSettings interface headers
-        run: |
-          mkdir -p "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces"
-          find "$GITHUB_WORKSPACE/entservices-apis/apis/DeviceSettings" -name "IDeviceSettings*.h" -exec cp {} "$GITHUB_WORKSPACE/install/usr/include/WPEFramework/interfaces/" \; 2>/dev/null || true
-
       - name: Generate external headers
         # Empty headers to mute errors
         run: >
@@ -305,21 +300,7 @@ jobs:
           ccec/drivers/CecIARMBusMgr.h
           rdk/ds/audioOutputPort.hpp
           rdk/ds/compositeIn.hpp
-          rdk/ds/dsDisplay.h
-          rdk/ds/dsError.h
           rdk/ds/dsMgr.h
-          rdk/ds/dsTypes.h
-          rdk/ds/dsUtl.h
-          rdk/ds/dsAudio.h
-          rdk/ds/dsHdmiIn.h
-          rdk/ds/dsHost.h
-          rdk/ds/dsFPD.h
-          rdk/ds/dsFPDTypes.h
-          rdk/ds/dsCompositeIn.h
-          rdk/ds/dsCompositeInTypes.h
-          rdk/ds/dsAVDTypes.h
-          rdk/ds/dsHdmiInTypes.h
-          rdk/ds/dsHostTypes.h
           rdk/ds/exception.hpp
           rdk/ds/hdmiIn.hpp
           rdk/ds/host.hpp
@@ -340,6 +321,7 @@ jobs:
           rdk/iarmbus/libIARM.h
           rdk/iarmbus/libIBus.h
           rdk/iarmbus/libIBusDaemon.h
+          rdk/iarmbus/iarmUtil.h
           rdk/halif/deepsleep-manager/deepSleepMgr.h
           rdk/iarmmgrs-hal/mfrMgr.h
           rdk/iarmmgrs-hal/sysMgr.h
@@ -523,8 +505,6 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=Debug
-          -DDS_FOUND=ON
-          -DHAS_FRONT_PANEL=ON
           -DPLUGIN_DEVICESETTINGS=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
@@ -600,8 +580,6 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=Debug
-          -DDS_FOUND=ON
-          -DHAS_FRONT_PANEL=ON
           -DPLUGIN_DEVICESETTINGS=ON
           -DRDK_SERVICES_L1_TEST=ON
           -DUSE_THUNDER_R4=ON
