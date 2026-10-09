@@ -169,7 +169,9 @@ jobs:
           repository: rdkcentral/entservices-apis
           path: entservices-apis
           ref: ${{env.INTERFACES_REF}}
-          run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
+
+      - name: Remove DTV.json
+        run: rm -rf $GITHUB_WORKSPACE/entservices-apis/jsonrpc/DTV.json
 
       - name: Apply patches entservices-apis
         run: |
@@ -215,10 +217,7 @@ jobs:
           ccec/drivers/CecIARMBusMgr.h
           rdk/ds/audioOutputPort.hpp
           rdk/ds/compositeIn.hpp
-          rdk/ds/dsError.h
           rdk/ds/dsMgr.h
-          rdk/ds/dsTypes.h
-          rdk/ds/dsUtl.h
           rdk/ds/exception.hpp
           rdk/ds/hdmiIn.hpp
           rdk/ds/host.hpp
@@ -417,13 +416,8 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-          -DDS_FOUND=ON
-          -DHAS_FRONT_PANEL=ON
-          -DPLUGIN_LEDCONTROL=ON
-          -DPLUGIN_FRONTPANEL=OFF
-          -DPLUGIN_MOTION_DETECTION=ON
+          -DPLUGIN_DEVICESETTINGS=ON
           -DRDK_SERVICE_L2_TEST=${{env.RDK_SERVICE_L2_TEST}}
-          -DPLUGIN_L2Tests=OFF
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           &&
@@ -455,7 +449,6 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmmgrs-hal
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/ccec/drivers
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
-          -I $GITHUB_WORKSPACE/entservices-devicesettings/helpers
           -I $GITHUB_WORKSPACE/entservices-helpers/helpers
           -I $GITHUB_WORKSPACE/install/usr/include
           -I $GITHUB_WORKSPACE/install/usr/include/WPEFramework
@@ -493,12 +486,7 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-          -DDS_FOUND=ON
-          -DHAS_FRONT_PANEL=ON
-          -DPLUGIN_FRONTPANEL=OFF
-          -DPLUGIN_MOTION_DETECTION=ON
           -DRDK_SERVICE_L2_TEST=${{env.RDK_SERVICE_L2_TEST}}
-          -DPLUGIN_L2Tests=OFF
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           &&
@@ -624,7 +612,7 @@ jobs:
           rm -rf $(pwd)/rdkL2TestResults.json
           
       - name: Generate coverage
-        if: ${{ matrix.coverage == 'with-coverage' && !env.ACT && env.RDK_SERVICE_L2_TEST == 'ON'}}
+        if: ${{ matrix.coverage == 'with-coverage' && !env.ACT && env.RDK_SERVICE_L2_TEST == 'ON' && inputs.caller_source != 'testframework' }}
         run: >
           cp $GITHUB_WORKSPACE/entservices-testframework/Tests/L2Tests/.lcovrc_l2 ~/.lcovrc
           &&
@@ -687,6 +675,4 @@ jobs:
           ccec/drivers/CecIARMBusMgr.h
           rdk/ds/audioOutputPort.hpp
           rdk/ds/compositeIn.hpp
-          rdk/ds/dsError.h
           rdk/ds/dsMgr.h
-          rdk/ds/dsTypes.h
