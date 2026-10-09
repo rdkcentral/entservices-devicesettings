@@ -68,7 +68,7 @@ DeviceSettings_L2Test::DeviceSettings_L2Test()
 
 void DeviceSettings_L2Test::SetUp()
 {
-    const uint32_t status = ActivateServiceWithRetry("org.rdk.DeviceSettings", 5, 1000);
+    static const uint32_t status = ActivateServiceWithRetry("org.rdk.DeviceSettings", 5, 1000);
     m_deviceSettingsActivated = (status == Core::ERROR_NONE);
     ASSERT_EQ(Core::ERROR_NONE, status);
 }
@@ -83,15 +83,6 @@ DeviceSettings_L2Test::~DeviceSettings_L2Test()
     if (m_controller_DeviceSettings != nullptr) {
         m_controller_DeviceSettings->Release();
         m_controller_DeviceSettings = nullptr;
-    }
-
-    if (m_deviceSettingsActivated) {
-        uint32_t status = DeactivateService("org.rdk.DeviceSettings");
-        if (status == Core::ERROR_INPROGRESS) {
-            // Deactivation is asynchronous; wait for it to actually complete.
-            status = WaitForPluginState("org.rdk.DeviceSettings", "deactivated", 5000);
-        }
-        EXPECT_EQ(Core::ERROR_NONE, status);
     }
 }
 
