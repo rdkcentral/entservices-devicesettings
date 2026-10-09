@@ -86,7 +86,11 @@ DeviceSettings_L2Test::~DeviceSettings_L2Test()
     }
 
     if (m_deviceSettingsActivated) {
-        const uint32_t status = DeactivateService("org.rdk.DeviceSettings");
+        uint32_t status = DeactivateService("org.rdk.DeviceSettings");
+        if (status == Core::ERROR_INPROGRESS) {
+            // Deactivation is asynchronous; wait for it to actually complete.
+            status = WaitForPluginState("org.rdk.DeviceSettings", "deactivated", 5000);
+        }
         EXPECT_EQ(Core::ERROR_NONE, status);
     }
 }
