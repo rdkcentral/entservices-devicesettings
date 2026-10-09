@@ -488,7 +488,7 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_RBus=ON
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-          -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--push-state,--no-as-needed,$GITHUB_WORKSPACE/install/usr/lib/libWPEFrameworkL2TestsDS.so,--pop-state"
+          -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--push-state,--no-as-needed,$GITHUB_WORKSPACE/install/usr/lib/libWPEFrameworkL2TestsDS.so,$GITHUB_WORKSPACE/install/usr/lib/libds-hal.so,--pop-state"
           -DRDK_SERVICE_L2_TEST=${{env.RDK_SERVICE_L2_TEST}}
           -DUSE_THUNDER_R4=ON
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
