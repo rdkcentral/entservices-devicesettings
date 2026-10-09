@@ -49,7 +49,6 @@ jobs:
         with:
           path: |
             build/Thunder
-            build/entservices-apis
             build/entservices-helpers
             build/ThunderTools
             install
@@ -67,11 +66,8 @@ jobs:
             !install/usr/lib/pkgconfig/gtest.pc
             !install/usr/lib/pkgconfig/gtest_main.pc
             !install/usr/lib/wpeframework/plugins
-          # Bumped -5 -> -6: entservices-apis@develop removed apis/Netflix/INetflix.h
-          # (commit 45537489) and the previously cached build/entservices-apis still
-          # contained a stale generated/ProxyStubs_Netflix.cpp depending on it, since
-          # this key is keyed by branch name (INTERFACES_REF) rather than commit SHA.
-          key: ${{ runner.os }}-${{ env.THUNDER_COMMIT_SHA }}-${{ env.INTERFACES_REF }}-6
+          # Bumped -6 -> -7: do not restore stale ProxyStubGenerator output as APIs develop changes.
+          key: ${{ runner.os }}-${{ env.THUNDER_COMMIT_SHA }}-${{ env.INTERFACES_REF }}-7
 
       - name: Set up Python
         uses: actions/setup-python@v4
