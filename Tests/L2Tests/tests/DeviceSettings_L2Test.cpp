@@ -48,6 +48,8 @@ class DeviceSettings_L2Test : public L2TestMocks {
 protected:
     PluginHost::IShell* m_controller_DeviceSettings;
     Exchange::IDeviceSettings* m_deviceSettingsPlugin;
+    bool m_deviceSettingsActivated;
+    void SetUp() override;
 
 public:
     DeviceSettings_L2Test();
@@ -60,11 +62,15 @@ DeviceSettings_L2Test::DeviceSettings_L2Test()
     : L2TestMocks()
     , m_controller_DeviceSettings(nullptr)
     , m_deviceSettingsPlugin(nullptr)
+    , m_deviceSettingsActivated(false)
 {
-    uint32_t status = Core::ERROR_GENERAL;
+}
 
-    status = ActivateService("org.rdk.DeviceSettings");
-    EXPECT_EQ(Core::ERROR_NONE, status);
+void DeviceSettings_L2Test::SetUp()
+{
+    const uint32_t status = ActivateServiceWithRetry("org.rdk.DeviceSettings", 5, 1000);
+    m_deviceSettingsActivated = (status == Core::ERROR_NONE);
+    ASSERT_EQ(Core::ERROR_NONE, status);
 }
 
 DeviceSettings_L2Test::~DeviceSettings_L2Test()
@@ -79,12 +85,18 @@ DeviceSettings_L2Test::~DeviceSettings_L2Test()
         m_controller_DeviceSettings = nullptr;
     }
 
-    uint32_t status = DeactivateService("org.rdk.DeviceSettings");
-    EXPECT_EQ(Core::ERROR_NONE, status);
+    if (m_deviceSettingsActivated) {
+        const uint32_t status = DeactivateService("org.rdk.DeviceSettings");
+        EXPECT_EQ(Core::ERROR_NONE, status);
+    }
 }
 
 uint32_t DeviceSettings_L2Test::CreateDeviceSettingsInterfaceObject()
 {
+    if (!m_deviceSettingsActivated) {
+        return Core::ERROR_UNAVAILABLE;
+    }
+
     uint32_t return_value = Core::ERROR_GENERAL;
     Core::ProxyType<RPC::InvokeServerType<1, 0, 4>> DeviceSettings_Engine;
     Core::ProxyType<RPC::CommunicatorClient> DeviceSettings_Client;
