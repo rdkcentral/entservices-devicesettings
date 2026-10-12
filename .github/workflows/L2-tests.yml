@@ -114,7 +114,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: feature/RDKEMW-25013_4
 
       - name: Checkout googletest
         if: steps.cache.outputs.cache-hit != 'true'
@@ -291,25 +291,6 @@ jobs:
           &&
           cmake --install build/googletest
 
-      - name: Build mocks
-        run: >
-          cmake
-          -S "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks"
-          -B build/mocks
-          -DBUILD_SHARED_LIBS=ON
-          -DRDK_SERVICE_L2_TEST=ON
-          -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}"
-          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
-          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-          -DCMAKE_CXX_FLAGS="
-          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
-          -I $GITHUB_WORKSPACE/install/usr/include"
-          &&
-          cmake --build build/mocks -j8
-          &&
-          cmake --install build/mocks    
-
       - name: Checkout entservices-helpers
         uses: actions/checkout@v3
         with:
@@ -337,6 +318,26 @@ jobs:
           cmake --build build/entservices-helpers
           &&
           cmake --install build/entservices-helpers
+
+      - name: Build mocks
+        run: >
+          cmake
+          -S "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks"
+          -B build/mocks
+          -DBUILD_SHARED_LIBS=ON
+          -DRDK_SERVICE_L2_TEST=ON
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}"
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          -DCMAKE_CXX_FLAGS="
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers
+          -I $GITHUB_WORKSPACE/entservices-helpers/helpers
+          -I $GITHUB_WORKSPACE/install/usr/include"
+          &&
+          cmake --build build/mocks -j8
+          &&
+          cmake --install build/mocks
 
       - name: Copy DeviceSettings HAL headers
         run: >

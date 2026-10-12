@@ -126,7 +126,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: develop
+          ref: feature/RDKEMW-25013_4
 
       - name: Checkout rdk-halif-device_settings
         uses: actions/checkout@v3
