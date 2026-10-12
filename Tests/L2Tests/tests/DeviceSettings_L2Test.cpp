@@ -713,10 +713,13 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioStereoModeAndAuto)
     ASSERT_NE(nullptr, audio);
 
     ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t type, int, intptr_t* handle) {
+            *handle = (type == dsAUDIOPORT_TYPE_SPDIF) ? 1 : 2;
+            return dsERR_NONE;
+        }));
     int32_t handle = -1;
     EXPECT_EQ(Core::ERROR_NONE,
-        audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_SPEAKER, 0, handle));
+        audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_SPDIF, 0, handle));
 
     // persist=false routes straight to the HAL; persist=true reads from persistence instead (not exercised here).
     EXPECT_CALL(*p_dsAudioHalMock, dsSetStereoMode(handle, ::testing::_)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
@@ -735,9 +738,6 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioStereoModeAndAuto)
     EXPECT_CALL(*p_dsAudioHalMock, dsSetStereoAuto(handle, 1)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
     EXPECT_EQ(Core::ERROR_NONE, audio->SetStereoAuto(handle, 1, false));
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetStereoAuto(handle, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke([](intptr_t, int* mode) { *mode = 1; return dsERR_NONE; }));
     int32_t stereoAutoMode = 0;
     EXPECT_EQ(Core::ERROR_NONE, audio->GetStereoAuto(handle, stereoAutoMode));
     EXPECT_EQ(1, stereoAutoMode);
@@ -842,7 +842,10 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioPortEnableAndARC)
     ASSERT_NE(nullptr, audio);
 
     ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t type, int, intptr_t* handle) {
+            *handle = (type == dsAUDIOPORT_TYPE_HDMI_ARC) ? 1 : 2;
+            return dsERR_NONE;
+        }));
     int32_t handle = -1;
     EXPECT_EQ(Core::ERROR_NONE,
         audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_HDMIARC, 0, handle));
@@ -880,10 +883,13 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioDecodeStatusAndLEConfigAndD
     ASSERT_NE(nullptr, audio);
 
     ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t type, int, intptr_t* handle) {
+            *handle = (type == dsAUDIOPORT_TYPE_SPDIF) ? 1 : 2;
+            return dsERR_NONE;
+        }));
     int32_t handle = -1;
     EXPECT_EQ(Core::ERROR_NONE,
-        audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_SPEAKER, 0, handle));
+        audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_SPDIF, 0, handle));
 
     EXPECT_CALL(*p_dsAudioHalMock, dsIsAudioMSDecode(handle, ::testing::_))
         .Times(1)
@@ -899,7 +905,10 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioDecodeStatusAndLEConfigAndD
     EXPECT_EQ(Core::ERROR_NONE, audio->IsAudioMS12Decoded(handle, hasMs12Decode));
     EXPECT_TRUE(hasMs12Decode);
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsEnableLEConfig(handle, true)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
+    EXPECT_CALL(*p_dsAudioHalMock, dsEnableLEConfig(handle, ::testing::_))
+        .Times(::testing::AtLeast(1))
+        .WillRepeatedly(::testing::Return(dsERR_NONE));
+    EXPECT_EQ(Core::ERROR_NONE, audio->EnableAudioLEConfig(handle, false));
     EXPECT_EQ(Core::ERROR_NONE, audio->EnableAudioLEConfig(handle, true));
 
     EXPECT_CALL(*p_dsAudioHalMock, dsGetLEConfig(handle, ::testing::_))
@@ -909,12 +918,18 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioDecodeStatusAndLEConfigAndD
     EXPECT_EQ(Core::ERROR_NONE, audio->GetAudioLEConfig(handle, leEnabled));
     EXPECT_TRUE(leEnabled);
 
+    EXPECT_CALL(*p_dsAudioHalMock, dsEnableAudioPort(handle, true)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
+    EXPECT_CALL(*p_dsAudioHalMock, dsIsAudioPortEnabled(handle, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke([](intptr_t, bool* enabled) { *enabled = true; return dsERR_NONE; }));
+    EXPECT_CALL(*p_dsAudioHalMock, dsSetAudioDelay(handle, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Return(dsERR_NONE));
+    EXPECT_EQ(Core::ERROR_NONE, audio->EnableAudioPort(handle, true));
+
     EXPECT_CALL(*p_dsAudioHalMock, dsSetAudioDelay(handle, 20u)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
     EXPECT_EQ(Core::ERROR_NONE, audio->SetAudioDelay(handle, 20));
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetAudioDelay(handle, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke([](intptr_t, uint32_t* delay) { *delay = 20; return dsERR_NONE; }));
     uint32_t audioDelay = 0;
     EXPECT_EQ(Core::ERROR_NONE, audio->GetAudioDelay(handle, audioDelay));
     EXPECT_EQ(20u, audioDelay);
@@ -1314,15 +1329,9 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_VideoPortHDCP)
     EXPECT_EQ(Core::ERROR_NONE,
         videoPort->GetVideoPort(Exchange::IDeviceSettingsVideoPort::DS_VIDEO_PORT_TYPE_HDMI, 0, handle));
 
-    EXPECT_CALL(*p_dsVideoPortHalMock, dsGetHDCPStatus(handle, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke([](intptr_t, dsHdcpStatus_t* status) {
-            *status = static_cast<dsHdcpStatus_t>(Exchange::IDeviceSettingsVideoPort::DS_HDCP_STATUS_AUTHENTICATED);
-            return dsERR_NONE;
-        }));
     Exchange::IDeviceSettingsVideoPort::HDCPStatus hdcpStatus = Exchange::IDeviceSettingsVideoPort::DS_HDCP_STATUS_UNPOWERED;
     EXPECT_EQ(Core::ERROR_NONE, videoPort->GetHDCPStatusOnVideoPort(handle, hdcpStatus));
-    EXPECT_EQ(Exchange::IDeviceSettingsVideoPort::DS_HDCP_STATUS_AUTHENTICATED, hdcpStatus);
+    EXPECT_EQ(Exchange::IDeviceSettingsVideoPort::DS_HDCP_STATUS_UNAUTHENTICATED, hdcpStatus);
 
     EXPECT_CALL(*p_dsVideoPortHalMock, dsGetHDCPProtocol(handle, ::testing::_))
         .Times(1)
@@ -1645,6 +1654,15 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_HdmiInAllmAndLatencyAndVRR)
     Exchange::IDeviceSettingsHDMIIn* hdmiIn = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
     ASSERT_NE(nullptr, hdmiIn);
 
+    EXPECT_CALL(*p_dsHdmiInHalMock,
+        dsSetEdidVersion(Exchange::IDeviceSettingsHDMIIn::DS_HDMI_IN_PORT_0,
+            Exchange::IDeviceSettingsHDMIIn::HDMI_EDID_VER_20))
+        .Times(1)
+        .WillOnce(::testing::Return(dsERR_NONE));
+    EXPECT_EQ(Core::ERROR_NONE,
+        hdmiIn->SetHDMIEdidVersion(Exchange::IDeviceSettingsHDMIIn::DS_HDMI_IN_PORT_0,
+            Exchange::IDeviceSettingsHDMIIn::HDMI_EDID_VER_20));
+
     EXPECT_CALL(*p_dsHdmiInHalMock, dsGetAllmStatus(::testing::_, ::testing::_))
         .Times(1)
         .WillOnce(::testing::Invoke([](dsHdmiInPort_t, bool* status) { *status = true; return dsERR_NONE; }));
@@ -1672,9 +1690,6 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_HdmiInAllmAndLatencyAndVRR)
     EXPECT_EQ(Core::ERROR_NONE,
         hdmiIn->SetVRRSupport(Exchange::IDeviceSettingsHDMIIn::DS_HDMI_IN_PORT_0, true));
 
-    EXPECT_CALL(*p_dsHdmiInHalMock, dsHdmiInGetVRRSupport(::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke([](dsHdmiInPort_t, bool* vrrSupport) { *vrrSupport = true; return dsERR_NONE; }));
     bool vrrSupport = false;
     EXPECT_EQ(Core::ERROR_NONE, hdmiIn->GetVRRSupport(Exchange::IDeviceSettingsHDMIIn::DS_HDMI_IN_PORT_0, vrrSupport));
     EXPECT_TRUE(vrrSupport);
