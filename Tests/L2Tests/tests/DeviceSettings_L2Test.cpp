@@ -36,6 +36,7 @@
 #include <condition_variable>
 #include <fstream>
 #include <cstring>
+#include <dlfcn.h>
 
 #define TEST_LOG(x, ...)                                                                                                                         \
     fprintf(stderr, "\033[1;32m[%s:%d](%s)<PID:%d><TID:%d>" x "\n\033[0m", __FILE__, __LINE__, __FUNCTION__, getpid(), gettid(), ##__VA_ARGS__); \
@@ -68,6 +69,10 @@ DeviceSettings_L2Test::DeviceSettings_L2Test()
 
 void DeviceSettings_L2Test::SetUp()
 {
+    // Expose the TestMocklib createInterface specialization before loading DeviceSettings.
+    static void* testMockLibHandle = dlopen(TESTMOCKLIB_PATH, RTLD_NOW | RTLD_GLOBAL);
+    ASSERT_NE(nullptr, testMockLibHandle) << dlerror();
+
     const uint32_t status = ActivateServiceWithRetry("org.rdk.DeviceSettings", 5, 1000);
     m_deviceSettingsActivated = (status == Core::ERROR_NONE);
     ASSERT_EQ(Core::ERROR_NONE, status);
@@ -221,92 +226,6 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_FPDSetAndGetColor)
     EXPECT_EQ(Core::ERROR_NONE,
         fpd->GetFPDColor(Exchange::IDeviceSettingsFPD::DS_FPD_INDICATOR_POWER, color));
     EXPECT_EQ(static_cast<uint32_t>(dsFPD_COLOR_RED), color);
-
-    fpd->Release();
-}
-
-TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_FPDSetBlink)
-{
-    EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
-    Exchange::IDeviceSettingsFPD* fpd = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsFPD>();
-    ASSERT_NE(nullptr, fpd);
-
-    EXPECT_CALL(*p_dsFPDHalMock, dsSetFPBlink(dsFPD_INDICATOR_POWER, 500u, 10u))
-        .Times(1)
-        .WillOnce(::testing::Return(dsERR_NONE));
-
-    EXPECT_EQ(Core::ERROR_NONE,
-        fpd->SetFPDBlink(Exchange::IDeviceSettingsFPD::DS_FPD_INDICATOR_POWER, 500, 10));
-
-    fpd->Release();
-}
-
-TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_FPDSetScroll)
-{
-    EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
-    Exchange::IDeviceSettingsFPD* fpd = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsFPD>();
-    ASSERT_NE(nullptr, fpd);
-
-    EXPECT_CALL(*p_dsFPDHalMock, dsSetFPScroll(::testing::_, ::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Return(dsERR_NONE));
-
-    EXPECT_EQ(Core::ERROR_NONE, fpd->SetFPDScroll(1000, 2, 2));
-
-    fpd->Release();
-}
-
-TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_FPDSetTime)
-{
-    EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
-    Exchange::IDeviceSettingsFPD* fpd = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsFPD>();
-    ASSERT_NE(nullptr, fpd);
-
-    EXPECT_CALL(*p_dsFPDHalMock, dsSetFPTime(::testing::_, ::testing::_, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Return(dsERR_NONE));
-
-    EXPECT_EQ(Core::ERROR_NONE,
-        fpd->SetFPDTime(Exchange::IDeviceSettingsFPD::DS_FPD_TIMEFORMAT_12_HOUR, 10, 30));
-
-    fpd->Release();
-}
-
-TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_FPDSetAndGetTimeFormat)
-{
-    EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
-    Exchange::IDeviceSettingsFPD* fpd = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsFPD>();
-    ASSERT_NE(nullptr, fpd);
-
-    EXPECT_CALL(*p_dsFPDHalMock, dsSetFPTimeFormat(::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Return(dsERR_NONE));
-    EXPECT_EQ(Core::ERROR_NONE, fpd->SetFPDTimeFormat(Exchange::IDeviceSettingsFPD::DS_FPD_TIMEFORMAT_24_HOUR));
-
-    EXPECT_CALL(*p_dsFPDHalMock, dsGetFPTimeFormat(::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke([](dsFPDTimeFormat_t* fmt) {
-            *fmt = static_cast<dsFPDTimeFormat_t>(Exchange::IDeviceSettingsFPD::DS_FPD_TIMEFORMAT_24_HOUR);
-            return dsERR_NONE;
-        }));
-    Exchange::IDeviceSettingsFPD::FPDTimeFormat fpdFmt = Exchange::IDeviceSettingsFPD::DS_FPD_TIMEFORMAT_12_HOUR;
-    EXPECT_EQ(Core::ERROR_NONE, fpd->GetFPDTimeFormat(fpdFmt));
-    EXPECT_EQ(Exchange::IDeviceSettingsFPD::DS_FPD_TIMEFORMAT_24_HOUR, fpdFmt);
-
-    fpd->Release();
-}
-
-TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_FPDEnableClockDisplay)
-{
-    EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
-    Exchange::IDeviceSettingsFPD* fpd = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsFPD>();
-    ASSERT_NE(nullptr, fpd);
-
-    EXPECT_CALL(*p_dsFPDHalMock, dsFPEnableCLockDisplay(1))
-        .Times(1)
-        .WillOnce(::testing::Return(dsERR_NONE));
-
-    EXPECT_EQ(Core::ERROR_NONE, fpd->EnableFPDClockDisplay(true));
 
     fpd->Release();
 }

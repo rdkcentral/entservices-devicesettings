@@ -34,10 +34,11 @@ set_target_properties(${MODULE_NAME} PROPERTIES
 target_compile_definitions(${MODULE_NAME}
             PRIVATE
             MODULE_NAME=Plugin_${PLUGIN_NAME}
-            THUNDER_PORT="${THUNDER_PORT}")
+            THUNDER_PORT="${THUNDER_PORT}"
+            TESTMOCKLIB_PATH="${CMAKE_INSTALL_PREFIX}/lib/libTestMocklib.so")
 
 target_compile_options(${MODULE_NAME} PRIVATE -Wno-error)
-target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
+target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${CMAKE_DL_LIBS})
 
 target_include_directories(
     ${MODULE_NAME} PRIVATE ./
