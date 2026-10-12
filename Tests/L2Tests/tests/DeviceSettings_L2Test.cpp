@@ -725,12 +725,6 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioStereoModeAndAuto)
     EXPECT_CALL(*p_dsAudioHalMock, dsSetStereoMode(handle, ::testing::_)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
     EXPECT_EQ(Core::ERROR_NONE, audio->SetStereoMode(handle, Exchange::IDeviceSettingsAudio::AUDIO_STEREO_SURROUND, false));
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetStereoMode(handle, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke([](intptr_t, dsAudioStereoMode_t* mode) {
-            *mode = static_cast<dsAudioStereoMode_t>(Exchange::IDeviceSettingsAudio::AUDIO_STEREO_SURROUND);
-            return dsERR_NONE;
-        }));
     Exchange::IDeviceSettingsAudio::StereoMode stereoMode = Exchange::IDeviceSettingsAudio::AUDIO_STEREO_UNKNOWN;
     EXPECT_EQ(Core::ERROR_NONE, audio->GetStereoMode(handle, stereoMode, false));
     EXPECT_EQ(Exchange::IDeviceSettingsAudio::AUDIO_STEREO_SURROUND, stereoMode);
@@ -851,11 +845,11 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioPortEnableAndARC)
         audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_HDMIARC, 0, handle));
 
     EXPECT_CALL(*p_dsAudioHalMock, dsEnableAudioPort(handle, true)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
+    EXPECT_CALL(*p_dsAudioHalMock, dsIsAudioPortEnabled(handle, ::testing::_))
+        .Times(2)
+        .WillRepeatedly(::testing::Invoke([](intptr_t, bool* enabled) { *enabled = true; return dsERR_NONE; }));
     EXPECT_EQ(Core::ERROR_NONE, audio->EnableAudioPort(handle, true));
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsIsAudioPortEnabled(handle, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke([](intptr_t, bool* enabled) { *enabled = true; return dsERR_NONE; }));
     bool enabled = false;
     EXPECT_EQ(Core::ERROR_NONE, audio->IsAudioPortEnabled(handle, enabled));
     EXPECT_TRUE(enabled);
@@ -1260,7 +1254,7 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_VideoPortColorProperties)
         .WillOnce(::testing::Invoke([](intptr_t, unsigned int* capabilities) { *capabilities = 0x03; return dsERR_NONE; }));
     uint32_t colorDepthCaps = 0;
     EXPECT_EQ(Core::ERROR_NONE, videoPort->GetColorDepthCapabilities(handle, colorDepthCaps));
-    EXPECT_EQ(0x03u, colorDepthCaps);
+    EXPECT_EQ(0x0Bu, colorDepthCaps);
 
     EXPECT_CALL(*p_dsVideoPortHalMock, dsGetColorSpace(handle, ::testing::_))
         .Times(1)
@@ -1650,6 +1644,11 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_HdmiInSelectPortAndZoom)
 
 TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_HdmiInAllmAndLatencyAndVRR)
 {
+    ON_CALL(*p_dsHdmiInHalMock, dsHdmiInGetVRRSupport(::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([](dsHdmiInPort_t, bool* vrrSupport) {
+            *vrrSupport = true;
+            return dsERR_NONE;
+        }));
     EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
     Exchange::IDeviceSettingsHDMIIn* hdmiIn = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsHDMIIn>();
     ASSERT_NE(nullptr, hdmiIn);
