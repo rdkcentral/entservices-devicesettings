@@ -548,8 +548,8 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioSetMute)
     Exchange::IDeviceSettingsAudio* audio = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsAudio>();
     ASSERT_NE(nullptr, audio);
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) {
+    ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) {
             *handle = 1;
             return dsERR_NONE;
         }));
@@ -574,8 +574,8 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioIsAudioMuted)
     Exchange::IDeviceSettingsAudio* audio = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsAudio>();
     ASSERT_NE(nullptr, audio);
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) {
+    ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) {
             *handle = 1;
             return dsERR_NONE;
         }));
@@ -638,8 +638,8 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioLevelAndGain)
     Exchange::IDeviceSettingsAudio* audio = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsAudio>();
     ASSERT_NE(nullptr, audio);
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
+    ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
     int32_t handle = -1;
     EXPECT_EQ(Core::ERROR_NONE,
         audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_SPEAKER, 0, handle));
@@ -712,8 +712,8 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioStereoModeAndAuto)
     Exchange::IDeviceSettingsAudio* audio = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsAudio>();
     ASSERT_NE(nullptr, audio);
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
+    ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
     int32_t handle = -1;
     EXPECT_EQ(Core::ERROR_NONE,
         audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_SPEAKER, 0, handle));
@@ -841,8 +841,8 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioPortEnableAndARC)
     Exchange::IDeviceSettingsAudio* audio = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsAudio>();
     ASSERT_NE(nullptr, audio);
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
+    ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
     int32_t handle = -1;
     EXPECT_EQ(Core::ERROR_NONE,
         audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_HDMIARC, 0, handle));
@@ -879,8 +879,8 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioDecodeStatusAndLEConfigAndD
     Exchange::IDeviceSettingsAudio* audio = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsAudio>();
     ASSERT_NE(nullptr, audio);
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
+    ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
     int32_t handle = -1;
     EXPECT_EQ(Core::ERROR_NONE,
         audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_SPEAKER, 0, handle));
@@ -1081,8 +1081,8 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioMS12ProfileAndMixerLevelsAn
     Exchange::IDeviceSettingsAudio* audio = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsAudio>();
     ASSERT_NE(nullptr, audio);
 
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillOnce(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
+    ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
     int32_t handle = -1;
     EXPECT_EQ(Core::ERROR_NONE,
         audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_SPEAKER, 0, handle));
@@ -1433,6 +1433,9 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_VideoPortPreferencesAndColorDept
     EXPECT_EQ(Core::ERROR_NONE,
         videoPort->GetVideoPort(Exchange::IDeviceSettingsVideoPort::DS_VIDEO_PORT_TYPE_HDMI, 0, handle));
 
+    EXPECT_CALL(*p_dsVideoPortHalMock, dsIsDisplayConnected(handle, ::testing::_))
+        .Times(1)
+        .WillOnce(::testing::Invoke([](intptr_t, bool* connected) { *connected = true; return dsERR_NONE; }));
     EXPECT_CALL(*p_dsVideoPortHalMock, dsSetHdmiPreference(handle, ::testing::_)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
     EXPECT_EQ(Core::ERROR_NONE,
         videoPort->SetHDMIPreference(handle, Exchange::IDeviceSettingsVideoPort::DS_HDCP_VERSION_2X));
