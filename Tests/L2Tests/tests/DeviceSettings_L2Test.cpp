@@ -1655,8 +1655,8 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_HdmiInAllmAndLatencyAndVRR)
     ASSERT_NE(nullptr, hdmiIn);
 
     EXPECT_CALL(*p_dsHdmiInHalMock,
-        dsSetEdidVersion(Exchange::IDeviceSettingsHDMIIn::DS_HDMI_IN_PORT_0,
-            Exchange::IDeviceSettingsHDMIIn::HDMI_EDID_VER_20))
+        dsSetEdidVersion(static_cast<dsHdmiInPort_t>(Exchange::IDeviceSettingsHDMIIn::DS_HDMI_IN_PORT_0),
+            static_cast<tv_hdmi_edid_version_t>(Exchange::IDeviceSettingsHDMIIn::HDMI_EDID_VER_20)))
         .Times(1)
         .WillOnce(::testing::Return(dsERR_NONE));
     EXPECT_EQ(Core::ERROR_NONE,
