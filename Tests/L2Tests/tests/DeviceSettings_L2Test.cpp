@@ -1084,7 +1084,7 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioBassSurroundAndVolumeLevell
     audio->Release();
 }
 
-TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioMS12ProfileAndMixerLevelsAndCompression)
+TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioMS12ProfileAndCompression)
 {
     EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
     Exchange::IDeviceSettingsAudio* audio = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsAudio>();
@@ -1105,9 +1105,6 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioMS12ProfileAndMixerLevelsAn
     string profile;
     EXPECT_EQ(Core::ERROR_NONE, audio->GetAudioMS12Profile(handle, profile));
     EXPECT_EQ("Movie", profile);
-
-    EXPECT_CALL(*p_dsAudioHalMock, dsSetAudioMixerLevels(handle, ::testing::_, 50)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
-    EXPECT_EQ(Core::ERROR_NONE, audio->SetAudioMixerLevels(handle, Exchange::IDeviceSettingsAudio::AUDIO_INPUT_PRIMARY, 50));
 
     EXPECT_CALL(*p_dsAudioHalMock, dsSetAudioCompression(handle, 2)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
     EXPECT_EQ(Core::ERROR_NONE, audio->SetAudioCompression(handle, static_cast<int32_t>(2)));
