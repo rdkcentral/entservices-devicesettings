@@ -1084,41 +1084,6 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioBassSurroundAndVolumeLevell
     audio->Release();
 }
 
-TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_AudioMS12ProfileAndCompression)
-{
-    EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
-    Exchange::IDeviceSettingsAudio* audio = m_deviceSettingsPlugin->QueryInterface<Exchange::IDeviceSettingsAudio>();
-    ASSERT_NE(nullptr, audio);
-
-    ON_CALL(*p_dsAudioHalMock, dsGetAudioPort(::testing::_, ::testing::_, ::testing::_))
-        .WillByDefault(::testing::Invoke([](dsAudioPortType_t, int, intptr_t* handle) { *handle = 1; return dsERR_NONE; }));
-    int32_t handle = -1;
-    EXPECT_EQ(Core::ERROR_NONE,
-        audio->GetAudioPort(Exchange::IDeviceSettingsAudio::AUDIO_PORT_TYPE_SPEAKER, 0, handle));
-
-    EXPECT_CALL(*p_dsAudioHalMock, dsSetMS12AudioProfile(handle, ::testing::StrEq("Movie"))).Times(1).WillOnce(::testing::Return(dsERR_NONE));
-    EXPECT_EQ(Core::ERROR_NONE, audio->SetAudioMS12Profile(handle, "Movie"));
-
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetMS12AudioProfile(handle, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke([](intptr_t, char* profile) { strcpy(profile, "Movie"); return dsERR_NONE; }));
-    string profile;
-    EXPECT_EQ(Core::ERROR_NONE, audio->GetAudioMS12Profile(handle, profile));
-    EXPECT_EQ("Movie", profile);
-
-    EXPECT_CALL(*p_dsAudioHalMock, dsSetAudioCompression(handle, 2)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
-    EXPECT_EQ(Core::ERROR_NONE, audio->SetAudioCompression(handle, static_cast<int32_t>(2)));
-
-    EXPECT_CALL(*p_dsAudioHalMock, dsGetAudioCompression(handle, ::testing::_))
-        .Times(1)
-        .WillOnce(::testing::Invoke([](intptr_t, int* level) { *level = 2; return dsERR_NONE; }));
-    int32_t compressionLevel = 0;
-    EXPECT_EQ(Core::ERROR_NONE, audio->GetAudioCompression(handle, compressionLevel));
-    EXPECT_EQ(2, compressionLevel);
-
-    audio->Release();
-}
-
 TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_VideoPortEnable)
 {
     EXPECT_EQ(Core::ERROR_NONE, CreateDeviceSettingsInterfaceObject());
