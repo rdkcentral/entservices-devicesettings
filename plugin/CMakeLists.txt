@@ -111,7 +111,7 @@ set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
         CXX_STANDARD_REQUIRED YES)
 
 if(RDK_SERVICES_L1_TEST OR RDK_SERVICE_L2_TEST)
-    find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)
+   find_library(TESTMOCKLIB_LIBRARIES NAMES TestMocklib)
     if(TESTMOCKLIB_LIBRARIES)
         target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${TESTMOCKLIB_LIBRARIES})
         message(STATUS "Linking ${PLUGIN_IMPLEMENTATION} against TestMocklib for telemetry mocks")
