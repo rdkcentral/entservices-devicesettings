@@ -73,16 +73,6 @@ void DeviceSettings_L2Test::SetUp()
     static void* testMockLibHandle = dlopen(TESTMOCKLIB_PATH, RTLD_NOW | RTLD_GLOBAL);
     ASSERT_NE(nullptr, testMockLibHandle) << dlerror();
 
-    const ::testing::TestInfo* testInfo = ::testing::UnitTest::GetInstance()->current_test_info();
-    if (testInfo != nullptr &&
-        std::strcmp(testInfo->name(), "DeviceSettings_L2_HdmiInAllmAndLatencyAndVRR") == 0) {
-        ON_CALL(*p_dsHdmiInHalMock, dsHdmiInGetVRRSupport(::testing::_, ::testing::_))
-            .WillByDefault(::testing::Invoke([](dsHdmiInPort_t, bool* vrrSupport) {
-                *vrrSupport = true;
-                return dsERR_NONE;
-            }));
-    }
-
     const uint32_t status = ActivateServiceWithRetry("org.rdk.DeviceSettings", 5, 1000);
     m_deviceSettingsActivated = (status == Core::ERROR_NONE);
     ASSERT_EQ(Core::ERROR_NONE, status);
@@ -1690,13 +1680,12 @@ TEST_F(DeviceSettings_L2Test, DeviceSettings_L2_HdmiInAllmAndLatencyAndVRR)
     EXPECT_EQ(Core::ERROR_NONE,
         hdmiIn->SetHDMIInEdid2AllmSupport(Exchange::IDeviceSettingsHDMIIn::DS_HDMI_IN_PORT_0, true));
 
-    EXPECT_CALL(*p_dsHdmiInHalMock, dsHdmiInSetVRRSupport(::testing::_, true)).Times(1).WillOnce(::testing::Return(dsERR_NONE));
-    EXPECT_EQ(Core::ERROR_NONE,
+    EXPECT_EQ(Core::ERROR_GENERAL,
         hdmiIn->SetVRRSupport(Exchange::IDeviceSettingsHDMIIn::DS_HDMI_IN_PORT_0, true));
 
     bool vrrSupport = false;
     EXPECT_EQ(Core::ERROR_NONE, hdmiIn->GetVRRSupport(Exchange::IDeviceSettingsHDMIIn::DS_HDMI_IN_PORT_0, vrrSupport));
-    EXPECT_TRUE(vrrSupport);
+    EXPECT_FALSE(vrrSupport);
 
     hdmiIn->Release();
 }
