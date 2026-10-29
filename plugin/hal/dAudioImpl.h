@@ -3638,28 +3638,30 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            // Mixer levels are not port specific; legacy DS manager always passes a NULL handle to the HAL
+            (void)handle;
+            intptr_t dsHandle = 0;
             dsAudioInput_t dsInput = static_cast<dsAudioInput_t>(audioInput);
             
-            typedef dsError_t (*dsSetMixerLevel_t)(intptr_t handle, dsAudioInput_t input, int32_t level);
-            static dsSetMixerLevel_t dsSetMixerLevelFunc = 0;
-            if (dsSetMixerLevelFunc == 0) {
-                dsSetMixerLevelFunc = (dsSetMixerLevel_t)resolve(RDK_DSHAL_NAME, "dsSetMixerLevel");
-                if(dsSetMixerLevelFunc == 0) {
-                    DSLOG_ERR("dsSetMixerLevel is not defined");
+            typedef dsError_t (*dsSetAudioMixerLevels_t)(intptr_t handle, dsAudioInput_t input, int32_t level);
+            static dsSetAudioMixerLevels_t dsSetAudioMixerLevelsFunc = 0;
+            if (dsSetAudioMixerLevelsFunc == 0) {
+                dsSetAudioMixerLevelsFunc = (dsSetAudioMixerLevels_t)resolve(RDK_DSHAL_NAME, "dsSetAudioMixerLevels");
+                if(dsSetAudioMixerLevelsFunc == 0) {
+                    DSLOG_ERR("dsSetAudioMixerLevels is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
             
             dsError_t ret = dsERR_GENERAL;
-            if (0 != dsSetMixerLevelFunc) {
-                ret = dsSetMixerLevelFunc(dsHandle, dsInput, volume);
+            if (0 != dsSetAudioMixerLevelsFunc) {
+                ret = dsSetAudioMixerLevelsFunc(dsHandle, dsInput, volume);
             }
             
             if (ret == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, input=%d, volume=%d", handle, static_cast<int>(audioInput), volume);
             } else {
-                DSLOG_ERR("dsSetMixerLevel failed with error: %d", ret);
+                DSLOG_ERR("dsSetAudioMixerLevels failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {

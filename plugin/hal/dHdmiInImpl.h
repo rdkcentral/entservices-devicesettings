@@ -884,16 +884,19 @@ public:
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
         if (hdmiPort < dsHDMI_IN_PORT_MAX) {
             DSLOG_INFO("In SetHDMIInEdid2AllmSupport, checking m_edidversion of port %d : %d", hdmiPort, m_edidversion[hdmiPort]);
-            if(m_edidversion[hdmiPort] == HDMI_EDID_VER_20) { // if the edidver is 2.0, then only set the allm bit in edid
-                if (setEdid2AllmSupport(hdmiPort, allmSupport) == dsERR_NONE) {
-                    updateEdidAllmBitValuesInPersistence(hdmiPort, allmSupport);
-                    m_edidallmsupport[hdmiPort] = allmSupport;
-                    DSLOG_INFO(" port=%d, allmSupport=%s", hdmiPort, allmSupport ? "true" : "false");
-                    retCode = WPEFramework::Core::ERROR_NONE;
-                }
+            // Legacy behaviour: the HAL is programmed only for EDID 2.0, but for other versions the
+            // call still succeeds and the requested value is persisted/cached.
+            dsError_t eRet = dsERR_NONE;
+            if(m_edidversion[hdmiPort] == HDMI_EDID_VER_20) {
+                eRet = setEdid2AllmSupport(hdmiPort, allmSupport);
             } else {
-                DSLOG_INFO("EDID version is not 2.0, cannot set ALLM support for port %d", hdmiPort);
-                retCode = WPEFramework::Core::ERROR_UNAVAILABLE;
+                DSLOG_INFO("EDID version is not 2.0, skipping HAL call to set ALLM support for port %d", hdmiPort);
+            }
+            if (eRet == dsERR_NONE) {
+                updateEdidAllmBitValuesInPersistence(hdmiPort, allmSupport);
+                m_edidallmsupport[hdmiPort] = allmSupport;
+                DSLOG_INFO(" port=%d, allmSupport=%s", hdmiPort, allmSupport ? "true" : "false");
+                retCode = WPEFramework::Core::ERROR_NONE;
             }
         }
         return retCode;
