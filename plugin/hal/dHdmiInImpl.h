@@ -928,6 +928,11 @@ public:
             }
         }
 
+        if (static_cast<int32_t>(features.size()) != featureList.gameFeatureCount) {
+            DSLOG_WARN("Number of supported game features parsed (%zu) doesn't match count from HAL (%d)",
+                    features.size(), featureList.gameFeatureCount);
+        }
+
         gameFeatureList = WPEFramework::Core::Service<WPEFramework::RPC::IteratorType<IHDMIInGameFeatureListIterator>>
                               ::Create<IHDMIInGameFeatureListIterator>(features);
         DSLOG_INFO("HAL reported %d game features; returned %zu features", featureList.gameFeatureCount, features.size());
