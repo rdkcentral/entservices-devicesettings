@@ -2294,15 +2294,23 @@ public:
             }
 
             dsAudioSADList_t sadList_hal;
-            memcpy(sadList_hal.sad, sadList, count < 15 ? count : 15);
-            sadList_hal.count = count;
+            // count is the byte length of sadList[] (COM-RPC @length:count convention), not the
+            // entry count - each entry is sizeof(sadList_hal.sad[0]) bytes, so derive the entry count.
+            const uint8_t entries = static_cast<uint8_t>(count / sizeof(sadList_hal.sad[0]));
+            const uint8_t boundedEntries = entries < MAX_SAD ? entries : MAX_SAD;
+            memcpy(sadList_hal.sad, sadList, boundedEntries * sizeof(sadList_hal.sad[0]));
+            sadList_hal.count = boundedEntries;
+            // Log each decoded SAD value so a bad byte-packing upstream is visible here, not just downstream.
+            for (uint8_t i = 0; i < boundedEntries; ++i) {
+                DSLOG_INFO("decoded sad[%d]=0x%x", i, sadList_hal.sad[i]);
+            }
             dsError_t ret = dsERR_GENERAL;
             if (0 != dsAudioSetSADFunc) {
                 ret = dsAudioSetSADFunc(dsHandle, sadList_hal);
             }
 
             if (ret == dsERR_NONE) {
-                DSLOG_INFO("success: handle=%d, count=%d", handle, count);
+                DSLOG_INFO("success: handle=%d, byteCount=%d, entries=%d", handle, count, boundedEntries);
             } else {
                 DSLOG_ERR("dsSetSAD failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
