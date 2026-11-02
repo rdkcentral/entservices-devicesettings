@@ -501,7 +501,10 @@ namespace Plugin {
             return;
         }
         
-        // Get the User Persisted Resolution Based on Handle
+        // Always evaluated: it refreshes the cached EDID checksum.
+        bool edidChanged = DumpEdidOnChecksumDiff(nullptr);
+        bool usePersisted = _bootupFlagEnabled || edidChanged;
+
         VideoPortResolution presolution;
         if (_deviceSettings) {
             uint32_t result = _deviceSettings->GetVideoPortResolution(handle, presolution);
@@ -510,8 +513,14 @@ namespace Plugin {
                 return;
             }
         }
-        
-        DSLOG_INFO("Got User Persisted Resolution - %s", presolution.name.c_str());
+
+        // GetVideoPortResolution() returns the live HAL resolution while connected.
+        if (usePersisted && portType == dsVIDEOPORT_TYPE_HDMI) {
+            presolution.name = device::HostPersistence::getInstance().getProperty(
+                "HDMI0.resolution", (profileType == TV) ? "2160p" : "1080p");
+        }
+
+        DSLOG_INFO("Got %s Resolution - %s", usePersisted ? "User Persisted" : "Platform", presolution.name.c_str());
         
         if (portType == dsVIDEOPORT_TYPE_HDMI) {
             // Get The Display Handle
@@ -956,6 +965,7 @@ namespace Plugin {
                     if ((cached_EDID_checksum == 0) || (current_EDID_checksum != cached_EDID_checksum)) {
                         cached_EDID_checksum = current_EDID_checksum;
                         DSLOG_INFO("HDMI-EDID Dump detected changes");
+                        return true;
                     }
                 }
             }
