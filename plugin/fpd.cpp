@@ -234,12 +234,12 @@ uint32_t FPD::GetFPDColor(const FPDIndicator indicator, uint32_t &color) {
     return result;
 }
 
-uint32_t FPD::SetFPDColor(const FPDIndicator indicator, const uint32_t color) {
+uint32_t FPD::SetFPDColor(const FPDIndicator indicator, const uint32_t color, const bool persist) {
 
-    DSLOG_INFO("indicator=%d, colour=%d", indicator, color);
+    DSLOG_INFO("indicator=%d, colour=%d, persist=%s", indicator, color, persist ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
-        result = this->platform().SetFPDColor(indicator, color);
+        result = this->platform().SetFPDColor(indicator, color, persist);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
         DSLOG_INFO("SUCCESS - indicator=%d, colour=%d", indicator, color);
