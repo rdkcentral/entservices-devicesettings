@@ -303,10 +303,10 @@ public:
         return retCode;
     }
 
-    uint32_t GetVideoPortResolution(const int32_t handle, VideoPortResolution& resolution) override
+    uint32_t GetVideoPortResolution(const int32_t handle, VideoPortResolution& resolution, const bool persist) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        DSLOG_INFO(" handle=%d", handle);
+        DSLOG_INFO(" handle=%d, persist=%s", handle, persist ? "true" : "false");
 
         dsVideoPortType_t portType = dsVIDEOPORT_TYPE_MAX;
         if (!resolvePortTypeByHandle(handle, portType)) {
@@ -314,12 +314,12 @@ public:
             return retCode;
         }
 
-        // Legacy dsVideoPort.c behavior:
-        // - HDMI/INTERNAL: use HAL current resolution when connected, persist/cache fallback otherwise.
-        // - COMPONENT/BB/RF: return cached/persisted resolution string.
+        // Legacy _dsGetResolution behavior:
+        // - HDMI/INTERNAL: persisted value when persist is set or the display is disconnected, else HAL current resolution.
+        // - COMPONENT/BB/RF: persisted value when persist is set, else the cached value.
         if (portType == dsVIDEOPORT_TYPE_COMPONENT || portType == dsVIDEOPORT_TYPE_BB || portType == dsVIDEOPORT_TYPE_RF) {
-            resolution = buildResolutionFromName(getCachedResolutionForPort(portType));
-            DSLOG_INFO(" returning cached analog resolution '%s'", resolution.name.c_str());
+            resolution = buildResolutionFromName(persist ? getPersistedResolutionForPort(portType) : getCachedResolutionForPort(portType));
+            DSLOG_INFO(" returning %s analog resolution '%s'", persist ? "persisted" : "cached", resolution.name.c_str());
             return WPEFramework::Core::ERROR_NONE;
         }
 
@@ -329,9 +329,9 @@ public:
             DSLOG_ERR(" dsIsDisplayConnected failed with error: %d", connectedError);
         }
 
-        if (connectedError == dsERR_NONE && !isConnected) {
-            resolution = buildResolutionFromName(getCachedResolutionForPort(portType));
-            DSLOG_INFO(" display disconnected, returning cached resolution '%s'", resolution.name.c_str());
+        if (persist || (connectedError == dsERR_NONE && !isConnected)) {
+            resolution = buildResolutionFromName(getPersistedResolutionForPort(portType));
+            DSLOG_INFO(" returning persisted resolution '%s' (persist=%d, connected=%d)", resolution.name.c_str(), persist, isConnected);
             return WPEFramework::Core::ERROR_NONE;
         }
 
@@ -340,11 +340,6 @@ public:
         dsError_t eError = dsGetResolution(handle, &dsResolution);
         if (eError == dsERR_NONE) {
             resolution = convertVideoPortResolution(dsResolution);
-            if (resolution.name.empty()) {
-                resolution = buildResolutionFromName(getCachedResolutionForPort(portType));
-            } else {
-                updateCachedResolutionForPort(portType, resolution.name);
-            }
             retCode = WPEFramework::Core::ERROR_NONE;
             DSLOG_INFO(" SUCCESS - current resolution '%s'", resolution.name.c_str());
         } else {
@@ -1882,6 +1877,29 @@ private:
     static std::string defaultResolutionByProfile()
     {
         return (profileType == TV) ? DS_VP_DEFAULT_RESOLUTION_2160P : DS_VP_DEFAULT_RESOLUTION_1080P;
+    }
+
+    static std::string getPersistedResolutionForPort(const dsVideoPortType_t portType)
+    {
+        const std::string defaultResolution = defaultResolutionByProfile();
+        device::HostPersistence& persistence = device::HostPersistence::getInstance();
+        switch (portType) {
+            case dsVIDEOPORT_TYPE_HDMI:
+            case dsVIDEOPORT_TYPE_INTERNAL:
+                return persistence.getProperty("HDMI0.resolution", defaultResolution);
+            case dsVIDEOPORT_TYPE_COMPONENT:
+#ifdef HAS_ONLY_COMPOSITE
+                return persistence.getProperty("Baseband0.resolution", defaultResolution);
+#else
+                return persistence.getProperty("COMPONENT0.resolution", defaultResolution);
+#endif
+            case dsVIDEOPORT_TYPE_BB:
+                return persistence.getProperty("Baseband0.resolution", defaultResolution);
+            case dsVIDEOPORT_TYPE_RF:
+                return persistence.getProperty("RF0.resolution", defaultResolution);
+            default:
+                return defaultResolution;
+        }
     }
 
     static std::string getCachedResolutionForPort(const dsVideoPortType_t portType)
