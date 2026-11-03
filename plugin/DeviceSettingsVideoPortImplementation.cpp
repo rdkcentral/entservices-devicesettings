@@ -305,12 +305,12 @@ namespace Plugin {
         return result;
     }
 
-    uint32_t DeviceSettingsVideoPortImpl::GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution)
+    uint32_t DeviceSettingsVideoPortImpl::GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution, const bool persist)
     {
         uint32_t result = Core::ERROR_GENERAL;
-        result = _videoPort.GetVideoPortResolution(handle, resolution);
+        result = _videoPort.GetVideoPortResolution(handle, resolution, persist);
         if (result == Core::ERROR_NONE) {
-            DSLOG_INFO("succeeded for handle: %d", handle);
+            DSLOG_INFO("succeeded for handle: %d, persist: %s", handle, persist ? "true" : "false");
         } else {
             DSLOG_ERR("failed for handle: %d, error: %u", handle, result);
         }

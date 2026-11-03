@@ -507,17 +507,11 @@ namespace Plugin {
 
         VideoPortResolution presolution;
         if (_deviceSettings) {
-            uint32_t result = _deviceSettings->GetVideoPortResolution(handle, presolution);
+            uint32_t result = _deviceSettings->GetVideoPortResolution(handle, presolution, usePersisted);
             if (result != Core::ERROR_NONE) {
                 DSLOG_ERR("Failed to get persisted resolution");
                 return;
             }
-        }
-
-        // GetVideoPortResolution() returns the live HAL resolution while connected.
-        if (usePersisted && portType == dsVIDEOPORT_TYPE_HDMI) {
-            presolution.name = device::HostPersistence::getInstance().getProperty(
-                "HDMI0.resolution", (profileType == TV) ? "2160p" : "1080p");
         }
 
         DSLOG_INFO("Got %s Resolution - %s", usePersisted ? "User Persisted" : "Platform", presolution.name.c_str());

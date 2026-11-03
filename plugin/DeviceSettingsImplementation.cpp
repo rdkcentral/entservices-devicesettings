@@ -295,8 +295,8 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_fpdSettings, GetFPDColor, indicator, color)
     }
     
-    Core::hresult DeviceSettingsImp::SetFPDColor(const FPDIndicator indicator, const uint32_t color) {
-        DELEGATE_TO_COMPONENT(_fpdSettings, SetFPDColor, indicator, color)
+    Core::hresult DeviceSettingsImp::SetFPDColor(const FPDIndicator indicator, const uint32_t color, const bool persist) {
+        DELEGATE_TO_COMPONENT(_fpdSettings, SetFPDColor, indicator, color, persist)
     }
     
     Core::hresult DeviceSettingsImp::SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess) {
@@ -782,8 +782,8 @@ namespace Plugin {
         DELEGATE_TO_COMPONENT(_videoPortSettings, IsVideoPortActive, handle, active)
     }
     
-    Core::hresult DeviceSettingsImp::GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution) {
-        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortResolution, handle, resolution)
+    Core::hresult DeviceSettingsImp::GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution, const bool persist) {
+        DELEGATE_TO_COMPONENT(_videoPortSettings, GetVideoPortResolution, handle, resolution, persist)
     }
     
     Core::hresult DeviceSettingsImp::getIgnoreEDIDStatus(const int32_t handle, bool &ignoreEDID) {

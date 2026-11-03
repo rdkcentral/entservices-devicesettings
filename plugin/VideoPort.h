@@ -73,7 +73,7 @@ public:
     uint32_t EnableVideoPort(const int32_t handle, const bool enabled);
     uint32_t IsVideoPortDisplayConnected(const int32_t handle, bool &connected);
     uint32_t IsVideoPortActive(const int32_t handle, bool &active);
-    uint32_t GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution);
+    uint32_t GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution, const bool persist);
     uint32_t SetVideoPortResolution(const int32_t handle, const VideoPortResolution& resolution, const bool persist, const bool forceCompatibility);
     uint32_t getIgnoreEDIDStatus(const int32_t handle, bool &ignoreEDID);
     uint32_t GetColorDepth(const int32_t handle, uint32_t &colorDepth);
