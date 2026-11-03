@@ -364,12 +364,12 @@ namespace Plugin {
         return errorCode;
     }
 
-    Core::hresult DeviceSettingsFPDImpl::SetFPDColor(const FPDIndicator indicator, const uint32_t color) {
-        DSLOG_INFO("indicator=%d, color=0x%X", indicator, color);
+    Core::hresult DeviceSettingsFPDImpl::SetFPDColor(const FPDIndicator indicator, const uint32_t color, const bool persist) {
+        DSLOG_INFO("indicator=%d, color=0x%X, persist=%s", indicator, color, persist ? "true" : "false");
 
         Core::hresult errorCode = Core::ERROR_GENERAL;
         _apiLock.Lock();
-        if (_fpd.SetFPDColor(indicator, color) == dsERR_NONE) {
+        if (_fpd.SetFPDColor(indicator, color, persist) == dsERR_NONE) {
             errorCode = Core::ERROR_NONE;
         } else {
             errorCode = Core::ERROR_GENERAL;
