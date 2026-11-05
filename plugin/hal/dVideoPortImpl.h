@@ -80,6 +80,41 @@ class dVideoPortImpl : public hal::dVideoPort::IPlatform {
     }
 
 public:
+    static void ResetHdcpStatusCache()
+    {
+        cachedHdcpStatus().store(dsHDCP_STATUS_UNAUTHENTICATED);
+        _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPSTATUS, dsHDCP_STATUS_UNAUTHENTICATED);
+    }
+
+    static bool RestoreHdcpAuthenticationForHandle(intptr_t handle)
+    {
+        if (handle == 0) {
+            return false;
+        }
+
+        typedef dsError_t (*dsEnableHDCP_t)(intptr_t handle, bool enable, char* hdcpKey, int keySize);
+        static dsEnableHDCP_t dsEnableHDCPFunc = nullptr;
+        if (dsEnableHDCPFunc == nullptr) {
+            dsEnableHDCPFunc = reinterpret_cast<dsEnableHDCP_t>(resolve(RDK_DSHAL_NAME, "dsEnableHDCP"));
+            if (dsEnableHDCPFunc == nullptr) {
+                DSLOG_ERR("dsEnableHDCP is not defined");
+                return false;
+            }
+        }
+
+        char hdcpKey[1024] = {0};
+        size_t keySize = 0;
+        dsError_t error = dsEnableHDCPFunc(handle, true, hdcpKey, static_cast<int>(keySize));
+        if (error != dsERR_NONE) {
+            DSLOG_ERR("dsEnableHDCP failed with error: %d", error);
+            return false;
+        }
+
+        ResetHdcpStatusCache();
+        DSLOG_INFO("HDCP authentication re-triggered for handle=%p", (void*)handle);
+        return true;
+    }
+
     dVideoPortImpl()
     {
         DSLOG_INFO("Constructor");

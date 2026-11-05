@@ -22,6 +22,7 @@
 #include "DSController.h"
 #include "DeviceSettingsTypes.h"
 #include "DeviceSettingsImplementation.h"
+#include "hal/dVideoPortImpl.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -929,9 +930,17 @@ uint32_t WPEFramework::Plugin::DSPwrEventListener::ConfigureVideoPort(const std:
         result = _deviceSettings->GetVideoPort(portType, index, handle);
         
         if (result == WPEFramework::Core::ERROR_NONE && handle != 0) {
+            if (!requestEnable) {
+                ::dVideoPortImpl::ResetHdcpStatusCache();
+            }
+
             result = _deviceSettings->EnableVideoPort(handle, requestEnable);
             if (result == WPEFramework::Core::ERROR_NONE) {
                 DSLOG_INFO("VideoPort %s successfully %s", portName.c_str(), (requestEnable ? "enabled" : "disabled"));
+                if (requestEnable && (portName.find("HDMI") != std::string::npos || portName.find("INTERNAL") != std::string::npos)) {
+                    ::dVideoPortImpl::ResetHdcpStatusCache();
+                    ::dVideoPortImpl::RestoreHdcpAuthenticationForHandle(static_cast<intptr_t>(handle));
+                }
             } else {
                 DSLOG_ERR("Failed to set video port %s state, Error: %d", portName.c_str(), result);
             }
