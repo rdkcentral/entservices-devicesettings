@@ -1881,7 +1881,7 @@ private:
 
     static std::string getPersistedResolutionForPort(const dsVideoPortType_t portType)
     {
-        const std::string defaultResolution = defaultResolutionByProfile();
+        std::string defaultResolution = defaultResolutionByProfile();
         device::HostPersistence& persistence = device::HostPersistence::getInstance();
         switch (portType) {
             case dsVIDEOPORT_TYPE_HDMI:
@@ -1898,7 +1898,7 @@ private:
             case dsVIDEOPORT_TYPE_RF:
                 return persistence.getProperty("RF0.resolution", defaultResolution);
             default:
-                return defaultResolution;
+                return std::move(defaultResolution);
         }
     }
 
@@ -2275,7 +2275,7 @@ private:
             if (portType == dsVIDEOPORT_TYPE_HDMI || portType == dsVIDEOPORT_TYPE_INTERNAL) {
                 device::HostPersistence::getInstance().persistHostProperty("HDMI0.resolution", resolutionName);
                 DSLOG_INFO("Persisted HDMI resolution: %s", resolutionName.c_str());
-                _dsHDMIResolution = resolutionName;
+                _dsHDMIResolution = std::move(resolutionName);
                 
                 /* dsVideoPort.c persistResolution: compatibility is ALWAYS checked (cache always
                  * updated); only the disk persistence of the cross-port resolution is gated by forceCompatible. */
@@ -2283,7 +2283,6 @@ private:
                     DSLOG_INFO("HDMI Resolution is not Compatible with Analog ports");
                     std::string compatibleResolution = getCompatibleAnalogResolution(resolution);
                     DSLOG_INFO("New Compatible resolution is %s", compatibleResolution.c_str());
-                    _dsCompResolution = compatibleResolution;
                     if (forceCompatible) {
                         #ifdef HAS_ONLY_COMPOSITE
                             device::HostPersistence::getInstance().persistHostProperty("Baseband0.resolution", compatibleResolution);
@@ -2291,6 +2290,7 @@ private:
                             device::HostPersistence::getInstance().persistHostProperty("COMPONENT0.resolution", compatibleResolution);
                         #endif
                     }
+                    _dsCompResolution = std::move(compatibleResolution);
                 } else {
                     DSLOG_INFO("HDMI and Analog Ports Resolutions are Compatible");
                 }
@@ -2307,10 +2307,10 @@ private:
                     DSLOG_INFO("HDMI Resolution is not Compatible with Analog ports");
                     std::string compatibleResolution = getCompatibleHDMIResolution(resolution);
                     DSLOG_INFO("New Compatible resolution is %s", compatibleResolution.c_str());
-                    _dsHDMIResolution = compatibleResolution;
                     if (forceCompatible) {
                         device::HostPersistence::getInstance().persistHostProperty("HDMI0.resolution", compatibleResolution);
                     }
+                    _dsHDMIResolution = std::move(compatibleResolution);
                 } else {
                     DSLOG_INFO("HDMI and Analog Ports Resolutions are Compatible");
                 }
@@ -2330,7 +2330,7 @@ private:
                 /* dsVideoPort.c: _dsSetResolution RF case persists RF0.resolution */
                 device::HostPersistence::getInstance().persistHostProperty("RF0.resolution", resolutionName);
                 DSLOG_INFO("Persisted RF resolution: %s", resolutionName.c_str());
-                _dsRFResolution = resolutionName;
+                _dsRFResolution = std::move(resolutionName);
 
                 if (!IsCompatibleResolution(resolution.pixelResolution, getPixelResolutionByName(_dsHDMIResolution))) {
                     std::string compatibleResolution = getCompatibleHDMIResolution(resolution);
