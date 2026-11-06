@@ -268,10 +268,15 @@ public:
                 // Convert from DS types to WPE Framework types
                 status.activePort = static_cast<CompositeInPort>(dsStatus.activePort);
                 status.isPresented = dsStatus.isPresented;
+                // Per-port connection state must also be carried over - the COM-RPC struct
+                // can't hold the native isPortConnected[] array, so it's split into two bools.
+                status.isPort0Connected = dsStatus.isPortConnected[0];
+                status.isPort1Connected = dsStatus.isPortConnected[1];
                 
                 retCode = WPEFramework::Core::ERROR_NONE;
-                DSLOG_INFO(" SUCCESS - activePort=%d, isPresented=%s",
-                        static_cast<int>(status.activePort), status.isPresented ? "true" : "false");
+                DSLOG_INFO(" SUCCESS - activePort=%d, isPresented=%s, isPort0Connected=%s, isPort1Connected=%s",
+                        static_cast<int>(status.activePort), status.isPresented ? "true" : "false",
+                        status.isPort0Connected ? "true" : "false", status.isPort1Connected ? "true" : "false");
             } else {
                 DSLOG_ERR(" FAILED - dsCompositeInGetStatus error=%d", eError);
             }

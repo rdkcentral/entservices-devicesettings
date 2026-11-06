@@ -126,7 +126,7 @@ namespace Plugin {
         uint32_t EnableVideoPort(const int32_t handle, const bool enabled);
         uint32_t IsVideoPortDisplayConnected(const int32_t handle, bool &connected);
         uint32_t IsVideoPortActive(const int32_t handle, bool &active);
-        uint32_t GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution);
+        uint32_t GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution, const bool persist);
         uint32_t SetVideoPortResolution(const int32_t handle, const VideoPortResolution resolution, const bool persist, const bool forceCompatibility);
         uint32_t GetColorSpace(const int32_t handle, VideoPortColorSpace &colorSpace);
         uint32_t SetColorSpace(const int32_t handle, const VideoPortColorSpace colorSpace, const bool persist);

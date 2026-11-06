@@ -176,8 +176,9 @@ namespace Plugin {
     {
         uint32_t result = _compositeIn.GetCompositeInStatus(status);
         if (result == Core::ERROR_NONE) {
-            DSLOG_INFO("succeeded: activePort=%d, isPresented=%s",
-                    static_cast<int>(status.activePort), status.isPresented ? "true" : "false");
+            DSLOG_INFO("succeeded: activePort=%d, isPresented=%s, isPort0Connected=%s, isPort1Connected=%s",
+                    static_cast<int>(status.activePort), status.isPresented ? "true" : "false",
+                    status.isPort0Connected ? "true" : "false", status.isPort1Connected ? "true" : "false");
         } else {
             DSLOG_ERR("failed: error=%u", result);
         }

@@ -71,7 +71,7 @@ public:
     uint32_t SetFPDState(const FPDIndicator indicator, const FPDState state);
     uint32_t GetFPDState(const FPDIndicator indicator, FPDState &state);
     uint32_t GetFPDColor(const FPDIndicator indicator, uint32_t &color);
-    uint32_t SetFPDColor(const FPDIndicator indicator, const uint32_t color);
+    uint32_t SetFPDColor(const FPDIndicator indicator, const uint32_t color, const bool persist);
     uint32_t SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess);
     uint32_t GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &brightNess);
     uint32_t EnableFPDClockDisplay(const bool enable);

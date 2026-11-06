@@ -105,7 +105,7 @@ namespace Plugin {
         Core::hresult SetFPDState(const FPDIndicator indicator, const FPDState state);
         Core::hresult GetFPDState(const FPDIndicator indicator, FPDState &state);
         Core::hresult GetFPDColor(const FPDIndicator indicator, uint32_t &color);
-        Core::hresult SetFPDColor(const FPDIndicator indicator, const uint32_t color);
+        Core::hresult SetFPDColor(const FPDIndicator indicator, const uint32_t color, const bool persist);
         Core::hresult SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess);
         Core::hresult GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &brightNess);
         Core::hresult EnableFPDClockDisplay(const bool enable);
