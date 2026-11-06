@@ -86,8 +86,9 @@ uint32_t CompositeIn::GetCompositeInStatus(CompositeInStatus &status)
         result = this->platform().GetCompositeInStatus(status);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
-        DSLOG_INFO("SUCCESS - activePort=%d, isPresented=%s",
-                static_cast<int>(status.activePort), status.isPresented ? "true" : "false");
+        DSLOG_INFO("SUCCESS - activePort=%d, isPresented=%s, isPort0Connected=%s, isPort1Connected=%s",
+                static_cast<int>(status.activePort), status.isPresented ? "true" : "false",
+                status.isPort0Connected ? "true" : "false", status.isPort1Connected ? "true" : "false");
     } else {
         DSLOG_ERR("FAILED - result=%u", result);
     }

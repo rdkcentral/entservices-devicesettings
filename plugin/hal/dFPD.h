@@ -51,7 +51,7 @@ namespace dFPD {
         virtual uint32_t SetFPDState(const FPDIndicator indicator, const FPDState state) = 0;
         virtual uint32_t GetFPDState(const FPDIndicator indicator, FPDState &state) = 0;
         virtual uint32_t GetFPDColor(const FPDIndicator indicator, uint32_t &color) = 0;
-        virtual uint32_t SetFPDColor(const FPDIndicator indicator, const uint32_t color) = 0;
+        virtual uint32_t SetFPDColor(const FPDIndicator indicator, const uint32_t color, const bool persist) = 0;
         virtual uint32_t SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess) = 0;
         virtual uint32_t GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &brightNess) = 0;
         virtual uint32_t EnableFPDClockDisplay(const bool enable) = 0;
