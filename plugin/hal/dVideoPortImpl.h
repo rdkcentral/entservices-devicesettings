@@ -1898,7 +1898,7 @@ private:
             case dsVIDEOPORT_TYPE_RF:
                 return persistence.getProperty("RF0.resolution", defaultResolution);
             default:
-                return std::move(defaultResolution);
+                return defaultResolution;
         }
     }
 
