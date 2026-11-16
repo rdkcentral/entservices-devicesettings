@@ -90,12 +90,16 @@ class dVideoPortImpl : public hal::dVideoPort::IPlatform {
         std::map<intptr_t, HdcpRequest> requests;
     };
 
+    // Shares callback status and per-port restore requests with the power-event path.
+    // The mutex protects all fields except the independently readable atomic status.
     static HdcpStatusState& hdcpStatusState()
     {
         static HdcpStatusState state;
         return state;
     }
 
+    // Invalidates cached and file-backed status together; the caller must hold state.mutex.
+    // Advancing the generation prevents an older operation from overwriting this update.
     static void resetHdcpStatusCacheLocked(HdcpStatusState& state)
     {
         ++state.generation;
@@ -103,6 +107,8 @@ class dVideoPortImpl : public hal::dVideoPort::IPlatform {
         _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPSTATUS, dsHDCP_STATUS_UNAUTHENTICATED);
     }
 
+    // Used by client requests and startup configuration to retain the last successful
+    // enablement and input key for each port's later power-on restoration.
     static dsError_t applyHdcpRequest(intptr_t handle, bool enabled, const uint8_t* key, size_t keySize)
     {
         if (keySize > HDCP_KEY_MAX_SIZE || (keySize != 0 && key == nullptr)) {
@@ -130,6 +136,8 @@ class dVideoPortImpl : public hal::dVideoPort::IPlatform {
     }
 
 public:
+    // Unconditionally invalidates global HDCP status. Callers must establish that
+    // the callback port requires a reset; unrelated port changes must not use this.
     static void ResetHdcpStatusCache()
     {
         auto& state = hdcpStatusState();
@@ -137,6 +145,9 @@ public:
         resetHdcpStatusCacheLocked(state);
     }
 
+    // Called after power-on port enablement to restart HDCP using its saved request.
+    // Disabled or unknown requests are successful no-ops; no reset follows the HAL
+    // call, so callbacks delivered during authentication retain their status.
     static bool RestoreHdcpAuthenticationForHandle(intptr_t handle)
     {
         if (handle == 0) {
