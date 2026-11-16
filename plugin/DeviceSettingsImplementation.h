@@ -104,7 +104,7 @@ namespace Plugin {
         Core::hresult SetFPDState(const FPDIndicator indicator, const FPDState state) override;
         Core::hresult GetFPDState(const FPDIndicator indicator, FPDState &state) override;
         Core::hresult GetFPDColor(const FPDIndicator indicator, uint32_t &color) override;
-        Core::hresult SetFPDColor(const FPDIndicator indicator, const uint32_t color) override;
+        Core::hresult SetFPDColor(const FPDIndicator indicator, const uint32_t color, const bool persist) override;
         Core::hresult SetFPDTextBrightness(const FPDTextDisplay textDisplay, const uint32_t brightNess) override;
         Core::hresult GetFPDTextBrightness(const FPDTextDisplay textDisplay, uint32_t &brightNess) override;
         Core::hresult EnableFPDClockDisplay(const bool enable) override;
@@ -270,7 +270,7 @@ namespace Plugin {
         Core::hresult EnableVideoPort(const int32_t handle, const bool enabled) override;
         Core::hresult IsVideoPortDisplayConnected(const int32_t handle, bool &connected) override;
         Core::hresult IsVideoPortActive(const int32_t handle, bool &active) override;
-        Core::hresult GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution) override;
+        Core::hresult GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution, const bool persist) override;
         Core::hresult getIgnoreEDIDStatus(const int32_t handle, bool &ignoreEDID);
         Core::hresult GetColorDepth(const int32_t handle, uint32_t &colorDepth) override;
         Core::hresult GetColorSpace(const int32_t handle, VideoPortColorSpace &colorSpace) override;

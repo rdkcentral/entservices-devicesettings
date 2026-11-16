@@ -2294,15 +2294,25 @@ public:
             }
 
             dsAudioSADList_t sadList_hal;
-            memcpy(sadList_hal.sad, sadList, count < 15 ? count : 15);
-            sadList_hal.count = count;
+            // count is the byte length of sadList[] (COM-RPC @length:count convention), not the
+            // entry count - each entry is sizeof(sadList_hal.sad[0]) bytes, so derive the entry count.
+            // Keep the computation in size_t throughout to avoid an intermediate 32->8 bit
+            // truncation that Coverity flags as a possible overflow in the memcpy size below.
+            const size_t entries = static_cast<size_t>(count) / sizeof(sadList_hal.sad[0]);
+            const size_t boundedEntries = entries < static_cast<size_t>(MAX_SAD) ? entries : static_cast<size_t>(MAX_SAD);
+            memcpy(sadList_hal.sad, sadList, boundedEntries * sizeof(sadList_hal.sad[0]));
+            sadList_hal.count = static_cast<uint8_t>(boundedEntries);
+            // Log each decoded SAD value so a bad byte-packing upstream is visible here, not just downstream.
+            for (size_t i = 0; i < boundedEntries; ++i) {
+                DSLOG_INFO("decoded sad[%d]=0x%x", static_cast<int>(i), sadList_hal.sad[i]);
+            }
             dsError_t ret = dsERR_GENERAL;
             if (0 != dsAudioSetSADFunc) {
                 ret = dsAudioSetSADFunc(dsHandle, sadList_hal);
             }
 
             if (ret == dsERR_NONE) {
-                DSLOG_INFO("success: handle=%d, count=%d", handle, count);
+                DSLOG_INFO("success: handle=%d, byteCount=%d, entries=%d", handle, count, static_cast<int>(boundedEntries));
             } else {
                 DSLOG_ERR("dsSetSAD failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -3638,28 +3648,30 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            // Mixer levels are not port specific; legacy DS manager always passes a NULL handle to the HAL
+            (void)handle;
+            intptr_t dsHandle = 0;
             dsAudioInput_t dsInput = static_cast<dsAudioInput_t>(audioInput);
             
-            typedef dsError_t (*dsSetMixerLevel_t)(intptr_t handle, dsAudioInput_t input, int32_t level);
-            static dsSetMixerLevel_t dsSetMixerLevelFunc = 0;
-            if (dsSetMixerLevelFunc == 0) {
-                dsSetMixerLevelFunc = (dsSetMixerLevel_t)resolve(RDK_DSHAL_NAME, "dsSetMixerLevel");
-                if(dsSetMixerLevelFunc == 0) {
-                    DSLOG_ERR("dsSetMixerLevel is not defined");
+            typedef dsError_t (*dsSetAudioMixerLevels_t)(intptr_t handle, dsAudioInput_t input, int32_t level);
+            static dsSetAudioMixerLevels_t dsSetAudioMixerLevelsFunc = 0;
+            if (dsSetAudioMixerLevelsFunc == 0) {
+                dsSetAudioMixerLevelsFunc = (dsSetAudioMixerLevels_t)resolve(RDK_DSHAL_NAME, "dsSetAudioMixerLevels");
+                if(dsSetAudioMixerLevelsFunc == 0) {
+                    DSLOG_ERR("dsSetAudioMixerLevels is not defined");
                     return WPEFramework::Core::ERROR_GENERAL;
                 }
             }
             
             dsError_t ret = dsERR_GENERAL;
-            if (0 != dsSetMixerLevelFunc) {
-                ret = dsSetMixerLevelFunc(dsHandle, dsInput, volume);
+            if (0 != dsSetAudioMixerLevelsFunc) {
+                ret = dsSetAudioMixerLevelsFunc(dsHandle, dsInput, volume);
             }
             
             if (ret == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, input=%d, volume=%d", handle, static_cast<int>(audioInput), volume);
             } else {
-                DSLOG_ERR("dsSetMixerLevel failed with error: %d", ret);
+                DSLOG_ERR("dsSetAudioMixerLevels failed with error: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
         } catch (...) {

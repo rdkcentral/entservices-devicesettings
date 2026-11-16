@@ -359,10 +359,10 @@ public:
         return retCode;
     }
 
-    uint32_t SetFPDColor(const FPDIndicator indicator, const uint32_t color) override
+    uint32_t SetFPDColor(const FPDIndicator indicator, const uint32_t color, const bool persist) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
-        DSLOG_INFO(" indicator %d, color %d", static_cast<int>(indicator), color);
+        DSLOG_INFO(" indicator %d, color %d, persist=%s", static_cast<int>(indicator), color, persist ? "true" : "false");
         if (!EnsurePlatInit()) {
             DSLOG_ERR(" FPD HAL not initialised");
             return retCode;
@@ -376,9 +376,9 @@ public:
                 uint32_t maskedColor = color & 0x00FFFFFF;
                 srvFPDSettings[static_cast<int>(indicator)].color = static_cast<dsFPDColor_t>(maskedColor);
 
-                /* Persist Power.Color for POWER indicator
+                /* Persist Power.Color for POWER indicator only when requested
                  * Mirrors dsFPD.c _dsSetFPColor + enumToColor helper. */
-                if (static_cast<int>(indicator) == dsFPD_INDICATOR_POWER) {
+                if (persist && static_cast<int>(indicator) == dsFPD_INDICATOR_POWER) {
                     std::lock_guard<std::mutex> lock(fpd_initMutex);
                     _dsPowerLedColor = static_cast<dsFPDColor_t>(maskedColor);
                     try {

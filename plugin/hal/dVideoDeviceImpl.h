@@ -174,53 +174,55 @@ public:
         dsVideoZoom_t dsZoom = convertVideoDeviceZoom(zoomSetting);
         
         try {
+            // Legacy DS manager ignores the dsSetDFC HAL return value (e.g. not supported on some platforms)
+            // and still persists, caches and notifies the setting, so a HAL failure is only logged here.
             if (dsZoom == dsVIDEO_ZOOM_NONE) {
                 DSLOG_INFO("Call Zoom setting NONE");
                 dsError_t eError = dsSetDFC(handle, dsZoom);
-                if (eError == dsERR_NONE) {
-                    srv_dfc = dsZoom;
-                    retCode = WPEFramework::Core::ERROR_NONE;
-                    device::HostPersistence::getInstance().persistHostProperty("VideoDevice.DFC", "None");
-                    
-                    // Trigger zoom settings changed callback
-                    g_VideoDeviceZoomSettingsChangedCallback.Invoke(VideoDeviceZoom::DS_VIDEO_DEVICE_ZOOM_NONE);
-                    
-                    DSLOG_INFO(" SUCCESS (NONE)");
-                } else {
-                    DSLOG_ERR(" dsSetDFC failed with error: %d", eError);
+                if (eError != dsERR_NONE) {
+                    DSLOG_WARN(" dsSetDFC returned error: %d, ignoring", eError);
                 }
+                srv_dfc = dsZoom;
+                retCode = WPEFramework::Core::ERROR_NONE;
+                device::HostPersistence::getInstance().persistHostProperty("VideoDevice.DFC", "None");
+                
+                // Trigger zoom settings changed callback
+                g_VideoDeviceZoomSettingsChangedCallback.Invoke(VideoDeviceZoom::DS_VIDEO_DEVICE_ZOOM_NONE);
+                
+                DSLOG_INFO(" SUCCESS (NONE)");
             } else if (dsZoom == dsVIDEO_ZOOM_FULL) {
                 DSLOG_INFO("Call Zoom setting FULL");
                 dsError_t eError = dsSetDFC(handle, dsZoom);
-                if (eError == dsERR_NONE) {
-                    srv_dfc = dsZoom;
-                    retCode = WPEFramework::Core::ERROR_NONE;
-                    device::HostPersistence::getInstance().persistHostProperty("VideoDevice.DFC", "Full");
-                    
-                    // Trigger zoom settings changed callback
-                    g_VideoDeviceZoomSettingsChangedCallback.Invoke(VideoDeviceZoom::DS_VIDEO_DEVICE_ZOOM_FULL);
-                    
-                    DSLOG_INFO(" SUCCESS (FULL)");
-                } else {
-                    DSLOG_ERR(" dsSetDFC failed with error: %d", eError);
+                if (eError != dsERR_NONE) {
+                    DSLOG_WARN(" dsSetDFC returned error: %d, ignoring", eError);
                 }
+                srv_dfc = dsZoom;
+                retCode = WPEFramework::Core::ERROR_NONE;
+                device::HostPersistence::getInstance().persistHostProperty("VideoDevice.DFC", "Full");
+                
+                // Trigger zoom settings changed callback
+                g_VideoDeviceZoomSettingsChangedCallback.Invoke(VideoDeviceZoom::DS_VIDEO_DEVICE_ZOOM_FULL);
+                
+                DSLOG_INFO(" SUCCESS (FULL)");
             } else if (dsZoom == dsVIDEO_ZOOM_16_9_ZOOM) {
                 DSLOG_INFO("Call Zoom setting dsVIDEO_ZOOM_16_9_ZOOM");
                 dsError_t eError = dsSetDFC(handle, dsZoom);
-                if (eError == dsERR_NONE) {
-                    srv_dfc = dsZoom;
-                    retCode = WPEFramework::Core::ERROR_NONE;
-                    device::HostPersistence::getInstance().persistHostProperty("VideoDevice.DFC", "Full");
-                    
-                    // Trigger zoom settings changed callback
-                    g_VideoDeviceZoomSettingsChangedCallback.Invoke(VideoDeviceZoom::DS_VIDEO_DEVICE_ZOOM_16_9_ZOOM);
-                    
-                    DSLOG_INFO(" SUCCESS (16_9_ZOOM)");
-                } else {
-                    DSLOG_ERR(" dsSetDFC failed with error: %d", eError);
+                if (eError != dsERR_NONE) {
+                    DSLOG_WARN(" dsSetDFC returned error: %d, ignoring", eError);
                 }
+                srv_dfc = dsZoom;
+                retCode = WPEFramework::Core::ERROR_NONE;
+                device::HostPersistence::getInstance().persistHostProperty("VideoDevice.DFC", "Full");
+                
+                // Trigger zoom settings changed callback
+                // Legacy _dsSetDFC broadcasts FULL for the 16_9_ZOOM setting
+                g_VideoDeviceZoomSettingsChangedCallback.Invoke(VideoDeviceZoom::DS_VIDEO_DEVICE_ZOOM_FULL);
+                
+                DSLOG_INFO(" SUCCESS (16_9_ZOOM)");
             } else {
+                // Legacy _dsSetDFC only logs unsupported settings and still returns success
                 DSLOG_ERR("ERROR: unsupported Zoom setting %d", static_cast<int>(zoomSetting));
+                retCode = WPEFramework::Core::ERROR_NONE;
             }
 
             if (profileType == TV) {
@@ -228,7 +230,9 @@ public:
                 dsHdmiInSelectZoomMode(srv_dfc);
             }
         } catch (...) {
+            // Legacy _dsSetDFC swallows exceptions and still returns success
             DSLOG_ERR("Error in Setting the Video Device DFC");
+            retCode = WPEFramework::Core::ERROR_NONE;
         }
         
         return retCode;

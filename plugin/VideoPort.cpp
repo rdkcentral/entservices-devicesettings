@@ -134,11 +134,11 @@ uint32_t VideoPort::IsVideoPortActive(const int32_t handle, bool &active) {
     return result;
 }
 
-uint32_t VideoPort::GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution) {
-    DSLOG_INFO("handle=%d", handle);
+uint32_t VideoPort::GetVideoPortResolution(const int32_t handle, VideoPortResolution &resolution, const bool persist) {
+    DSLOG_INFO("handle=%d, persist=%s", handle, persist ? "true" : "false");
     uint32_t result = WPEFramework::Core::ERROR_GENERAL;
     if (_platform) {
-        result = this->platform().GetVideoPortResolution(handle, resolution);
+        result = this->platform().GetVideoPortResolution(handle, resolution, persist);
     }
     if (result == WPEFramework::Core::ERROR_NONE) {
         DSLOG_INFO("SUCCESS - platform call completed successfully");
