@@ -22,12 +22,15 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <dlfcn.h>
 #include <iostream>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <string>
 #include <utility>
+#include <vector>
 #include "dVideoPort.h"
 #include "dsVideoPort.h"
 #include "dsError.h"
@@ -73,44 +76,95 @@ class dVideoPortImpl : public hal::dVideoPort::IPlatform {
     dVideoPortImpl(const dVideoPortImpl&) = delete;
     dVideoPortImpl& operator=(const dVideoPortImpl&) = delete;
 
-    static std::atomic<int>& cachedHdcpStatus()
+    struct HdcpRequest {
+        bool enabled { false };
+        std::vector<char> key;
+        size_t keySize { 0 };
+    };
+
+    struct HdcpStatusState {
+        std::atomic<int> status { dsHDCP_STATUS_UNAUTHENTICATED };
+        std::mutex mutex;
+        intptr_t callbackHandle { 0 };
+        uint64_t generation { 0 };
+        std::map<intptr_t, HdcpRequest> requests;
+    };
+
+    static HdcpStatusState& hdcpStatusState()
     {
-        static std::atomic<int> status { dsHDCP_STATUS_UNAUTHENTICATED };
-        return status;
+        static HdcpStatusState state;
+        return state;
+    }
+
+    static void resetHdcpStatusCacheLocked(HdcpStatusState& state)
+    {
+        ++state.generation;
+        state.status.store(dsHDCP_STATUS_UNAUTHENTICATED);
+        _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPSTATUS, dsHDCP_STATUS_UNAUTHENTICATED);
+    }
+
+    static dsError_t applyHdcpRequest(intptr_t handle, bool enabled, const uint8_t* key, size_t keySize)
+    {
+        if (keySize > HDCP_KEY_MAX_SIZE || (keySize != 0 && key == nullptr)) {
+            DSLOG_ERR("Invalid HDCP key buffer or size: %zu", keySize);
+            return dsERR_INVALID_PARAM;
+        }
+
+        HdcpRequest request;
+        request.enabled = enabled;
+        request.keySize = keySize;
+        request.key.resize(keySize != 0 ? keySize : 1, 0);
+        if (keySize != 0) {
+            std::memcpy(request.key.data(), key, keySize);
+        }
+
+        // Keep the requested bytes intact even if the HAL modifies its input buffer.
+        auto halKey = request.key;
+        const dsError_t error = dsEnableHDCP(handle, enabled, halKey.data(), keySize);
+        if (error == dsERR_NONE) {
+            auto& state = hdcpStatusState();
+            std::lock_guard<std::mutex> lock(state.mutex);
+            state.requests[handle] = std::move(request);
+        }
+        return error;
     }
 
 public:
     static void ResetHdcpStatusCache()
     {
-        cachedHdcpStatus().store(dsHDCP_STATUS_UNAUTHENTICATED);
-        _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPSTATUS, dsHDCP_STATUS_UNAUTHENTICATED);
+        auto& state = hdcpStatusState();
+        std::lock_guard<std::mutex> lock(state.mutex);
+        resetHdcpStatusCacheLocked(state);
     }
 
     static bool RestoreHdcpAuthenticationForHandle(intptr_t handle)
     {
         if (handle == 0) {
+            DSLOG_ERR("Cannot restore HDCP for an invalid video port handle");
             return false;
         }
 
-        typedef dsError_t (*dsEnableHDCP_t)(intptr_t handle, bool enable, char* hdcpKey, int keySize);
-        static dsEnableHDCP_t dsEnableHDCPFunc = nullptr;
-        if (dsEnableHDCPFunc == nullptr) {
-            dsEnableHDCPFunc = reinterpret_cast<dsEnableHDCP_t>(resolve(RDK_DSHAL_NAME, "dsEnableHDCP"));
-            if (dsEnableHDCPFunc == nullptr) {
-                DSLOG_ERR("dsEnableHDCP is not defined");
-                return false;
+        HdcpRequest request;
+        {
+            auto& state = hdcpStatusState();
+            std::lock_guard<std::mutex> lock(state.mutex);
+            const auto it = state.requests.find(handle);
+            if (it == state.requests.end() || !it->second.enabled) {
+                DSLOG_INFO("Skipping HDCP restore for handle=%p: no enabled HDCP request", (void*)handle);
+                return true;
+            }
+            request = it->second;
+            if (state.callbackHandle == handle) {
+                resetHdcpStatusCacheLocked(state);
             }
         }
 
-        char hdcpKey[1024] = {0};
-        size_t keySize = 0;
-        dsError_t error = dsEnableHDCPFunc(handle, true, hdcpKey, static_cast<int>(keySize));
+        const dsError_t error = dsEnableHDCP(handle, request.enabled, request.key.data(), request.keySize);
         if (error != dsERR_NONE) {
             DSLOG_ERR("dsEnableHDCP failed with error: %d", error);
             return false;
         }
 
-        ResetHdcpStatusCache();
         DSLOG_INFO("HDCP authentication re-triggered for handle=%p", (void*)handle);
         return true;
     }
@@ -241,6 +295,11 @@ public:
             videoPort_isPlatInitialized = 0;
         }
         videoPort_isInitialized = 0;
+        auto& state = hdcpStatusState();
+        std::lock_guard<std::mutex> lock(state.mutex);
+        state.callbackHandle = 0;
+        state.requests.clear();
+        ++state.generation;
     }
 
     static void* resolve(const std::string& libName, const std::string& symbolName) {
@@ -290,9 +349,25 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, enabled=%s", handle, enabled ? "true" : "false");
-        
+
+        auto& state = hdcpStatusState();
+        uint64_t generation = 0;
+        bool invalidateHdcp = false;
+        if (!enabled) {
+            std::lock_guard<std::mutex> lock(state.mutex);
+            invalidateHdcp = (handle != 0 && state.callbackHandle == handle);
+            generation = state.generation;
+        }
+
         dsError_t eError = dsEnableVideoPort(handle, enabled);
         if (eError == dsERR_NONE) {
+            if (invalidateHdcp) {
+                std::lock_guard<std::mutex> lock(state.mutex);
+                // A callback delivered during the HAL call is newer than this reset.
+                if (state.callbackHandle == handle && state.generation == generation) {
+                    resetHdcpStatusCacheLocked(state);
+                }
+            }
             retCode = WPEFramework::Core::ERROR_NONE;
             DSLOG_INFO(" SUCCESS");
         } else {
@@ -596,7 +671,7 @@ public:
     uint32_t GetVideoPortHDCPStatus(const int32_t handle, VideoPortHdcpStatus& hdcpStatus) override
     {
         DSLOG_INFO(" handle=%d", handle);
-        hdcpStatus = convertHdcpStatus(static_cast<dsHdcpStatus_t>(cachedHdcpStatus().load()));
+        hdcpStatus = convertHdcpStatus(static_cast<dsHdcpStatus_t>(hdcpStatusState().status.load()));
         DSLOG_INFO(" SUCCESS - cached status=%d", static_cast<int>(hdcpStatus));
         return WPEFramework::Core::ERROR_NONE;
     }
@@ -1077,7 +1152,7 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, hdcpEnable=%s, hdcpKeySize=%u", handle, hdcpEnable ? "true" : "false", hdcpKeySize);
         
-        dsError_t eError = dsEnableHDCP(handle, hdcpEnable, (char*)hdcpKey, static_cast<int>(hdcpKeySize));
+        dsError_t eError = applyHdcpRequest(handle, hdcpEnable, hdcpKey, hdcpKeySize);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
             DSLOG_INFO(" SUCCESS");
@@ -1498,11 +1573,14 @@ public:
                     const dsError_t callbackError = dsRegisterHdcpStatusCallback(handle, VideoPortHDCPStatusCallback);
                     if (callbackError != dsERR_NONE) {
                         DSLOG_ERR("dsRegisterHdcpStatusCallback failed with error: %d", callbackError);
+                    } else {
+                        auto& state = hdcpStatusState();
+                        std::lock_guard<std::mutex> lock(state.mutex);
+                        state.callbackHandle = handle;
+                        ++state.generation;
                     }
                     if (profileType == STB) {
-                        char hdcpKey[HDCP_KEY_MAX_SIZE] = {0};
-                        size_t keySize = 0;
-                        dsError_t ret = dsEnableHDCP(handle, true, hdcpKey, keySize);
+                        dsError_t ret = applyHdcpRequest(handle, true, nullptr, 0);
                         if (ret != dsERR_NONE) {
                             DSLOG_ERR("Failed to enable startup HDCP: error=%d", ret);
                         } else {
@@ -1619,8 +1697,16 @@ public:
     static void VideoPortHDCPStatusCallback(intptr_t handle, dsHdcpStatus_t status)
     {
         DSLOG_INFO(" handle=%p, status=%d", (void*)handle, status);
-        cachedHdcpStatus().store(status);
-        
+
+        auto& state = hdcpStatusState();
+        uint64_t generation = 0;
+        {
+            std::lock_guard<std::mutex> lock(state.mutex);
+            generation = ++state.generation;
+            state.status.store(status);
+            _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPSTATUS, status);
+        }
+
         // Convert DS HAL HDCP status to VideoPortHdcpStatus
         VideoPortHdcpStatus hdcpStatus;
         switch (status) {
@@ -1648,8 +1734,6 @@ public:
                 break;
         }
 
-        _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPSTATUS, status);
-
         dsHdcpProtocolVersion_t protocolVersion = dsHDCP_VERSION_1X;
         if (status == dsHDCP_STATUS_AUTHENTICATED) {
             typedef dsError_t (*dsGetHDCPCurrentProtocol_t)(intptr_t, dsHdcpProtocolVersion_t*);
@@ -1661,7 +1745,12 @@ public:
                 protocolVersion = dsHDCP_VERSION_1X;
             }
         }
-        _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPVERSION, protocolVersion);
+        {
+            std::lock_guard<std::mutex> lock(state.mutex);
+            if (state.generation == generation) {
+                _dsSyncHdmiStatus(DS_HDMI_TAG_HDCPVERSION, protocolVersion);
+            }
+        }
         
         // Call the stored global callback if available
         g_VideoPortHDCPStatusChangeCallback.Invoke(hdcpStatus);
