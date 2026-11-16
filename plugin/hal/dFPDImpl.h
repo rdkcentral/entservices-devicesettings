@@ -255,7 +255,13 @@ public:
         
         if (static_cast<int>(indicator) < dsFPD_INDICATOR_MAX) {
             dsFPDBrightness_t halBrightness = 0;
-            dsGetFPBrightness(static_cast<dsFPDIndicator_t>(indicator), &halBrightness);
+            const dsError_t error = dsGetFPBrightness(static_cast<dsFPDIndicator_t>(indicator), &halBrightness);
+            if (error != dsERR_NONE) {
+                DSLOG_ERR(" dsGetFPBrightness failed with error %d", error);
+                if (!persist) {
+                    return retCode;
+                }
+            }
 
             brightNess = persist ? static_cast<uint32_t>(_dsPowerBrightness)
                                  : static_cast<uint32_t>(halBrightness);

@@ -42,6 +42,7 @@
 
 #include <WPEFramework/interfaces/IDeviceSettingsVideoDevice.h>
 #include "DeviceSettingsTypes.h"
+#include "DeviceSettingsHALConfig.h"
 
 // Static global variables from dsVideoDevice.c conversion
 static int videoDevice_isInitialized = 0;
@@ -61,6 +62,50 @@ class dVideoDeviceImpl : public hal::dVideoDevice::IPlatform {
     // delete copy constructor and assignment operator
     dVideoDeviceImpl(const dVideoDeviceImpl&) = delete;
     dVideoDeviceImpl& operator=(const dVideoDeviceImpl&) = delete;
+
+    mutable std::mutex _videoDeviceHandleMutex;
+    mutable DeviceSettingsHAL::PortHandleCache<int32_t> _videoDeviceHandleCache;
+
+    bool populateVideoDeviceHandleCacheLocked() const
+    {
+        std::vector<VideoDeviceConfigInfo> configs;
+        DeviceSettingsHAL::PopulateVideoDeviceConfig(configs);
+        std::vector<int32_t> indices;
+        if (!DeviceSettingsHAL::PopulateVideoDeviceIndices(configs.size(), indices)) {
+            DSLOG_ERR("Too many configured video devices: %zu", configs.size());
+            return false;
+        }
+        const bool populated = _videoDeviceHandleCache.Populate(indices,
+            [](const int32_t index, intptr_t& candidate) {
+                const dsError_t error = dsGetVideoDevice(index, &candidate);
+                if (error != dsERR_NONE) {
+                    DSLOG_ERR("dsGetVideoDevice failed for index=%d, error=%d", index, error);
+                }
+                return error == dsERR_NONE;
+            });
+        if (!populated) {
+            DSLOG_ERR("Unable to populate complete video device handle cache");
+        }
+        return populated;
+    }
+
+    bool resolveVideoDeviceHandle(const int32_t handle, intptr_t& halHandle) const
+    {
+        std::lock_guard<std::mutex> lock(_videoDeviceHandleMutex);
+        if (!videoDevice_isPlatInitialized) {
+            DSLOG_ERR("Video device platform not initialized");
+            return false;
+        }
+        if (!_videoDeviceHandleCache.IsReady() && !populateVideoDeviceHandleCacheLocked()) {
+            return false;
+        }
+        int32_t deviceIndex = -1;
+        const bool resolved = _videoDeviceHandleCache.Resolve(handle, halHandle, deviceIndex);
+        if (!resolved) {
+            DSLOG_ERR("Invalid, ambiguous, or unavailable video device handle=%d", handle);
+        }
+        return resolved;
+    }
 
 public:
     dVideoDeviceImpl()
@@ -110,7 +155,12 @@ public:
             // Load persistence values after successful initialization - following dsVideoDevice.c pattern
             getPersistenceValue();
             
-            videoDevice_isPlatInitialized = 1;
+            {
+                std::lock_guard<std::mutex> lock(_videoDeviceHandleMutex);
+                _videoDeviceHandleCache.Clear();
+                populateVideoDeviceHandleCacheLocked();
+                videoDevice_isPlatInitialized = 1;
+            }
             DSLOG_INFO("completed: videoDevice_isPlatInitialized=%d, videoDevice_isInitialized=%d",
                     videoDevice_isPlatInitialized, videoDevice_isInitialized);
         }
@@ -118,10 +168,16 @@ public:
 
     void DeInitialiseHAL()
     {
-        if (videoDevice_isPlatInitialized)
+        bool wasInitialized = false;
+        {
+            std::lock_guard<std::mutex> lock(_videoDeviceHandleMutex);
+            _videoDeviceHandleCache.Clear();
+            wasInitialized = videoDevice_isPlatInitialized != 0;
+            videoDevice_isPlatInitialized = 0;
+        }
+        if (wasInitialized)
         {
             dsVideoDeviceTerm();
-            videoDevice_isPlatInitialized = 0;
         }
         videoDevice_isInitialized = 0;
     }
@@ -169,6 +225,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, zoomSetting=%d", handle, static_cast<int>(zoomSetting));
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         // Convert VideoDeviceZoom to dsVideoZoom_t
         dsVideoZoom_t dsZoom = convertVideoDeviceZoom(zoomSetting);
@@ -178,7 +238,7 @@ public:
             // and still persists, caches and notifies the setting, so a HAL failure is only logged here.
             if (dsZoom == dsVIDEO_ZOOM_NONE) {
                 DSLOG_INFO("Call Zoom setting NONE");
-                dsError_t eError = dsSetDFC(handle, dsZoom);
+                dsError_t eError = dsSetDFC(halHandle, dsZoom);
                 if (eError != dsERR_NONE) {
                     DSLOG_WARN(" dsSetDFC returned error: %d, ignoring", eError);
                 }
@@ -192,7 +252,7 @@ public:
                 DSLOG_INFO(" SUCCESS (NONE)");
             } else if (dsZoom == dsVIDEO_ZOOM_FULL) {
                 DSLOG_INFO("Call Zoom setting FULL");
-                dsError_t eError = dsSetDFC(handle, dsZoom);
+                dsError_t eError = dsSetDFC(halHandle, dsZoom);
                 if (eError != dsERR_NONE) {
                     DSLOG_WARN(" dsSetDFC returned error: %d, ignoring", eError);
                 }
@@ -206,7 +266,7 @@ public:
                 DSLOG_INFO(" SUCCESS (FULL)");
             } else if (dsZoom == dsVIDEO_ZOOM_16_9_ZOOM) {
                 DSLOG_INFO("Call Zoom setting dsVIDEO_ZOOM_16_9_ZOOM");
-                dsError_t eError = dsSetDFC(handle, dsZoom);
+                dsError_t eError = dsSetDFC(halHandle, dsZoom);
                 if (eError != dsERR_NONE) {
                     DSLOG_WARN(" dsSetDFC returned error: %d, ignoring", eError);
                 }
@@ -242,6 +302,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d", handle);
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         // Return the cached zoom setting
         zoomSetting = convertDSVideoZoom(srv_dfc);
@@ -255,6 +319,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d", handle);
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         typedef dsError_t (*dsGetHDRCapabilitiesFunc_t)(intptr_t handle, int *capabilities);
         static dsGetHDRCapabilitiesFunc_t func = 0;
@@ -269,7 +337,7 @@ public:
         
         if ((0 != func) && (false == force_disable_hdr)) {
             int dsCapabilities = 0;
-            dsError_t eError = func(handle, &dsCapabilities);
+            dsError_t eError = func(halHandle, &dsCapabilities);
             if (eError == dsERR_NONE) {
                 capabilities = static_cast<int32_t>(dsCapabilities);
                 retCode = WPEFramework::Core::ERROR_NONE;
@@ -290,6 +358,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d", handle);
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         typedef dsError_t (*dsGetSupportedVideoCodingFormatsFunc_t)(intptr_t handle, unsigned int *supported_formats);
         static dsGetSupportedVideoCodingFormatsFunc_t func = 0;
@@ -304,7 +376,7 @@ public:
         
         if (0 != func) {
             unsigned int dsFormats = 0;
-            dsError_t eError = func(handle, &dsFormats);
+            dsError_t eError = func(halHandle, &dsFormats);
             if (eError == dsERR_NONE) {
                 supportedFormats = static_cast<int32_t>(dsFormats);
                 retCode = WPEFramework::Core::ERROR_NONE;
@@ -325,6 +397,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, videoCodec=%d", handle, static_cast<int>(videoCodec));
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         typedef dsError_t (*dsGetVideoCodecInfoFunc_t)(intptr_t handle, dsVideoCodingFormat_t codec, dsVideoCodecInfo_t * info);
         static dsGetVideoCodecInfoFunc_t func = 0;
@@ -340,7 +416,7 @@ public:
         if (0 != func) {
             dsVideoCodingFormat_t dsFormat = convertVideoCodecToDSFormat(videoCodec);
             dsVideoCodecInfo_t info;
-            dsError_t eError = func(handle, dsFormat, &info);
+            dsError_t eError = func(halHandle, dsFormat, &info);
             if (eError == dsERR_NONE) {
                 // Convert dsVideoCodecInfo_t to iterator
                 codecInfo = createCodecInfoIterator(info);
@@ -361,6 +437,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, disable=%s", handle, disable ? "true" : "false");
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         typedef dsError_t (*dsDisableHDRSupportFunc_t)(intptr_t handle, bool enable);
         static dsDisableHDRSupportFunc_t func = 0;
@@ -376,7 +456,7 @@ public:
         retCode = WPEFramework::Core::ERROR_NONE;
         
         if (0 != func) {
-            dsError_t eError = func(handle, disable);
+            dsError_t eError = func(halHandle, disable);
             if (eError != dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_GENERAL;
                 DSLOG_ERR(" dsForceDisableHDRSupport failed with error: %d", eError);
@@ -399,6 +479,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, frfmode=%d", handle, frfmode);
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         typedef dsError_t (*dsSetFRFModeFunc_t)(intptr_t handle, int frfmode);
         static dsSetFRFModeFunc_t func = 0;
@@ -412,7 +496,7 @@ public:
         }
         
         if (0 != func) {
-            dsError_t eError = func(handle, frfmode);
+            dsError_t eError = func(halHandle, frfmode);
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
                 DSLOG_INFO(" SUCCESS");
@@ -428,6 +512,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d", handle);
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         typedef dsError_t (*dsGetFRFModeFunc_t)(intptr_t handle, int *frfmode);
         static dsGetFRFModeFunc_t func = 0;
@@ -442,7 +530,7 @@ public:
         
         if (0 != func) {
             int dsFrfMode = 0;
-            dsError_t eError = func(handle, &dsFrfMode);
+            dsError_t eError = func(halHandle, &dsFrfMode);
             if (eError == dsERR_NONE) {
                 frfmode = static_cast<int32_t>(dsFrfMode);
                 retCode = WPEFramework::Core::ERROR_NONE;
@@ -459,6 +547,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d", handle);
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         typedef dsError_t (*dsGetCurrentDisframerateFunc_t)(intptr_t handle, char *framerate);
         static dsGetCurrentDisframerateFunc_t func = 0;
@@ -473,7 +565,7 @@ public:
         
         if (0 != func) {
             char dsFramerate[32] = "";
-            dsError_t eError = func(handle, dsFramerate);
+            dsError_t eError = func(halHandle, dsFramerate);
             if (eError == dsERR_NONE) {
                 framerate = string(dsFramerate);
                 retCode = WPEFramework::Core::ERROR_NONE;
@@ -490,6 +582,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, framerate=%s", handle, framerate.c_str());
+        intptr_t halHandle = 0;
+        if (!resolveVideoDeviceHandle(handle, halHandle)) {
+            return retCode;
+        }
         
         typedef dsError_t (*dsSetDisplayframerateFunc_t)(intptr_t handle, char *frfmode);
         static dsSetDisplayframerateFunc_t func = 0;
@@ -518,7 +614,7 @@ public:
             strncpy(dsFramerate, framerate.c_str(), sizeof(dsFramerate) - 1);
             dsFramerate[sizeof(dsFramerate) - 1] = '\0';
             
-            result = func(handle, dsFramerate);
+            result = func(halHandle, dsFramerate);
             if (result == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
                 DSLOG_INFO(" SUCCESS");
@@ -547,6 +643,7 @@ public:
         
         if (videoDevice_isPlatInitialized && !videoDevice_isInitialized) {
             DSLOG_INFO("VideoDevice platform callback Initialization");
+            bool callbacksRegistered = true;
             
             // Register Zoom Settings Changed Callback
             if (bundle.OnZoomSettingsChanged) {
@@ -564,6 +661,7 @@ public:
                 dsError_t eRet = VideoDeviceRegisterFrameratePreChangeCB(VideoDeviceFramerateStatusPreChangeCB);
                 if (dsERR_NONE != eRet) {
                     DSLOG_ERR("VideoDeviceRegisterFrameratePreChangeCB failed with error: %d", eRet);
+                    callbacksRegistered = false;
                 } else {
                     DSLOG_INFO("Framerate pre-change callback registered successfully with DS HAL");
                 }
@@ -578,11 +676,16 @@ public:
                 dsError_t eRet = VideoDeviceRegisterFrameratePostChangeCB(VideoDeviceFramerateStatusPostChangeCB);
                 if (dsERR_NONE != eRet) {
                     DSLOG_ERR("VideoDeviceRegisterFrameratePostChangeCB failed with error: %d", eRet);
+                    callbacksRegistered = false;
                 } else {
                     DSLOG_INFO("Framerate post-change callback registered successfully with DS HAL");
                 }
             }
             
+            if (!callbacksRegistered) {
+                DSLOG_ERR("VideoDevice callback registration incomplete; initialization can be retried");
+                return;
+            }
             videoDevice_isInitialized = 1;
             DSLOG_INFO("VideoDevice platform callback Initialization done");
         } else {

@@ -200,7 +200,10 @@ public:
             g_CompositeInVideoModeUpdateCallback.Set(bundle.OnCompositeInVideoModeUpdate);
 
             // Register HAL callbacks
-            registerCompositeInEventCallbacks();
+            if (!registerCompositeInEventCallbacks()) {
+                DSLOG_ERR("CompositeIn callback registration incomplete; initialization can be retried");
+                return;
+            }
             
             compositeIn_isInitialized = 1;
             DSLOG_INFO("dCompositeInImpl setAllCallbacks: CompositeIn callbacks registered successfully");
@@ -414,7 +417,23 @@ public:
     }
 
 private:
-    void registerCompositeInEventCallbacks()
+    template <typename Register, typename Callback>
+    static bool registerCompositeInCallback(const char* name, Register function, Callback callback)
+    {
+        if (function == nullptr) {
+            DSLOG_ERR(" %s not available", name);
+            return false;
+        }
+        const dsError_t error = function(callback);
+        if (error != dsERR_NONE) {
+            DSLOG_ERR(" %s failed with error: %d", name, error);
+            return false;
+        }
+        DSLOG_INFO(" %s SUCCESS", name);
+        return true;
+    }
+
+    bool registerCompositeInEventCallbacks()
     {
         
         // Register CompositeIn event callbacks using resolve method - matches dsCompositeIn.c pattern
@@ -430,40 +449,28 @@ private:
         
         if (funcConnect == 0) {
             funcConnect = (dsCompositeInRegisterConnectCB_t) resolve(RDK_DSHAL_NAME, "dsCompositeInRegisterConnectCB");
+        }
+        if (funcSignal == 0) {
             funcSignal = (dsCompositeInRegisterSignalChangeCB_t) resolve(RDK_DSHAL_NAME, "dsCompositeInRegisterSignalChangeCB");
+        }
+        if (funcStatus == 0) {
             funcStatus = (dsCompositeInRegisterStatusChangeCB_t) resolve(RDK_DSHAL_NAME, "dsCompositeInRegisterStatusChangeCB");
+        }
+        if (funcVideoMode == 0) {
             funcVideoMode = (dsCompositeInRegisterVideoModeUpdateCB_t) resolve(RDK_DSHAL_NAME, "dsCompositeInRegisterVideoModeUpdateCB");
         }
         
         // dsCompositeIn.c registers each callback independently — a platform missing one
         // callback symbol must not prevent registering the others.
-        if (funcConnect) {
-            funcConnect(dsCompositeInConnectCallback);
-            DSLOG_INFO(" dsCompositeInRegisterConnectCB SUCCESS");
-        } else {
-            DSLOG_ERR(" dsCompositeInRegisterConnectCB not available");
-        }
-
-        if (funcSignal) {
-            funcSignal(dsCompositeInSignalChangeCallback);
-            DSLOG_INFO(" dsCompositeInRegisterSignalChangeCB SUCCESS");
-        } else {
-            DSLOG_ERR(" dsCompositeInRegisterSignalChangeCB not available");
-        }
-
-        if (funcStatus) {
-            funcStatus(dsCompositeInStatusChangeCallback);
-            DSLOG_INFO(" dsCompositeInRegisterStatusChangeCB SUCCESS");
-        } else {
-            DSLOG_ERR(" dsCompositeInRegisterStatusChangeCB not available");
-        }
-
-        if (funcVideoMode) {
-            funcVideoMode(dsCompositeInVideoModeUpdateCallback);
-            DSLOG_INFO(" dsCompositeInRegisterVideoModeUpdateCB SUCCESS");
-        } else {
-            DSLOG_ERR(" dsCompositeInRegisterVideoModeUpdateCB not available");
-        }
+        const bool connectRegistered = registerCompositeInCallback("dsCompositeInRegisterConnectCB",
+            funcConnect, dsCompositeInConnectCallback);
+        const bool signalRegistered = registerCompositeInCallback("dsCompositeInRegisterSignalChangeCB",
+            funcSignal, dsCompositeInSignalChangeCallback);
+        const bool statusRegistered = registerCompositeInCallback("dsCompositeInRegisterStatusChangeCB",
+            funcStatus, dsCompositeInStatusChangeCallback);
+        const bool videoModeRegistered = registerCompositeInCallback("dsCompositeInRegisterVideoModeUpdateCB",
+            funcVideoMode, dsCompositeInVideoModeUpdateCallback);
+        return connectRegistered && signalRegistered && statusRegistered && videoModeRegistered;
     }
 
     // Static callback functions to handle CompositeIn events from HAL
