@@ -46,7 +46,6 @@
 #define DS_VP_DEFAULT_RESOLUTION_2160P  "2160p"
 
 static int videoPort_isInitialized = 0;
-static int videoPort_isPlatInitialized = 0;
 
 // Persistent resolution settings — initialised in getPersistenceValue() based on profileType.
 // TV profile (profileType=1) defaults to DS_VP_DEFAULT_RESOLUTION_2160P; STB defaults to DS_VP_DEFAULT_RESOLUTION_1080P.
@@ -75,6 +74,7 @@ class dVideoPortImpl : public hal::dVideoPort::IPlatform {
 
     mutable std::mutex _videoPortHandleMutex;
     mutable DeviceSettingsHAL::VideoPortHandleCache<VideoPortPortConfig> _videoPortHandleCache;
+    bool _videoPortIsPlatInitialized = false;
 
     static std::atomic<int>& cachedHdcpStatus()
     {
@@ -174,7 +174,7 @@ public:
         // Note: videoPort_isInitialized should only be set in setAllCallbacks after callback registration
         // Don't set it here as it prevents callback registration condition from working
 
-        if (!videoPort_isPlatInitialized) {
+        if (!_videoPortIsPlatInitialized) {
             DSLOG_INFO("<dsVideoPort>");
             dsError_t eError = dsVideoPortInit();
             if (dsERR_NONE != eError) {
@@ -205,10 +205,10 @@ public:
                 std::lock_guard<std::mutex> lock(_videoPortHandleMutex);
                 _videoPortHandleCache.Clear();
                 populateVideoPortHandleCacheLocked();
-                videoPort_isPlatInitialized = 1;
+                _videoPortIsPlatInitialized = true;
             }
-            DSLOG_INFO("completed: videoPort_isPlatInitialized=%d, videoPort_isInitialized=%d",
-                    videoPort_isPlatInitialized, videoPort_isInitialized);
+            DSLOG_INFO("completed: platformInitialized=%d, videoPort_isInitialized=%d",
+                    _videoPortIsPlatInitialized, videoPort_isInitialized);
         }
     }
 
@@ -218,8 +218,8 @@ public:
         {
             std::lock_guard<std::mutex> lock(_videoPortHandleMutex);
             _videoPortHandleCache.Clear();
-            wasInitialized = videoPort_isPlatInitialized != 0;
-            videoPort_isPlatInitialized = 0;
+            wasInitialized = _videoPortIsPlatInitialized;
+            _videoPortIsPlatInitialized = false;
             DSLOG_INFO("VideoPort handle cache invalidated: platformWasInitialized=%d", wasInitialized);
         }
         if (wasInitialized)
@@ -1605,13 +1605,13 @@ public:
         DSLOG_INFO("Registering event callbacks with DS HAL");
         
         // Debug logging to diagnose condition failure
-        DSLOG_INFO("VideoPort callback registration check: videoPort_isInitialized=%d, videoPort_isPlatInitialized=%d",
-                videoPort_isInitialized, videoPort_isPlatInitialized);
+        DSLOG_INFO("VideoPort callback registration check: videoPort_isInitialized=%d, platformInitialized=%d",
+                videoPort_isInitialized, _videoPortIsPlatInitialized);
         DEBUG_LOG("VideoPort requested callbacks: pre=%d post=%d hdcp=%d format=%d",
             static_cast<bool>(bundle.OnResolutionPreChange), static_cast<bool>(bundle.OnResolutionPostChange),
             static_cast<bool>(bundle.OnHDCPStatusChange), static_cast<bool>(bundle.OnVideoFormatUpdate));
         
-        if (videoPort_isPlatInitialized && !videoPort_isInitialized) {
+        if (_videoPortIsPlatInitialized && !videoPort_isInitialized) {
             DSLOG_INFO("VideoPort platform callback Initialization");
             bool callbacksRegistered = true;
             
@@ -1685,9 +1685,9 @@ public:
             videoPort_isInitialized = 1;
             DSLOG_INFO("VideoPort platform callback Initialization done");
         } else {
-            if (!videoPort_isPlatInitialized) {
-                DSLOG_ERR("VideoPort callback registration FAILED: Platform not initialized (videoPort_isPlatInitialized=%d)",
-                       videoPort_isPlatInitialized);
+            if (!_videoPortIsPlatInitialized) {
+                DSLOG_ERR("VideoPort callback registration FAILED: Platform not initialized (platformInitialized=%d)",
+                       _videoPortIsPlatInitialized);
             }
             if (videoPort_isInitialized) {
                 DSLOG_WARN("VideoPort callback registration SKIPPED: Callbacks already initialized (videoPort_isInitialized=%d)",
@@ -2082,9 +2082,9 @@ private:
     {
         std::lock_guard<std::mutex> lock(_videoPortHandleMutex);
         DEBUG_LOG("VideoPort handle validation: handle=%d initialized=%d cacheReady=%d",
-            handle, videoPort_isPlatInitialized, _videoPortHandleCache.IsReady());
+            handle, _videoPortIsPlatInitialized, _videoPortHandleCache.IsReady());
         portType = dsVIDEOPORT_TYPE_MAX;
-        if (!videoPort_isPlatInitialized) {
+        if (!_videoPortIsPlatInitialized) {
             DSLOG_ERR("Video port platform not initialized");
             return false;
         }

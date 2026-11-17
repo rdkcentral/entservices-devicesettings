@@ -1122,27 +1122,25 @@ public:
             if (0 != dsSetAudioLevelFunc) {
                 // dsAudio.c: for SPEAKER port, if ducking is in progress, apply
                 // ducking level instead of the requested level (or skip if ducking is active).
-                if (portType == dsAUDIOPORT_TYPE_SPEAKER) {
+                if (portType == dsAUDIOPORT_TYPE_SPEAKER && _isDuckingInProgress) {
                     float currentLevel = 0;
                     const dsError_t error = dsGetAudioLevel(dsHandle, &currentLevel);
                     if (error != dsERR_NONE) {
                         DSLOG_ERR("dsGetAudioLevel failed with error: %d", error);
-                        DEBUG_LOG("Speaker level update aborted before setter, persistence, cache, or notification");
+                        DEBUG_LOG("Speaker ducking update aborted before setter, persistence, cache, or notification");
                         return WPEFramework::Core::ERROR_GENERAL;
                     }
                     DEBUG_LOG("Speaker current-level read succeeded: handle=%d ducking=%d",
                         handle, _isDuckingInProgress);
-                    if (_isDuckingInProgress && currentLevel != static_cast<float>(_volumeDuckingLevel)) {
+                    if (currentLevel != static_cast<float>(_volumeDuckingLevel)) {
                         // Ducking active and current level diverged — re-apply ducking level
                         DSLOG_INFO(" ducking in progress, applying ducking level %d instead of %f",
                                 _volumeDuckingLevel, audioLevel);
                         ret = dsSetAudioLevelFunc(dsHandle, static_cast<float>(_volumeDuckingLevel));
-                    } else if (_isDuckingInProgress) {
+                    } else {
                         // Already at ducking level — skip (dsAudio.c: returns SUCCESS without calling HAL)
                         DSLOG_INFO(" ducking in progress, skipping level change for SPEAKER");
                         ret = dsERR_NONE;
-                    } else {
-                        ret = dsSetAudioLevelFunc(dsHandle, audioLevel);
                     }
                 } else {
                     ret = dsSetAudioLevelFunc(dsHandle, audioLevel);

@@ -51,6 +51,9 @@ results and is retried on the next handle-based operation. Display skips only
 explicit unsupported display lookups; a successfully enumerated all-unsupported
 display domain remains cached as unavailable. Its video-port queries share
 VideoPort's owning cache rather than keeping potentially stale copies.
+VideoPort's platform-initialized flag is stored on the same instance as its
+cache and mutex, so Display callers in other translation units observe the
+owning instance's initialization state rather than a header-local flag.
 Cache access and invalidation are mutex-protected; termination clears each
 owning module's cache, and reinitialization rebuilds it. This relies on handles
 and configuration remaining stable within one plugin/HAL initialization
@@ -78,6 +81,8 @@ not filtered, marked cache-valid, dumped, or converted for the caller.
 The approved cross-module follow-up also checks HDMI EDID-version reads,
 Audio capability/ducking-level queries, LE initialization, and live FPD
 brightness reads. Failed reads do not become successful default results;
+speaker current-level reads are required only during active ducking. Ordinary
+volume writes go directly to the setter without a prerequisite getter call;
 persisted FPD brightness queries retain their existing cached-value behavior.
 Failed HDMI initialization/input-count lookup leaves initialization incomplete,
 and failures applying the persisted force-disable-4K setting are logged.
