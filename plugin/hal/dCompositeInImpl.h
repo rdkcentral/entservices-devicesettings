@@ -420,6 +420,7 @@ private:
     template <typename Register, typename Callback>
     static bool registerCompositeInCallback(const char* name, Register function, Callback callback)
     {
+        DEBUG_LOG("CompositeIn callback registration attempt: %s available=%d", name, function != nullptr);
         if (function == nullptr) {
             DSLOG_ERR(" %s not available", name);
             return false;
@@ -470,6 +471,8 @@ private:
             funcStatus, dsCompositeInStatusChangeCallback);
         const bool videoModeRegistered = registerCompositeInCallback("dsCompositeInRegisterVideoModeUpdateCB",
             funcVideoMode, dsCompositeInVideoModeUpdateCallback);
+        DEBUG_LOG("CompositeIn callback results: connect=%d signal=%d status=%d videoMode=%d",
+            connectRegistered, signalRegistered, statusRegistered, videoModeRegistered);
         return connectRegistered && signalRegistered && statusRegistered && videoModeRegistered;
     }
 

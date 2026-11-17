@@ -105,15 +105,18 @@ namespace DeviceSettingsHAL {
     bool ResolvePortHandle(const int32_t handle, const std::vector<Port>& ports,
         GetHandle getHandle, SamePort samePort, intptr_t& halHandle, Port& resolvedPort)
     {
+        DEBUG_LOG("Handle validation: handle=%d candidates=%zu", handle, ports.size());
         const Port* match = nullptr;
         intptr_t matchedHandle = 0;
         for (const auto& port : ports) {
             intptr_t candidate = 0;
             const auto result = HandleLookupStatus(getHandle(port, candidate));
             if (result == HandleLookupResult::Unsupported) {
+                DEBUG_LOG("Handle validation: skipping explicitly unsupported candidate");
                 continue;
             }
             if (result != HandleLookupResult::Found) {
+                DEBUG_LOG("Handle validation: configured lookup failed; rejecting handle=%d", handle);
                 return false;
             }
             if (static_cast<int32_t>(candidate) != handle) {
@@ -121,17 +124,22 @@ namespace DeviceSettingsHAL {
             }
             if (match != nullptr
                 && (matchedHandle != candidate || !samePort(*match, port))) {
+                DEBUG_LOG("Handle validation: ambiguous handle=%d nativeCollision=%d",
+                    handle, matchedHandle != candidate);
                 return false;
             }
+            DEBUG_LOG("Handle validation: matching candidate for handle=%d", handle);
             match = &port;
             matchedHandle = candidate;
         }
 
         if (match == nullptr) {
+            DEBUG_LOG("Handle validation: no configured match for handle=%d", handle);
             return false;
         }
         halHandle = matchedHandle;
         resolvedPort = *match;
+        DEBUG_LOG("Handle validation: accepted handle=%d with original native width", handle);
         return true;
     }
 
@@ -182,6 +190,7 @@ namespace DeviceSettingsHAL {
     public:
         void Clear()
         {
+            DEBUG_LOG("Handle cache: clearing entries=%zu ready=%d", _entries.size(), _ready);
             _entries.clear();
             _ready = false;
         }
@@ -195,7 +204,9 @@ namespace DeviceSettingsHAL {
         bool Populate(const std::vector<Port>& ports, GetHandle getHandle)
         {
             Clear();
+            DEBUG_LOG("Handle cache: building from configured identities=%zu", ports.size());
             if (ports.empty()) {
+                DEBUG_LOG("Handle cache: empty configuration; cache remains unavailable");
                 return false;
             }
             std::vector<Entry> entries;
@@ -204,20 +215,27 @@ namespace DeviceSettingsHAL {
                 intptr_t nativeHandle = 0;
                 const auto result = HandleLookupStatus(getHandle(port, nativeHandle));
                 if (result == HandleLookupResult::Unsupported) {
+                    DEBUG_LOG("Handle cache: skipping explicitly unsupported identity");
                     continue;
                 }
                 if (result != HandleLookupResult::Found) {
+                    DEBUG_LOG("Handle cache: lookup failed after %zu entries; discarding partial build",
+                        entries.size());
                     return false;
                 }
                 entries.push_back(Entry { port, nativeHandle });
+                DEBUG_LOG("Handle cache: collected entries=%zu", entries.size());
             }
             _entries.swap(entries);
             _ready = true;
+            DEBUG_LOG("Handle cache: ready entries=%zu configured=%zu", _entries.size(), ports.size());
             return true;
         }
 
         bool Resolve(const int32_t handle, intptr_t& halHandle, Port& resolvedPort) const
         {
+            DEBUG_LOG("Handle cache: in-memory lookup handle=%d ready=%d entries=%zu",
+                handle, _ready, _entries.size());
             Entry resolved {};
             if (!ResolvePortHandle(handle, _entries,
                     [](const Entry& entry, intptr_t& candidate) {
@@ -252,6 +270,7 @@ namespace DeviceSettingsHAL {
     {
         indices.clear();
         if (deviceCount > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+            DEBUG_LOG("Video device index enumeration: count=%zu exceeds int32_t range", deviceCount);
             return false;
         }
         // Legacy VideoDeviceConfig constructs VideoDevice(i) for each config entry.

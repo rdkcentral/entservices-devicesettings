@@ -68,6 +68,7 @@ class dVideoDeviceImpl : public hal::dVideoDevice::IPlatform {
 
     bool populateVideoDeviceHandleCacheLocked() const
     {
+        DSLOG_INFO("VideoDevice handle cache build started");
         std::vector<VideoDeviceConfigInfo> configs;
         DeviceSettingsHAL::PopulateVideoDeviceConfig(configs);
         std::vector<int32_t> indices;
@@ -78,6 +79,7 @@ class dVideoDeviceImpl : public hal::dVideoDevice::IPlatform {
         const bool populated = _videoDeviceHandleCache.Populate(indices,
             [](const int32_t index, intptr_t& candidate) {
                 const dsError_t error = dsGetVideoDevice(index, &candidate);
+                DEBUG_LOG("VideoDevice handle cache lookup: index=%d result=%d", index, error);
                 if (error != dsERR_NONE) {
                     DSLOG_ERR("dsGetVideoDevice failed for index=%d, error=%d", index, error);
                 }
@@ -85,6 +87,8 @@ class dVideoDeviceImpl : public hal::dVideoDevice::IPlatform {
             });
         if (!populated) {
             DSLOG_ERR("Unable to populate complete video device handle cache");
+        } else {
+            DSLOG_INFO("VideoDevice handle cache ready: configured devices=%zu", configs.size());
         }
         return populated;
     }
@@ -92,6 +96,8 @@ class dVideoDeviceImpl : public hal::dVideoDevice::IPlatform {
     bool resolveVideoDeviceHandle(const int32_t handle, intptr_t& halHandle) const
     {
         std::lock_guard<std::mutex> lock(_videoDeviceHandleMutex);
+        DEBUG_LOG("VideoDevice handle validation: handle=%d initialized=%d cacheReady=%d",
+            handle, videoDevice_isPlatInitialized, _videoDeviceHandleCache.IsReady());
         if (!videoDevice_isPlatInitialized) {
             DSLOG_ERR("Video device platform not initialized");
             return false;
@@ -103,6 +109,8 @@ class dVideoDeviceImpl : public hal::dVideoDevice::IPlatform {
         const bool resolved = _videoDeviceHandleCache.Resolve(handle, halHandle, deviceIndex);
         if (!resolved) {
             DSLOG_ERR("Invalid, ambiguous, or unavailable video device handle=%d", handle);
+        } else {
+            DEBUG_LOG("VideoDevice handle validated: handle=%d index=%d", handle, deviceIndex);
         }
         return resolved;
     }
@@ -174,6 +182,7 @@ public:
             _videoDeviceHandleCache.Clear();
             wasInitialized = videoDevice_isPlatInitialized != 0;
             videoDevice_isPlatInitialized = 0;
+            DSLOG_INFO("VideoDevice handle cache invalidated: platformWasInitialized=%d", wasInitialized);
         }
         if (wasInitialized)
         {
@@ -640,6 +649,10 @@ public:
         // Debug logging to diagnose condition failure
         DSLOG_INFO("VideoDevice callback registration check: videoDevice_isInitialized=%d, videoDevice_isPlatInitialized=%d",
                 videoDevice_isInitialized, videoDevice_isPlatInitialized);
+        DEBUG_LOG("VideoDevice requested callbacks: zoom=%d frameratePre=%d frameratePost=%d",
+            static_cast<bool>(bundle.OnZoomSettingsChanged),
+            static_cast<bool>(bundle.OnDisplayFrameratePreChange),
+            static_cast<bool>(bundle.OnDisplayFrameratePostChange));
         
         if (videoDevice_isPlatInitialized && !videoDevice_isInitialized) {
             DSLOG_INFO("VideoDevice platform callback Initialization");
@@ -682,6 +695,7 @@ public:
                 }
             }
             
+            DEBUG_LOG("VideoDevice requested callback setup success=%d", callbacksRegistered);
             if (!callbacksRegistered) {
                 DSLOG_ERR("VideoDevice callback registration incomplete; initialization can be retried");
                 return;

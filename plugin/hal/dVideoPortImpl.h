@@ -220,6 +220,7 @@ public:
             _videoPortHandleCache.Clear();
             wasInitialized = videoPort_isPlatInitialized != 0;
             videoPort_isPlatInitialized = 0;
+            DSLOG_INFO("VideoPort handle cache invalidated: platformWasInitialized=%d", wasInitialized);
         }
         if (wasInitialized)
         {
@@ -1606,6 +1607,9 @@ public:
         // Debug logging to diagnose condition failure
         DSLOG_INFO("VideoPort callback registration check: videoPort_isInitialized=%d, videoPort_isPlatInitialized=%d",
                 videoPort_isInitialized, videoPort_isPlatInitialized);
+        DEBUG_LOG("VideoPort requested callbacks: pre=%d post=%d hdcp=%d format=%d",
+            static_cast<bool>(bundle.OnResolutionPreChange), static_cast<bool>(bundle.OnResolutionPostChange),
+            static_cast<bool>(bundle.OnHDCPStatusChange), static_cast<bool>(bundle.OnVideoFormatUpdate));
         
         if (videoPort_isPlatInitialized && !videoPort_isInitialized) {
             DSLOG_INFO("VideoPort platform callback Initialization");
@@ -1638,6 +1642,7 @@ public:
                 if (dsERR_NONE == eReturn && handle != 0) {
                     DSLOG_INFO("Registering HDCP status callback with handle: %p", (void*)handle);
                     const dsError_t callbackError = dsRegisterHdcpStatusCallback(handle, VideoPortHDCPStatusCallback);
+                    DEBUG_LOG("VideoPort HDCP callback registration result=%d", callbackError);
                     if (callbackError != dsERR_NONE) {
                         DSLOG_ERR("dsRegisterHdcpStatusCallback failed with error: %d", callbackError);
                         callbacksRegistered = false;
@@ -1672,6 +1677,7 @@ public:
                 }
             }
             
+            DEBUG_LOG("VideoPort requested callback setup success=%d", callbacksRegistered);
             if (!callbacksRegistered) {
                 DSLOG_ERR("VideoPort callback registration incomplete; initialization can be retried");
                 return;
@@ -1731,6 +1737,7 @@ public:
                 const dsError_t lookupError = dsGetVideoPort(dsVIDEOPORT_TYPE_HDMI, 0, &hdmiHandle);
                 if (lookupError == dsERR_NONE) {
                     const dsError_t error = dsSetForceDisable4KSupport(hdmiHandle, true);
+                    DEBUG_LOG("VideoPort persisted force-disable-4K application result=%d", error);
                     if (error != dsERR_NONE) {
                         DSLOG_ERR("Failed to apply persisted force-disable-4K setting: %d", error);
                     }
@@ -2047,6 +2054,7 @@ private:
 
     bool populateVideoPortHandleCacheLocked() const
     {
+        DSLOG_INFO("VideoPort handle cache build started");
         std::vector<VideoPortTypeConfig> videoPortTypes;
         std::vector<VideoPortPortConfig> videoPorts;
         DeviceSettingsHAL::PopulateVideoPortConfig(videoPortTypes, videoPorts);
@@ -2054,6 +2062,8 @@ private:
             [](const VideoPortPortConfig& port, intptr_t& candidate) {
                 const dsVideoPortType_t type = static_cast<dsVideoPortType_t>(port.videoPortType);
                 const dsError_t error = dsGetVideoPort(type, port.videoPortIndex, &candidate);
+                DEBUG_LOG("VideoPort handle cache lookup: type=%d index=%d result=%d",
+                    type, port.videoPortIndex, error);
                 if (error != dsERR_NONE) {
                     DSLOG_ERR(" dsGetVideoPort failed for type=%d index=%d, error=%d",
                         type, port.videoPortIndex, error);
@@ -2062,6 +2072,8 @@ private:
             });
         if (!populated) {
             DSLOG_ERR("Unable to populate complete video port handle cache");
+        } else {
+            DSLOG_INFO("VideoPort handle cache ready: configured ports=%zu", videoPorts.size());
         }
         return populated;
     }
@@ -2069,6 +2081,8 @@ private:
     bool resolvePortTypeByHandle(const int32_t handle, dsVideoPortType_t& portType, intptr_t& halHandle) const
     {
         std::lock_guard<std::mutex> lock(_videoPortHandleMutex);
+        DEBUG_LOG("VideoPort handle validation: handle=%d initialized=%d cacheReady=%d",
+            handle, videoPort_isPlatInitialized, _videoPortHandleCache.IsReady());
         portType = dsVIDEOPORT_TYPE_MAX;
         if (!videoPort_isPlatInitialized) {
             DSLOG_ERR("Video port platform not initialized");
@@ -2084,6 +2098,8 @@ private:
             return false;
         }
         portType = static_cast<dsVideoPortType_t>(resolvedPort.videoPortType);
+        DEBUG_LOG("VideoPort handle validated: handle=%d type=%d index=%d",
+            handle, portType, resolvedPort.videoPortIndex);
         return true;
     }
 

@@ -117,6 +117,7 @@ private:
 
     bool populateAudioPortHandleCacheLocked() const
     {
+        DSLOG_INFO("Audio handle cache build started");
         std::vector<AudioTypeConfigInfo> audioTypes;
         std::vector<AudioPortConfigInfo> audioPorts;
         DeviceSettingsHAL::PopulateAudioConfig(audioTypes, audioPorts);
@@ -124,6 +125,8 @@ private:
             [this](const AudioPortConfigInfo& port, intptr_t& candidate) {
                 const dsAudioPortType_t type = convertToDS(port.audioPortType);
                 const dsError_t error = dsGetAudioPort(type, port.audioPortIndex, &candidate);
+                DEBUG_LOG("Audio handle cache lookup: type=%d index=%d result=%d",
+                    type, port.audioPortIndex, error);
                 if (error != dsERR_NONE) {
                     DSLOG_ERR("dsGetAudioPort failed for type=%d index=%d, error=%d",
                         type, port.audioPortIndex, error);
@@ -132,6 +135,8 @@ private:
             });
         if (!populated) {
             DSLOG_ERR("Unable to populate complete audio port handle cache");
+        } else {
+            DSLOG_INFO("Audio handle cache ready: configured ports=%zu", audioPorts.size());
         }
         return populated;
     }
@@ -140,6 +145,8 @@ private:
         dsAudioPortType_t* portType = nullptr) const
     {
         std::lock_guard<std::mutex> lock(_audioPortHandleMutex);
+        DEBUG_LOG("Audio handle validation: handle=%d initialized=%d cacheReady=%d",
+            handle, _isInitialized, _audioPortHandleCache.IsReady());
         if (!_isInitialized) {
             DSLOG_ERR("Audio platform not initialized");
             return false;
@@ -153,6 +160,10 @@ private:
             DSLOG_ERR("Invalid, ambiguous, or unavailable audio port handle=%d", handle);
         } else if (portType != nullptr) {
             *portType = convertToDS(resolvedPort.audioPortType);
+        }
+        if (resolved) {
+            DEBUG_LOG("Audio handle validated: handle=%d type=%d index=%d",
+                handle, static_cast<int>(resolvedPort.audioPortType), resolvedPort.audioPortIndex);
         }
         return resolved;
     }
@@ -555,6 +566,7 @@ public:
                 std::lock_guard<std::mutex> lock(_audioPortHandleMutex);
                 _isInitialized = false;
                 _audioPortHandleCache.Clear();
+                DSLOG_INFO("Audio handle cache invalidated before HAL termination");
             }
             try {
                 dsError_t ret = dsAudioPortTerm();
@@ -955,13 +967,17 @@ public:
             int caps = 0;
             if (dsGetAudioCapabilitiesFunc == nullptr) {
                 DSLOG_ERR("dsGetAudioCapabilities is not defined");
+                DEBUG_LOG("Audio compression enumeration aborted: capability lookup unavailable");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
             const dsError_t error = dsGetAudioCapabilitiesFunc(dsHandle, &caps);
             if (error != dsERR_NONE) {
                 DSLOG_ERR("dsGetAudioCapabilities failed with error: %d", error);
+                DEBUG_LOG("Audio compression enumeration aborted: ignoring failed capability output");
                 return WPEFramework::Core::ERROR_GENERAL;
             }
+            DEBUG_LOG("Audio compression capability read succeeded: handle=%d capabilities=0x%x",
+                handle, static_cast<unsigned int>(caps));
 
             // Build compression list based on capabilities bitmask.
             // dsAUDIOSUPPORT_DD / DDPLUS indicate heavy/medium compression support.
@@ -1111,8 +1127,11 @@ public:
                     const dsError_t error = dsGetAudioLevel(dsHandle, &currentLevel);
                     if (error != dsERR_NONE) {
                         DSLOG_ERR("dsGetAudioLevel failed with error: %d", error);
+                        DEBUG_LOG("Speaker level update aborted before setter, persistence, cache, or notification");
                         return WPEFramework::Core::ERROR_GENERAL;
                     }
+                    DEBUG_LOG("Speaker current-level read succeeded: handle=%d ducking=%d",
+                        handle, _isDuckingInProgress);
                     if (_isDuckingInProgress && currentLevel != static_cast<float>(_volumeDuckingLevel)) {
                         // Ducking active and current level diverged — re-apply ducking level
                         DSLOG_INFO(" ducking in progress, applying ducking level %d instead of %f",
@@ -4504,11 +4523,13 @@ private:
                     
                     bool leEnabled = (leEnable == "TRUE");
                     const dsError_t error = dsEnableLEConfigFunc(handle, leEnabled);
+                    DEBUG_LOG("Audio LE initialization: requested=%d result=%d", leEnabled, error);
                     if (error == dsERR_NONE) {
                         m_LEEnabled = leEnabled;
                         DSLOG_INFO("LE (Loudness Equivalence) initialized: %s", leEnabled ? "enabled" : "disabled");
                     } else {
                         DSLOG_ERR("dsEnableLEConfig failed during initialization with error: %d", error);
+                        DEBUG_LOG("Audio LE cached state unchanged after failed HAL initialization");
                     }
                 } else {
                     DSLOG_INFO("dsEnableLEConfig(int, bool) is not available in HAL");

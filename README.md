@@ -91,3 +91,18 @@ Existing explicit legacy policies for DFC/HDR persistence, post-change events,
 optional symbols, and cached fallbacks are not replaced with blanket
 return-on-error behavior. These follow-up changes have only been
 source/whitespace inspected, not built or HAL-failure-injection tested.
+
+### Remediation logging
+
+Basic logs are always enabled: `DSLOG_INFO` reports module handle-cache builds,
+successful enumeration, and invalidation; existing `DSLOG_ERR`/`DSLOG_WARN`
+messages report rejected handles/ports, failed HAL calls, and incomplete setup.
+Successful per-call validation stays debug-only to avoid normal-path log spam.
+
+Define `DEBUG_LOGGING` when compiling to enable the existing `DEBUG_LOG` macro.
+It reports cache readiness and in-memory reuse, enumeration progress, matching
+and collision decisions, resolved type/index, valid HDMI bounds, HAL-output
+handling, and callback setup details. The existing macro emits through
+`DSLOG_INFO` when enabled and compiles out otherwise; no new runtime switch or
+build option is introduced. Added logs omit native handle addresses and payload
+contents.

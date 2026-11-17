@@ -161,6 +161,7 @@ public:
             _displayHandleCache.Clear();
             wasInitialized = display_isPlatInitialized != 0;
             display_isPlatInitialized = 0;
+            DSLOG_INFO("Display handle cache invalidated: platformWasInitialized=%d", wasInitialized);
         }
         if (wasInitialized)
         {
@@ -488,6 +489,7 @@ public:
         memset(&halEdid, 0, sizeof(halEdid));
         dsError_t eError = dsGetEDID(halHandle, &halEdid);
         if (eError == dsERR_NONE) {
+            DEBUG_LOG("Display EDID read succeeded; filtering, caching, and conversion permitted");
             /* Mirror dsDisplay.c _dsGetEDID: filter the sink's advertised resolutions
              * down to those the platform can actually output, before caching/dumping. */
             filterEDIDResolution(halHandle, halEdid);
@@ -515,6 +517,7 @@ public:
             DSLOG_INFO(" SUCCESS (cached for next call)");
         } else {
             DSLOG_ERR(" FAILED - dsGetEDID error=%d", eError);
+            DEBUG_LOG("Display EDID output rejected; skipping filtering, cache-valid marking, and conversion");
         }
         
         pthread_mutex_unlock(&dsDisplayLock);
@@ -804,6 +807,7 @@ private:
 
     bool populateDisplayHandleCacheLocked() const
     {
+        DSLOG_INFO("Display handle cache build started");
         const int lockError = pthread_mutex_lock(&dsDisplayLock);
         if (lockError != 0) {
             DSLOG_ERR("Could not lock display handle lookup, error=%d", lockError);
@@ -825,6 +829,8 @@ private:
             [](const VideoPortPortConfig& port, intptr_t& candidate) {
                 const auto type = static_cast<dsVideoPortType_t>(port.videoPortType);
                 const dsError_t error = dsGetDisplay(type, port.videoPortIndex, &candidate);
+                DEBUG_LOG("Display handle cache lookup: type=%d index=%d result=%d",
+                    type, port.videoPortIndex, error);
                 // A configured video port need not have a display; skip only explicit non-support.
                 if (error == dsERR_OPERATION_NOT_SUPPORTED) {
                     return DeviceSettingsHAL::HandleLookupResult::Unsupported;
@@ -838,6 +844,9 @@ private:
             });
         if (!populated) {
             DSLOG_ERR("Unable to populate complete display handle cache");
+        } else {
+            DSLOG_INFO("Display handle enumeration cached: configured ports=%zu; unsupported ports skipped",
+                ports.size());
         }
         return populated;
     }
@@ -845,11 +854,14 @@ private:
     bool resolveHandle(const int32_t handle, const HandleSource source, intptr_t& halHandle) const
     {
         std::lock_guard<std::mutex> lock(_displayHandleMutex);
+        DEBUG_LOG("Display handle validation: handle=%d source=%d initialized=%d cacheReady=%d",
+            handle, static_cast<int>(source), display_isPlatInitialized, _displayHandleCache.IsReady());
         if (!display_isPlatInitialized) {
             DSLOG_ERR("Display platform not initialized");
             return false;
         }
         if (source == HandleSource::VideoPort) {
+            DEBUG_LOG("Display handle validation: delegating handle=%d to owning VideoPort cache", handle);
             const auto* videoPort = dVideoPortImpl::getInstance();
             if (videoPort == nullptr) {
                 DSLOG_ERR("Video port platform unavailable for display handle lookup");
@@ -865,12 +877,17 @@ private:
         if (!resolved) {
             DSLOG_ERR("Invalid, ambiguous, or unavailable handle=%d source=%d",
                 handle, static_cast<int>(source));
+        } else {
+            DEBUG_LOG("Display handle validated: handle=%d type=%d index=%d",
+                handle, static_cast<int>(resolvedPort.videoPortType), resolvedPort.videoPortIndex);
         }
         return resolved;
     }
 
     bool registerDisplayEventCallbacks()
     {
+        DEBUG_LOG("Display callback registration attempt: platformInitialized=%d callbacksInitialized=%d",
+            display_isPlatInitialized, display_isInitialized);
         
         // Use direct calls matching dsDisplay.c _dsDisplayInit pattern
         intptr_t handle = 0;
@@ -886,6 +903,7 @@ private:
         
         // Register display event callback using wrapper that adapts int to intptr_t
         dsError_t eError = dsRegisterDisplayEventCallback(handle, dsDisplayEventCallbackWrapper);
+        DEBUG_LOG("Display event callback registration result=%d", eError);
         if (eError == dsERR_NONE) {
             DSLOG_INFO(" SUCCESS - registered with handle=%d", static_cast<int>(handle));
         } else {

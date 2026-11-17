@@ -118,12 +118,14 @@ public:
                 dsError_t eError = dsHdmiInInit();
                 if (eError != dsERR_NONE) {
                     DSLOG_ERR("dsHdmiInInit failed: %d", eError);
+                    DEBUG_LOG("HDMI input initialization aborted; platform reference count unchanged");
                     return;
                 } else {
                     DSLOG_INFO("dsHdmiInInit succeeded: %d", eError);
                 }
             }
             m_hdmiInPlatInitialized++;
+            DEBUG_LOG("HDMI input platform reference count=%d", m_hdmiInPlatInitialized);
         }
     }
 
@@ -154,9 +156,12 @@ public:
     static bool validateHdmiInPort(const dsHdmiInPort_t port)
     {
         if (port < dsHDMI_IN_PORT_0 || port >= dsHDMI_IN_PORT_MAX) {
-            DSLOG_ERR("Invalid HDMI input port=%d", static_cast<int>(port));
+            DSLOG_ERR("Invalid HDMI input port=%d; valid range=[%d,%d)",
+                static_cast<int>(port), static_cast<int>(dsHDMI_IN_PORT_0),
+                static_cast<int>(dsHDMI_IN_PORT_MAX));
             return false;
         }
+        DEBUG_LOG("HDMI input port bounds validated: port=%d", static_cast<int>(port));
         return true;
     }
 
@@ -203,6 +208,8 @@ public:
             return dsERR_INVALID_PARAM;
         }
         if (!m_hdmiPortVrrCaps[iHdmiPort]) {
+            DEBUG_LOG("HDMI input VRR update skipped: port=%d has no VRR capability",
+                static_cast<int>(iHdmiPort));
             return dsERR_OPERATION_NOT_SUPPORTED;
         }
         typedef dsError_t (*dsHdmiInSetVRRSupport_t)(dsHdmiInPort_t iHdmiPort, bool vrrSupport);
@@ -362,9 +369,12 @@ public:
             eRet = dsGetEdidVersionFunc (iHdmiPort, &EdidVersion);
             if (eRet == dsERR_NONE) {
                 *iEdidVersion = static_cast<int>(EdidVersion);
+                DEBUG_LOG("HDMI input EDID version accepted: port=%d version=%d",
+                    static_cast<int>(iHdmiPort), *iEdidVersion);
             } else {
                 DSLOG_ERR("dsGetEdidVersion failed for port=%d, error=%d",
                     static_cast<int>(iHdmiPort), eRet);
+                DEBUG_LOG("HDMI input EDID version output unchanged after HAL failure");
             }
             DSLOG_INFO("dsGetEdidVersionFunc eRet: %d", eRet);
         }
@@ -598,6 +608,7 @@ public:
             const dsError_t error = dsHdmiInGetNumberOfInputs(&noOfSupportedHdmiInputs);
             if (error != dsERR_NONE) {
                 DSLOG_ERR("dsHdmiInGetNumberOfInputs failed during initialization: %d", error);
+                DEBUG_LOG("HDMI input persistence initialization remains incomplete; per-port state not loaded");
                 return;
             }
             DSLOG_INFO("Number of Inputs: %d", noOfSupportedHdmiInputs);

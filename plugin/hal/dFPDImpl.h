@@ -259,10 +259,14 @@ public:
             if (error != dsERR_NONE) {
                 DSLOG_ERR(" dsGetFPBrightness failed with error %d", error);
                 if (!persist) {
+                    DEBUG_LOG("FPD live brightness read failed: indicator=%d; caller output unchanged",
+                        static_cast<int>(indicator));
                     return retCode;
                 }
+                DEBUG_LOG("FPD brightness: using requested persisted value despite ancillary HAL read failure");
             }
 
+            DEBUG_LOG("FPD brightness output source=%s", persist ? "persistence" : "HAL");
             brightNess = persist ? static_cast<uint32_t>(_dsPowerBrightness)
                                  : static_cast<uint32_t>(halBrightness);
             DSLOG_INFO(" indicator %d brightness %d (hal=%d _dsPowerBrightness=%d)",
