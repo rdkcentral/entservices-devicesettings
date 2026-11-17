@@ -142,7 +142,7 @@ private:
     }
 
     bool resolveAudioPortHandle(const int32_t handle, intptr_t& halHandle,
-        dsAudioPortType_t* portType = nullptr) const
+        dsAudioPortType_t* portType = nullptr, int32_t* portIndex = nullptr) const
     {
         std::lock_guard<std::mutex> lock(_audioPortHandleMutex);
         DEBUG_LOG("Audio handle validation: handle=%d initialized=%d cacheReady=%d",
@@ -162,6 +162,9 @@ private:
             *portType = convertToDS(resolvedPort.audioPortType);
         }
         if (resolved) {
+            if (portIndex != nullptr) {
+                *portIndex = resolvedPort.audioPortIndex;
+            }
             DEBUG_LOG("Audio handle validated: handle=%d type=%d index=%d",
                 handle, static_cast<int>(resolvedPort.audioPortType), resolvedPort.audioPortIndex);
         }
@@ -1104,7 +1107,13 @@ public:
         try {
             intptr_t dsHandle = 0;
             dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
-            if (!resolveAudioPortHandle(handle, dsHandle, &portType)) {
+            int32_t portIndex = -1;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType, &portIndex)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            if (portIndex != 0) {
+                DSLOG_ERR("SetAudioLevel unsupported for type=%d index=%d: volume state supports index 0 only",
+                    portType, portIndex);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
             // Use resolve function for dsSetAudioLevel
@@ -1187,7 +1196,14 @@ public:
 
         try {
             intptr_t dsHandle = 0;
-            if (!resolveAudioPortHandle(handle, dsHandle)) {
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            int32_t portIndex = -1;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType, &portIndex)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            if (portIndex != 0) {
+                DSLOG_ERR("GetAudioLevel unsupported for type=%d index=%d: volume state supports index 0 only",
+                    portType, portIndex);
                 return WPEFramework::Core::ERROR_GENERAL;
             }
             float dsLevel;

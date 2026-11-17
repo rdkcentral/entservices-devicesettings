@@ -60,6 +60,16 @@ and configuration remaining stable within one plugin/HAL initialization
 lifetime. Unknown and ambiguous handles remain rejected, VideoDevice native
 zero remains valid, and acquisition APIs are unchanged.
 
+Audio level getters/setters and VideoPort resolution getters/setters support
+index zero only because their legacy cache/persistence state is not indexed.
+These operations reject configured nonzero indices with an error log and
+`ERROR_GENERAL` after handle resolution, before operation-specific HAL calls,
+caller-output writes, shared cache updates, persistence, or notifications.
+The guards apply even when persistence is disabled: volume reads/writes update
+shared last-volume state, and resolution reads can use shared fallback caches.
+Other handle-dependent operations retain configured nonzero-index resolution;
+this is not full per-port state or persistence support.
+
 Focused resolver regressions are in the existing L1 test source. They have not
 been built or run for this reapplication. Membership checks do not provide
 caller authorization or atomic protection against concurrent HAL termination.

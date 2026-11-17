@@ -351,8 +351,14 @@ public:
 
         dsVideoPortType_t portType = dsVIDEOPORT_TYPE_MAX;
         intptr_t halHandle = 0;
-        if (!resolvePortTypeByHandle(handle, portType, halHandle)) {
+        int32_t portIndex = -1;
+        if (!resolvePortTypeByHandle(handle, portType, halHandle, &portIndex)) {
             DSLOG_ERR(" unable to resolve video port type for handle=%d", handle);
+            return retCode;
+        }
+        if (portIndex != 0) {
+            DSLOG_ERR("GetVideoPortResolution unsupported for type=%d index=%d: resolution state supports index 0 only",
+                portType, portIndex);
             return retCode;
         }
 
@@ -1102,8 +1108,14 @@ public:
 
         dsVideoPortType_t portType = dsVIDEOPORT_TYPE_MAX;
         intptr_t halHandle = 0;
-        if (!resolvePortTypeByHandle(handle, portType, halHandle)) {
+        int32_t portIndex = -1;
+        if (!resolvePortTypeByHandle(handle, portType, halHandle, &portIndex)) {
             DSLOG_ERR(" unable to resolve video port type for handle=%d", handle);
+            return retCode;
+        }
+        if (portIndex != 0) {
+            DSLOG_ERR("SetVideoPortResolution unsupported for type=%d index=%d: resolution state supports index 0 only",
+                portType, portIndex);
             return retCode;
         }
 
@@ -2078,7 +2090,8 @@ private:
         return populated;
     }
 
-    bool resolvePortTypeByHandle(const int32_t handle, dsVideoPortType_t& portType, intptr_t& halHandle) const
+    bool resolvePortTypeByHandle(const int32_t handle, dsVideoPortType_t& portType, intptr_t& halHandle,
+        int32_t* portIndex = nullptr) const
     {
         std::lock_guard<std::mutex> lock(_videoPortHandleMutex);
         DEBUG_LOG("VideoPort handle validation: handle=%d initialized=%d cacheReady=%d",
@@ -2098,6 +2111,9 @@ private:
             return false;
         }
         portType = static_cast<dsVideoPortType_t>(resolvedPort.videoPortType);
+        if (portIndex != nullptr) {
+            *portIndex = resolvedPort.videoPortIndex;
+        }
         DEBUG_LOG("VideoPort handle validated: handle=%d type=%d index=%d",
             handle, portType, resolvedPort.videoPortIndex);
         return true;
