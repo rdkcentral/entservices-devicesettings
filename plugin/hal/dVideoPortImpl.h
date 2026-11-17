@@ -79,13 +79,6 @@ class dVideoPortImpl : public hal::dVideoPort::IPlatform {
         return status;
     }
 
-    // Restricts wake-time status refresh to the port with an installed HDCP callback.
-    static std::atomic<intptr_t>& hdcpCallbackHandle()
-    {
-        static std::atomic<intptr_t> handle { 0 };
-        return handle;
-    }
-
 public:
     dVideoPortImpl()
     {
@@ -213,7 +206,6 @@ public:
             videoPort_isPlatInitialized = 0;
         }
         videoPort_isInitialized = 0;
-        hdcpCallbackHandle().store(0);
     }
 
     static void* resolve(const std::string& libName, const std::string& symbolName) {
@@ -266,15 +258,6 @@ public:
 
         dsError_t eError = dsEnableVideoPort(handle, enabled);
         if (eError == dsERR_NONE) {
-            if (enabled && handle != 0 && hdcpCallbackHandle().load() == handle) {
-                // Amlogic and MediaTek publish current status during registration.
-                // Refresh after wake without changing HDCP enablement or its key.
-                const dsError_t callbackError = dsRegisterHdcpStatusCallback(handle, VideoPortHDCPStatusCallback);
-                if (callbackError != dsERR_NONE) {
-                    DSLOG_ERR("Video port enabled, but HDCP status refresh failed: %d", callbackError);
-                    return retCode;
-                }
-            }
             retCode = WPEFramework::Core::ERROR_NONE;
             DSLOG_INFO(" SUCCESS");
         } else {
@@ -1480,8 +1463,6 @@ public:
                     const dsError_t callbackError = dsRegisterHdcpStatusCallback(handle, VideoPortHDCPStatusCallback);
                     if (callbackError != dsERR_NONE) {
                         DSLOG_ERR("dsRegisterHdcpStatusCallback failed with error: %d", callbackError);
-                    } else {
-                        hdcpCallbackHandle().store(handle);
                     }
                     if (profileType == STB) {
                         char hdcpKey[HDCP_KEY_MAX_SIZE] = {0};
