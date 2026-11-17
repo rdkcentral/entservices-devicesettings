@@ -948,11 +948,11 @@ namespace Plugin {
                 static int cached_EDID_checksum = 0;
                 int current_EDID_checksum = 0;
                 
-                uint8_t edidBytes[512];
+                uint8_t edidBytes[1024];
                 uint16_t length = sizeof(edidBytes);
                 
                 result = _instance->_deviceSettings->GetDisplayEdidBytes(displayHandle, edidBytes, length);
-                if (result == Core::ERROR_NONE && length > 0 && length <= 512) {
+                if (result == Core::ERROR_NONE && length > 0 && length <= sizeof(edidBytes)) {
                     for (int i = 0; i < (length / 128); i++)
                         current_EDID_checksum += edidBytes[(i+1)*128 - 1];
                     

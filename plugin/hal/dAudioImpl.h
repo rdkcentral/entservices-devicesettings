@@ -32,6 +32,9 @@
 #include <com/com.h>
 
 #include <cstdint>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
 #include <vector>
 #include <string>
 #include <functional>
@@ -3695,6 +3698,20 @@ public:
         // It orchestrates dsSetDialogEnhancement/dsSetBassEnhancer/dsSetVolumeLeveller/dsSetSurroundVirtualizer.
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
         try {
+            const auto parseInteger = [](const string& value, int& parsedValue) {
+                if (value.empty()) {
+                    return false;
+                }
+                char* end = nullptr;
+                errno = 0;
+                const long valueAsLong = std::strtol(value.c_str(), &end, 10);
+                if (errno == ERANGE || end == value.c_str() || *end != '\0' ||
+                    valueAsLong < INT_MIN || valueAsLong > INT_MAX) {
+                    return false;
+                }
+                parsedValue = static_cast<int>(valueAsLong);
+                return true;
+            };
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             std::string _AProfile("Off");
             try { _AProfile = device::HostPersistence::getInstance().getProperty("audio.MS12Profile"); }
@@ -3707,8 +3724,8 @@ public:
                     dsSetDialogEnhancement_t fn = (dsSetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsSetDialogEnhancement");
                     if (fn) {
                         if (profileState == "ADD") {
-                            int val = atoi(profileSettingValue.c_str());
-                            if (fn(dsHandle, val) == dsERR_NONE)
+                            int val = 0;
+                            if (parseInteger(profileSettingValue, val) && fn(dsHandle, val) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("EnhancerLevel"), profileSettingValue);
                         } else if (profileState == "REMOVE") {
                             std::string _p = getCurrentProfileProperty("EnhancerLevel");
@@ -3718,8 +3735,8 @@ public:
                         }
                     }
                 } else if (profileSettingsName == "VolumeLevellerMode") {
-                    int m = atoi(profileSettingValue.c_str());
-                    if (m == 0 || m == 1) device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.mode"), profileSettingValue);
+                    int m = 0;
+                    if (parseInteger(profileSettingValue, m) && (m == 0 || m == 1)) device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.mode"), profileSettingValue);
                 } else if (profileSettingsName == "VolumeLevellerLevel") {
                     typedef dsError_t (*dsSetVolumeLeveller_t)(intptr_t h, dsVolumeLeveller_t vl);
                     dsSetVolumeLeveller_t fn = (dsSetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
@@ -3728,8 +3745,7 @@ public:
                             std::string _pMode = getCurrentProfileProperty("VolumeLeveller.mode");
                             dsVolumeLeveller_t vl;
                             try { vl.mode = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str()); } catch(...) { vl.mode = 0; }
-                            vl.level = atoi(profileSettingValue.c_str());
-                            if (fn(dsHandle, vl) == dsERR_NONE)
+                            if (parseInteger(profileSettingValue, vl.level) && fn(dsHandle, vl) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.level"), profileSettingValue);
                         } else if (profileState == "REMOVE") {
                             std::string _pm = getCurrentProfileProperty("VolumeLeveller.mode"), _pl = getCurrentProfileProperty("VolumeLeveller.level");
@@ -3743,7 +3759,8 @@ public:
                     dsSetBassEnhancer_t fn = (dsSetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer");
                     if (fn) {
                         if (profileState == "ADD") {
-                            if (fn(dsHandle, atoi(profileSettingValue.c_str())) == dsERR_NONE)
+                            int boost = 0;
+                            if (parseInteger(profileSettingValue, boost) && fn(dsHandle, boost) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", profileSettingValue);
                         } else if (profileState == "REMOVE") {
                             std::string _p = getCurrentProfileProperty("BassBoost");
@@ -3753,8 +3770,8 @@ public:
                         }
                     }
                 } else if (profileSettingsName == "SurroundVirtualizerMode") {
-                    int m = atoi(profileSettingValue.c_str());
-                    if (m >= 0 && m <= 2) device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.mode"), profileSettingValue);
+                    int m = 0;
+                    if (parseInteger(profileSettingValue, m) && m >= 0 && m <= 2) device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.mode"), profileSettingValue);
                 } else if (profileSettingsName == "SurroundVirtualizerLevel") {
                     typedef dsError_t (*dsSetSurroundVirtualizer_t)(intptr_t h, dsSurroundVirtualizer_t virt);
                     dsSetSurroundVirtualizer_t fn = (dsSetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
@@ -3763,8 +3780,7 @@ public:
                             std::string _pMode = getCurrentProfileProperty("SurroundVirtualizer.mode");
                             dsSurroundVirtualizer_t virt;
                             try { virt.mode = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str()); } catch(...) { virt.mode = 0; }
-                            virt.boost = atoi(profileSettingValue.c_str());
-                            if (fn(dsHandle, virt) == dsERR_NONE)
+                            if (parseInteger(profileSettingValue, virt.boost) && fn(dsHandle, virt) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.boost"), profileSettingValue);
                         } else if (profileState == "REMOVE") {
                             std::string _pm = getCurrentProfileProperty("SurroundVirtualizer.mode"), _pb = getCurrentProfileProperty("SurroundVirtualizer.boost");

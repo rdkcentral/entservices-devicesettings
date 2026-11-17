@@ -30,6 +30,7 @@
 #include <mutex>
 #include <iostream>
 #include <cstring>
+#include <cstdio>
 #include <utility>
 
 #include "dHdmiIn.h"
@@ -277,8 +278,8 @@ public:
         dsError_t eRet = dsERR_GENERAL;
         typedef dsError_t (*dsSetEdidVersion_t)(dsHdmiInPort_t iHdmiPort, tv_hdmi_edid_version_t iEdidVersion);
         static dsSetEdidVersion_t dsSetEdidVersionFunc = 0;
-        char edidVer[2];
-        sprintf(edidVer,"%d",iEdidVersion);
+        char edidVer[16] = {0};
+        snprintf(edidVer, sizeof(edidVer), "%d", iEdidVersion);
 
         if (dsSetEdidVersionFunc == 0) {
             dsSetEdidVersionFunc = (dsSetEdidVersion_t)resolve(RDK_DSHAL_NAME, "dsSetEdidVersion");
@@ -1000,9 +1001,16 @@ public:
     uint32_t GetEdidBytes(const HDMIInPort port, const uint16_t edidBytesLength, uint8_t edidBytes[]) override
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
+        if (edidBytes == nullptr || edidBytesLength == 0) {
+            return WPEFramework::Core::ERROR_GENERAL;
+        }
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
         int length = static_cast<int>(edidBytesLength);
         if (getEDIDBytesInfo(hdmiPort, edidBytes, &length) == dsERR_NONE) {
+            if (length < 0 || length > static_cast<int>(edidBytesLength)) {
+                DSLOG_ERR("Invalid EDID length returned by HAL: %d (capacity %u)", length, edidBytesLength);
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             DSLOG_INFO(" port=%d, edidBytesLength=%d, actualLength=%d", hdmiPort, edidBytesLength, length);
             retCode = WPEFramework::Core::ERROR_NONE;
         }
