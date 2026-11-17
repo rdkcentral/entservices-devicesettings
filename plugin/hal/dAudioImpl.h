@@ -3694,6 +3694,8 @@ public:
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
+        uint32_t result = WPEFramework::Core::ERROR_NONE;
+
         // dsAudio.c: _dsSetMS12SetttingsOverride is pure in-process logic — no single HAL function.
         // It orchestrates dsSetDialogEnhancement/dsSetBassEnhancer/dsSetVolumeLeveller/dsSetSurroundVirtualizer.
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
@@ -3715,7 +3717,6 @@ public:
             };
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             std::string _AProfile("Off");
-            uint32_t result = WPEFramework::Core::ERROR_NONE;
             try { _AProfile = device::HostPersistence::getInstance().getProperty("audio.MS12Profile"); }
             catch(...) { try { _AProfile = device::HostPersistence::getInstance().getDefaultProperty("audio.MS12Profile"); } catch(...) { _AProfile = "Off"; } }
 
