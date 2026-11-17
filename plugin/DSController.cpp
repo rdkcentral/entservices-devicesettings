@@ -948,7 +948,7 @@ namespace Plugin {
                 static int cached_EDID_checksum = 0;
                 int current_EDID_checksum = 0;
                 
-                uint8_t edidBytes[1024];
+                uint8_t edidBytes[1024] = {0};
                 uint16_t length = sizeof(edidBytes);
                 
                 result = _instance->_deviceSettings->GetDisplayEdidBytes(displayHandle, edidBytes, length);
