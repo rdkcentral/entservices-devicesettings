@@ -33,6 +33,9 @@
 #include <com/com.h>
 
 #include <cstdint>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
 #include <vector>
 #include <string>
 #include <functional>
@@ -3941,10 +3944,27 @@ public:
             return WPEFramework::Core::ERROR_GENERAL;
         }
 
+        uint32_t result = WPEFramework::Core::ERROR_NONE;
+
         // dsAudio.c: _dsSetMS12SetttingsOverride is pure in-process logic — no single HAL function.
         // It orchestrates dsSetDialogEnhancement/dsSetBassEnhancer/dsSetVolumeLeveller/dsSetSurroundVirtualizer.
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
         try {
+            const auto parseInteger = [](const string& value, int& parsedValue) {
+                if (value.empty()) {
+                    return false;
+                }
+                char* end = nullptr;
+                errno = 0;
+                const long valueAsLong = std::strtol(value.c_str(), &end, 10);
+                if (errno == ERANGE || end == value.c_str() ||
+                    end != value.c_str() + value.size() ||
+                    valueAsLong < INT_MIN || valueAsLong > INT_MAX) {
+                    return false;
+                }
+                parsedValue = static_cast<int>(valueAsLong);
+                return true;
+            };
             intptr_t dsHandle = 0;
             if (!resolveAudioPortHandle(handle, dsHandle)) {
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -3960,9 +3980,11 @@ public:
                     dsSetDialogEnhancement_t fn = (dsSetDialogEnhancement_t)resolve(RDK_DSHAL_NAME, "dsSetDialogEnhancement");
                     if (fn) {
                         if (profileState == "ADD") {
-                            int val = atoi(profileSettingValue.c_str());
-                            if (fn(dsHandle, val) == dsERR_NONE)
+                            int val = 0;
+                            if (parseInteger(profileSettingValue, val) && fn(dsHandle, val) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("EnhancerLevel"), profileSettingValue);
+                            else
+                                result = WPEFramework::Core::ERROR_GENERAL;
                         } else if (profileState == "REMOVE") {
                             std::string _p = getCurrentProfileProperty("EnhancerLevel");
                             std::string _def("0"); try { _def = device::HostPersistence::getInstance().getDefaultProperty(_p); } catch(...) {}
@@ -3971,8 +3993,11 @@ public:
                         }
                     }
                 } else if (profileSettingsName == "VolumeLevellerMode") {
-                    int m = atoi(profileSettingValue.c_str());
-                    if (m == 0 || m == 1) device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.mode"), profileSettingValue);
+                    int m = 0;
+                    if (parseInteger(profileSettingValue, m) && (m == 0 || m == 1))
+                        device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.mode"), profileSettingValue);
+                    else if (profileState == "ADD")
+                        result = WPEFramework::Core::ERROR_GENERAL;
                 } else if (profileSettingsName == "VolumeLevellerLevel") {
                     typedef dsError_t (*dsSetVolumeLeveller_t)(intptr_t h, dsVolumeLeveller_t vl);
                     dsSetVolumeLeveller_t fn = (dsSetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
@@ -3981,9 +4006,10 @@ public:
                             std::string _pMode = getCurrentProfileProperty("VolumeLeveller.mode");
                             dsVolumeLeveller_t vl;
                             try { vl.mode = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str()); } catch(...) { vl.mode = 0; }
-                            vl.level = atoi(profileSettingValue.c_str());
-                            if (fn(dsHandle, vl) == dsERR_NONE)
+                            if (parseInteger(profileSettingValue, vl.level) && fn(dsHandle, vl) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.level"), profileSettingValue);
+                            else
+                                result = WPEFramework::Core::ERROR_GENERAL;
                         } else if (profileState == "REMOVE") {
                             std::string _pm = getCurrentProfileProperty("VolumeLeveller.mode"), _pl = getCurrentProfileProperty("VolumeLeveller.level");
                             std::string _dm("0"), _dl("0"); try { _dm = device::HostPersistence::getInstance().getDefaultProperty(_pm); } catch(...) {} try { _dl = device::HostPersistence::getInstance().getDefaultProperty(_pl); } catch(...) {}
@@ -3996,8 +4022,11 @@ public:
                     dsSetBassEnhancer_t fn = (dsSetBassEnhancer_t)resolve(RDK_DSHAL_NAME, "dsSetBassEnhancer");
                     if (fn) {
                         if (profileState == "ADD") {
-                            if (fn(dsHandle, atoi(profileSettingValue.c_str())) == dsERR_NONE)
+                            int boost = 0;
+                            if (parseInteger(profileSettingValue, boost) && fn(dsHandle, boost) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", profileSettingValue);
+                            else
+                                result = WPEFramework::Core::ERROR_GENERAL;
                         } else if (profileState == "REMOVE") {
                             std::string _p = getCurrentProfileProperty("BassBoost");
                             std::string _def("0"); try { _def = device::HostPersistence::getInstance().getDefaultProperty(_p); } catch(...) {}
@@ -4006,8 +4035,11 @@ public:
                         }
                     }
                 } else if (profileSettingsName == "SurroundVirtualizerMode") {
-                    int m = atoi(profileSettingValue.c_str());
-                    if (m >= 0 && m <= 2) device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.mode"), profileSettingValue);
+                    int m = 0;
+                    if (parseInteger(profileSettingValue, m) && m >= 0 && m <= 2)
+                        device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.mode"), profileSettingValue);
+                    else if (profileState == "ADD")
+                        result = WPEFramework::Core::ERROR_GENERAL;
                 } else if (profileSettingsName == "SurroundVirtualizerLevel") {
                     typedef dsError_t (*dsSetSurroundVirtualizer_t)(intptr_t h, dsSurroundVirtualizer_t virt);
                     dsSetSurroundVirtualizer_t fn = (dsSetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
@@ -4016,9 +4048,10 @@ public:
                             std::string _pMode = getCurrentProfileProperty("SurroundVirtualizer.mode");
                             dsSurroundVirtualizer_t virt;
                             try { virt.mode = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str()); } catch(...) { virt.mode = 0; }
-                            virt.boost = atoi(profileSettingValue.c_str());
-                            if (fn(dsHandle, virt) == dsERR_NONE)
+                            if (parseInteger(profileSettingValue, virt.boost) && fn(dsHandle, virt) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.boost"), profileSettingValue);
+                            else
+                                result = WPEFramework::Core::ERROR_GENERAL;
                         } else if (profileState == "REMOVE") {
                             std::string _pm = getCurrentProfileProperty("SurroundVirtualizer.mode"), _pb = getCurrentProfileProperty("SurroundVirtualizer.boost");
                             std::string _dm("0"), _db("0"); try { _dm = device::HostPersistence::getInstance().getDefaultProperty(_pm); } catch(...) {} try { _db = device::HostPersistence::getInstance().getDefaultProperty(_pb); } catch(...) {}
@@ -4058,7 +4091,7 @@ public:
         DSLOG_INFO(" DS_AUDIO_SETTINGS_PERSISTENCE not enabled");
 #endif
         EXIT_LOG;
-        return WPEFramework::Core::ERROR_NONE;
+        return result;
     }
 
     uint32_t ResetAudioDialogEnhancement(const int32_t handle) override {
