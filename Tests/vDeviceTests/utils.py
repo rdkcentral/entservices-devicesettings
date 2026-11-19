@@ -64,6 +64,15 @@ HDMIIN_VCOMPONENT_API_URL = (
     os.environ.get("HDMIIN_VCOMPONENT_API_URL")
     or f"http://{TARGET_HOST}:{HDMIIN_VCOMPONENT_PORT}/api/postKVP"
 )
+PLUGIN_INIT_WAIT = float(
+    os.environ.get(
+        "AVINPUT_PLUGIN_INIT_WAIT",
+        os.environ.get("PLUGIN_INIT_WAIT", "6"),
+    )
+)
+if PLUGIN_INIT_WAIT < 0:
+    raise ValueError("Plugin initialization wait must be non-negative")
+SKIPPED = "SKIPPED"
 
 # ---------- ANSI COLOR CONSTANTS ----------
 RESET = "\033[0m"

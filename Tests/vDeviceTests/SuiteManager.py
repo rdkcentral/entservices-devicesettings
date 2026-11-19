@@ -39,11 +39,14 @@ from pathlib import Path
 import os
 
 from utils import (
+    PLUGIN_INIT_WAIT,
+    SKIPPED,
     activate_plugin,
     deactivate_plugin,
     log_error,
     log_info,
     log_success,
+    log_warning,
     WPEFRAMEWORK_JSONRPC_URL,
 )
 
@@ -53,6 +56,10 @@ SUITES = {
     "devicesettings": {
         "banner": "******************** L3 SUITE - RDK - AV INPUT (HDMI IN) **********************",
         "module_dir": BASE_DIR / "Testcases",
+        "prerequisite_callsigns": ["org.rdk.DeviceSettings"],
+        "plugin_callsigns": ["org.rdk.AVInput"],
+        "init_module": "Init_AVInput_Populate",
+        "lifecycle": "per_test",
         "tests": [
             # Functional API coverage
             "TCID01_NumberOfInputs",
@@ -90,20 +97,6 @@ SUITES = {
         ],
     },
 }
-
-# Maps test suite names to their corresponding RDK plugin callsigns for activation.
-SUITE_PLUGIN_CALLSIGNS = {
-    "devicesettings": "org.rdk.AVInput",
-}
-
-SUITE_PREREQUISITE_CALLSIGNS = {
-    "devicesettings": ["org.rdk.DeviceSettings"],
-}
-
-SUITE_INIT_MODULES = {
-    "devicesettings": "Init_AVInput_Populate",
-}
-
 
 def normalize_suite_name(raw_name):
     return raw_name.strip().replace("_", "").replace("-", "").lower()
@@ -154,12 +147,13 @@ def load_test_cases(suite_name, selected_tests=None):
 
 
 def run_suite_init(suite_name):
-    module_name = SUITE_INIT_MODULES.get(suite_name)
+    module_name = SUITES[suite_name].get("init_module")
     if not module_name:
         return True
 
-    if BASE_DIR.as_posix() not in sys.path:
-        sys.path.insert(0, str(BASE_DIR))
+    base_dir = str(BASE_DIR)
+    if base_dir not in sys.path:
+        sys.path.insert(0, base_dir)
 
     try:
         module = importlib.import_module(module_name)
@@ -174,7 +168,7 @@ def run_suite_init(suite_name):
 
     log_info(f"Running suite initialization: {module_name}.run_test()")
     try:
-        ok = bool(run_fn())
+        ok = run_fn() is True
     except Exception as exc:
         log_error(f"Suite initialization threw exception: {exc}")
         return False
@@ -187,10 +181,9 @@ def run_suite_init(suite_name):
 
 
 def activate_test_plugins(suite_name):
-    callsigns = list(SUITE_PREREQUISITE_CALLSIGNS.get(suite_name, []))
-    plugin_callsign = SUITE_PLUGIN_CALLSIGNS.get(suite_name)
-    if plugin_callsign:
-        callsigns.append(plugin_callsign)
+    suite_config = SUITES[suite_name]
+    callsigns = list(suite_config["prerequisite_callsigns"])
+    callsigns.extend(suite_config["plugin_callsigns"])
 
     activated = []
     for callsign in callsigns:
@@ -203,8 +196,10 @@ def activate_test_plugins(suite_name):
             return False, activated
         activated.append(callsign)
         log_success(f"Plugin activated: {callsign}")
-        log_info("Waiting 6s for plugin to fully initialise...")
-        time.sleep(6)
+        log_info(
+            f"Waiting {PLUGIN_INIT_WAIT}s for plugin to fully initialise..."
+        )
+        time.sleep(PLUGIN_INIT_WAIT)
 
     return True, activated
 
@@ -222,13 +217,27 @@ def deactivate_test_plugins(callsigns):
 
 
 def run_suite(suite_name, selected_tests=None):
+    lifecycle = SUITES[suite_name].get("lifecycle")
+    if lifecycle != "per_test":
+        raise ValueError(
+            f"Unsupported lifecycle '{lifecycle}' for suite '{suite_name}'"
+        )
+
     banner, test_cases = load_test_cases(suite_name, selected_tests)
     print(banner)
 
     auto_activate = os.environ.get("AUTO_ACTIVATE_PLUGINS", "1").lower() not in ("0", "false", "no")
+    log_info(f"Plugin lifecycle: {lifecycle}")
+    log_info(
+        f"Auto plugin activation: {'enabled' if auto_activate else 'disabled'}"
+    )
+    log_info(f"Plugin initialization wait: {PLUGIN_INIT_WAIT}s")
+    log_info(f"Selected tests: {len(test_cases)}")
 
     passed = 0
     failed = 0
+    skipped = 0
+    skipped_cases = []
     failed_cases = []
     original_stdout = sys.stdout
 
@@ -239,6 +248,7 @@ def run_suite(suite_name, selected_tests=None):
         captured = io.StringIO()
         sys.stdout = captured
         activated_callsigns = []
+        result = False
         try:
             plugins_ready = True
             if auto_activate:
@@ -256,14 +266,23 @@ def run_suite(suite_name, selected_tests=None):
             result = False
             print(f"EXCEPTION in {tc_name}: {exc}")
         finally:
-            if auto_activate and not deactivate_test_plugins(activated_callsigns):
-                result = False
-            sys.stdout = original_stdout
+            try:
+                if (
+                    auto_activate
+                    and not deactivate_test_plugins(activated_callsigns)
+                ):
+                    result = False
+            finally:
+                sys.stdout = original_stdout
 
         output = captured.getvalue()
         print(output, end="")
 
-        if result:
+        if result == SKIPPED:
+            skipped += 1
+            skipped_cases.append(tc_name)
+            log_warning(f"[SKIP] {tc_name}")
+        elif result is True:
             passed += 1
             log_success(f"[PASS] {tc_name}")
         else:
@@ -274,7 +293,11 @@ def run_suite(suite_name, selected_tests=None):
         time.sleep(1)
 
     log_info(f"\n{'='*60}")
-    log_info(f"Suite Summary: {passed} passed, {failed} failed")
+    log_info(
+        f"Suite Summary: {passed} passed, {failed} failed, {skipped} skipped"
+    )
+    if skipped_cases:
+        log_warning(f"Skipped cases: {skipped_cases}")
     if failed_cases:
         log_error(f"Failed cases: {failed_cases}")
     log_info(f"{'='*60}")

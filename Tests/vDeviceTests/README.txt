@@ -27,6 +27,8 @@ Plugin activation and deactivation are done around every testcase by default:
   getInputDevices and issues a best-effort stopInput).
 - The testcase runs.
 - org.rdk.AVInput and org.rdk.DeviceSettings are deactivated in reverse order.
+- The lifecycle is explicitly per-test, so the sequence repeats for every
+  selected testcase.
 
 Disable automatic plugin lifecycle management only if needed:
 - export AUTO_ACTIVATE_PLUGINS=0
@@ -41,6 +43,8 @@ Useful overrides:
 - JSONRPC_PORT
 - WPEFRAMEWORK_JSONRPC_URL     (full URL, highest priority)
 - AVINPUT_EVENT_TIMEOUT        (seconds to wait for each notification; default 8)
+- AVINPUT_PLUGIN_INIT_WAIT     (seconds after each plugin activation; default 6)
+- PLUGIN_INIT_WAIT             (common fallback for plugin initialization wait)
 
 TCID27 and TCID28 capture JSON-RPC notifications over a persistent WebSocket
 implemented with the Python standard library; no pip packages are required.
@@ -142,6 +146,8 @@ builds apply a command and close the connection without a response; curl error
 
 NOTES
 -----
+- Test modules must return True to pass, utils.SKIPPED to skip, or any other
+  value to fail. A run containing only passes and skips succeeds.
 - JSON-RPC parameter spelling in AVInput_Curl.py follows the working curl set in
   curl_extract.txt (audioMix / planeType / topMost / portId as string). If a
   target build exposes different parameter spelling, adjust the builders in
