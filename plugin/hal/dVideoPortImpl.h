@@ -255,7 +255,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, enabled=%s", handle, enabled ? "true" : "false");
-        
+
         dsError_t eError = dsEnableVideoPort(handle, enabled);
         if (eError == dsERR_NONE) {
             retCode = WPEFramework::Core::ERROR_NONE;
@@ -1585,7 +1585,7 @@ public:
     {
         DSLOG_INFO(" handle=%p, status=%d", (void*)handle, status);
         cachedHdcpStatus().store(status);
-        
+
         // Convert DS HAL HDCP status to VideoPortHdcpStatus
         VideoPortHdcpStatus hdcpStatus;
         switch (status) {
