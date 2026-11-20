@@ -20,6 +20,7 @@
 
 #include "dAudio.h"
 #include "DeviceSettingsTypes.h"
+#include "DeviceSettingsHALConfig.h"
 
 #include <interfaces/IDeviceSettingsAudio.h>
 
@@ -103,6 +104,8 @@ private:
     dAudioImpl& operator=(const dAudioImpl&) = delete;
     
     bool _isInitialized;
+    mutable std::mutex _audioPortHandleMutex;
+    mutable DeviceSettingsHAL::AudioPortHandleCache<AudioPortConfigInfo> _audioPortHandleCache;
 
     // Audio ducking state management
     bool _isDuckingInProgress;
@@ -111,6 +114,62 @@ private:
     
     // Audio port state tracking
     bool _audioPortEnabled[dsAUDIOPORT_TYPE_MAX];
+
+    bool populateAudioPortHandleCacheLocked() const
+    {
+        DSLOG_INFO("Audio handle cache build started");
+        std::vector<AudioTypeConfigInfo> audioTypes;
+        std::vector<AudioPortConfigInfo> audioPorts;
+        DeviceSettingsHAL::PopulateAudioConfig(audioTypes, audioPorts);
+        const bool populated = _audioPortHandleCache.Populate(audioPorts,
+            [this](const AudioPortConfigInfo& port, intptr_t& candidate) {
+                const dsAudioPortType_t type = convertToDS(port.audioPortType);
+                const dsError_t error = dsGetAudioPort(type, port.audioPortIndex, &candidate);
+                DEBUG_LOG("Audio handle cache lookup: type=%d index=%d result=%d",
+                    type, port.audioPortIndex, error);
+                if (error != dsERR_NONE) {
+                    DSLOG_ERR("dsGetAudioPort failed for type=%d index=%d, error=%d",
+                        type, port.audioPortIndex, error);
+                }
+                return error == dsERR_NONE;
+            });
+        if (!populated) {
+            DSLOG_ERR("Unable to populate complete audio port handle cache");
+        } else {
+            DSLOG_INFO("Audio handle cache ready: configured ports=%zu", audioPorts.size());
+        }
+        return populated;
+    }
+
+    bool resolveAudioPortHandle(const int32_t handle, intptr_t& halHandle,
+        dsAudioPortType_t* portType = nullptr, int32_t* portIndex = nullptr) const
+    {
+        std::lock_guard<std::mutex> lock(_audioPortHandleMutex);
+        DEBUG_LOG("Audio handle validation: handle=%d initialized=%d cacheReady=%d",
+            handle, _isInitialized, _audioPortHandleCache.IsReady());
+        if (!_isInitialized) {
+            DSLOG_ERR("Audio platform not initialized");
+            return false;
+        }
+        if (!_audioPortHandleCache.IsReady() && !populateAudioPortHandleCacheLocked()) {
+            return false;
+        }
+        AudioPortConfigInfo resolvedPort {};
+        const bool resolved = _audioPortHandleCache.Resolve(handle, halHandle, resolvedPort);
+        if (!resolved) {
+            DSLOG_ERR("Invalid, ambiguous, or unavailable audio port handle=%d", handle);
+        } else if (portType != nullptr) {
+            *portType = convertToDS(resolvedPort.audioPortType);
+        }
+        if (resolved) {
+            if (portIndex != nullptr) {
+                *portIndex = resolvedPort.audioPortIndex;
+            }
+            DEBUG_LOG("Audio handle validated: handle=%d type=%d index=%d",
+                handle, static_cast<int>(resolvedPort.audioPortType), resolvedPort.audioPortIndex);
+        }
+        return resolved;
+    }
 
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
     static void persistAudioLevelIfChanged(const char* key, float& previousLevel, const float currentLevel)
@@ -208,32 +267,6 @@ private:
         g_audioLevelPersistCv.notify_one();
     }
 #endif
-    
-    // Helper method implementations for enabling audio port
-    dsAudioPortType_t getAudioPortType(intptr_t handle)
-    {
-        intptr_t halHandle = 0;
-        
-        // Simplified approach - check common port types
-        const dsAudioPortType_t portTypes[] = {
-            dsAUDIOPORT_TYPE_HDMI,
-            dsAUDIOPORT_TYPE_SPDIF, 
-            dsAUDIOPORT_TYPE_SPEAKER,
-            dsAUDIOPORT_TYPE_HDMI_ARC,
-            dsAUDIOPORT_TYPE_HEADPHONE
-        };
-        
-        for (int i = 0; i < 5; i++) {
-            if (dsGetAudioPort(portTypes[i], 0, &halHandle) == dsERR_NONE) {
-                if (handle == halHandle) {
-                    return portTypes[i];
-                }
-            }
-        }
-        
-        DSLOG_WARN("The requested audio port is not part of platform port configuration");
-        return dsAUDIOPORT_TYPE_MAX;
-    }
     
     uint32_t setAudioDuckingAudioLevel(intptr_t handle)
     {
@@ -497,7 +530,13 @@ public:
             if (ret != dsERR_NONE) {
                 DSLOG_ERR("dsAudioPortInit failed with error: %d", ret);
             } else {
-                _isInitialized = true;
+                {
+                    std::lock_guard<std::mutex> lock(_audioPortHandleMutex);
+                    _audioPortHandleCache.Clear();
+                    // A failed build stays unavailable and is retried by the next handle lookup.
+                    populateAudioPortHandleCacheLocked();
+                    _isInitialized = true;
+                }
                 DSLOG_INFO("Audio platform initialized successfully");
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 startAudioLevelPersistThread();
@@ -526,6 +565,12 @@ public:
         // the dispatch/notify functions use, which drains any invocation already
         // in flight before this instance is destroyed.
         if (_isInitialized) {
+            {
+                std::lock_guard<std::mutex> lock(_audioPortHandleMutex);
+                _isInitialized = false;
+                _audioPortHandleCache.Clear();
+                DSLOG_INFO("Audio handle cache invalidated before HAL termination");
+            }
             try {
                 dsError_t ret = dsAudioPortTerm();
                 if (ret != dsERR_NONE) {
@@ -534,7 +579,6 @@ public:
             } catch (...) {
                 DSLOG_ERR("Exception during Audio platform termination");
             }
-            _isInitialized = false;
         }
 
         // Reset() blocks until any invocation already in flight completes before clearing,
@@ -553,7 +597,7 @@ public:
     }
 
     // Type conversion methods
-    dsAudioPortType_t convertToDS(const AudioPortType type)
+    dsAudioPortType_t convertToDS(const AudioPortType type) const
     {
         switch (type) {
             case AudioPortType::AUDIO_PORT_TYPE_LR: return dsAUDIOPORT_TYPE_ID_LR;
@@ -747,7 +791,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int dsCapabilities;
             
             // Use resolve function for dsGetAudioCapabilities
@@ -789,7 +836,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int dsCapabilities;
             dsError_t ret = dsGetMS12Capabilities(dsHandle, &dsCapabilities);
             if (ret == dsERR_NONE) {
@@ -857,9 +907,13 @@ public:
         }
 
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // No dsGetAudioEncoding HAL API exists; encoding is derived from stereo mode (mirrors dsAudio.c _dsGetEncoding)
             dsAudioStereoMode_t stereoMode = dsAUDIO_STEREO_UNKNOWN;
-            dsError_t ret = dsGetStereoMode(static_cast<intptr_t>(handle), &stereoMode);
+            dsError_t ret = dsGetStereoMode(dsHandle, &stereoMode);
             if (ret != dsERR_NONE) {
                 DSLOG_ERR(" dsGetStereoMode failed: %d", ret);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -894,6 +948,7 @@ public:
 
     uint32_t GetSupportedCompressions(const int32_t handle, IDeviceSettingsAudioCompressionIterator*& compressions) override {
         ENTRY_LOG;
+        compressions = nullptr;
         if (!_isInitialized) {
             DSLOG_ERR("Audio platform not initialized");
             return WPEFramework::Core::ERROR_GENERAL;
@@ -901,8 +956,10 @@ public:
 
         // Derive supported compressions from dsGetAudioCapabilities — no lib32-devicesettings dependency.
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Resolve dsGetAudioCapabilities via dlopen (same pattern as all other HAL calls).
             typedef dsError_t (*dsGetAudioCapabilities_t)(intptr_t handle, int* capabilities);
             static dsGetAudioCapabilities_t dsGetAudioCapabilitiesFunc = 0;
@@ -911,9 +968,19 @@ public:
             }
 
             int caps = 0;
-            if (dsGetAudioCapabilitiesFunc != 0) {
-                dsGetAudioCapabilitiesFunc(dsHandle, &caps);
+            if (dsGetAudioCapabilitiesFunc == nullptr) {
+                DSLOG_ERR("dsGetAudioCapabilities is not defined");
+                DEBUG_LOG("Audio compression enumeration aborted: capability lookup unavailable");
+                return WPEFramework::Core::ERROR_GENERAL;
             }
+            const dsError_t error = dsGetAudioCapabilitiesFunc(dsHandle, &caps);
+            if (error != dsERR_NONE) {
+                DSLOG_ERR("dsGetAudioCapabilities failed with error: %d", error);
+                DEBUG_LOG("Audio compression enumeration aborted: ignoring failed capability output");
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            DEBUG_LOG("Audio compression capability read succeeded: handle=%d capabilities=0x%x",
+                handle, static_cast<unsigned int>(caps));
 
             // Build compression list based on capabilities bitmask.
             // dsAUDIOSUPPORT_DD / DDPLUS indicate heavy/medium compression support.
@@ -948,7 +1015,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int dsCompression;
             
             // Use resolve function for dsGetAudioCompression
@@ -990,8 +1060,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetAudioCompression
             typedef dsError_t (*dsSetAudioCompression_t)(intptr_t handle, int compression);
             static dsSetAudioCompression_t dsSetAudioCompressionFunc = 0;
@@ -1033,8 +1105,17 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            int32_t portIndex = -1;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType, &portIndex)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            if (portIndex != 0) {
+                DSLOG_ERR("SetAudioLevel unsupported for type=%d index=%d: volume state supports index 0 only",
+                    portType, portIndex);
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetAudioLevel
             typedef dsError_t (*dsSetAudioLevel_t)(intptr_t handle, float level);
             static dsSetAudioLevel_t dsSetAudioLevelFunc = 0;
@@ -1050,21 +1131,25 @@ public:
             if (0 != dsSetAudioLevelFunc) {
                 // dsAudio.c: for SPEAKER port, if ducking is in progress, apply
                 // ducking level instead of the requested level (or skip if ducking is active).
-                dsAudioPortType_t portType = getAudioPortType(dsHandle);
-                if (portType == dsAUDIOPORT_TYPE_SPEAKER) {
+                if (portType == dsAUDIOPORT_TYPE_SPEAKER && _isDuckingInProgress) {
                     float currentLevel = 0;
-                    dsGetAudioLevel(dsHandle, &currentLevel);
-                    if (_isDuckingInProgress && currentLevel != static_cast<float>(_volumeDuckingLevel)) {
+                    const dsError_t error = dsGetAudioLevel(dsHandle, &currentLevel);
+                    if (error != dsERR_NONE) {
+                        DSLOG_ERR("dsGetAudioLevel failed with error: %d", error);
+                        DEBUG_LOG("Speaker ducking update aborted before setter, persistence, cache, or notification");
+                        return WPEFramework::Core::ERROR_GENERAL;
+                    }
+                    DEBUG_LOG("Speaker current-level read succeeded: handle=%d ducking=%d",
+                        handle, _isDuckingInProgress);
+                    if (currentLevel != static_cast<float>(_volumeDuckingLevel)) {
                         // Ducking active and current level diverged — re-apply ducking level
                         DSLOG_INFO(" ducking in progress, applying ducking level %d instead of %f",
                                 _volumeDuckingLevel, audioLevel);
                         ret = dsSetAudioLevelFunc(dsHandle, static_cast<float>(_volumeDuckingLevel));
-                    } else if (_isDuckingInProgress) {
+                    } else {
                         // Already at ducking level — skip (dsAudio.c: returns SUCCESS without calling HAL)
                         DSLOG_INFO(" ducking in progress, skipping level change for SPEAKER");
                         ret = dsERR_NONE;
-                    } else {
-                        ret = dsSetAudioLevelFunc(dsHandle, audioLevel);
                     }
                 } else {
                     ret = dsSetAudioLevelFunc(dsHandle, audioLevel);
@@ -1075,12 +1160,11 @@ public:
                 DSLOG_INFO("success: handle=%d, level=%f", handle, audioLevel);
                 g_LastVolumeLevel.store(audioLevel);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
-                dsAudioPortType_t _portType = getAudioPortType(dsHandle);
                 if (g_audioLevelPersistThreadAlive.load()) {
-                    cacheAudioLevelForPersist(_portType, audioLevel);
+                    cacheAudioLevelForPersist(portType, audioLevel);
                 } else {
                     std::string _audioLevel = std::to_string(audioLevel);
-                    switch (_portType) {
+                    switch (portType) {
                         case dsAUDIOPORT_TYPE_SPDIF:     device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.Level", _audioLevel); break;
                         case dsAUDIOPORT_TYPE_HDMI:      device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.Level", _audioLevel); break;
                         case dsAUDIOPORT_TYPE_SPEAKER:   device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.Level", _audioLevel); break;
@@ -1111,7 +1195,17 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            int32_t portIndex = -1;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType, &portIndex)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            if (portIndex != 0) {
+                DSLOG_ERR("GetAudioLevel unsupported for type=%d index=%d: volume state supports index 0 only",
+                    portType, portIndex);
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             float dsLevel;
 
             // Use resolve function for dsGetAudioLevel
@@ -1154,8 +1248,11 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetAudioGain
             typedef dsError_t (*dsSetAudioGain_t)(intptr_t handle, float gainLevel);
             static dsSetAudioGain_t dsSetAudioGainFunc = 0;
@@ -1175,8 +1272,7 @@ public:
                 DSLOG_INFO("success: handle=%d, gain=%f", handle, gainLevel);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 std::string _gain = std::to_string(gainLevel);
-                dsAudioPortType_t _portType = getAudioPortType(dsHandle);
-                switch (_portType) {
+                switch (portType) {
                     case dsAUDIOPORT_TYPE_SPDIF:   device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.Gain",   _gain); break;
                     case dsAUDIOPORT_TYPE_HDMI:    device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.Gain",    _gain); break;
                     case dsAUDIOPORT_TYPE_SPEAKER: device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.Gain", _gain); break;
@@ -1203,7 +1299,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             float dsGain;
             
             // Use resolve function for dsGetAudioGain
@@ -1245,10 +1344,12 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // dsAudio.c: when unmuting SPEAKER port, restore ducking level first
-            dsAudioPortType_t portType = getAudioPortType(dsHandle);
             if (!mute && portType == dsAUDIOPORT_TYPE_SPEAKER) {
                 if (setAudioDuckingAudioLevel(dsHandle) != WPEFramework::Core::ERROR_NONE) {
                     DSLOG_ERR(" failed to restore audio ducking level for Speaker port");
@@ -1262,8 +1363,7 @@ public:
                 DSLOG_INFO("success: handle=%d, mute=%d", handle, mute);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 std::string _mute = mute ? "TRUE" : "FALSE";
-                dsAudioPortType_t _portType = getAudioPortType(dsHandle);
-                switch (_portType) {
+                switch (portType) {
                     case dsAUDIOPORT_TYPE_SPDIF:     device::HostPersistence::getInstance().persistHostProperty("SPDIF0.audio.mute",     _mute); break;
                     case dsAUDIOPORT_TYPE_HDMI:      device::HostPersistence::getInstance().persistHostProperty("HDMI0.audio.mute",      _mute); break;
                     case dsAUDIOPORT_TYPE_SPEAKER:   device::HostPersistence::getInstance().persistHostProperty("SPEAKER0.audio.mute",   _mute); break;
@@ -1292,7 +1392,11 @@ public:
         }
         
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             bool dsMuted;
             
             // Use resolve function for dsIsAudioMute
@@ -1316,7 +1420,7 @@ public:
                 DSLOG_INFO("success: handle=%d, muted=%d", handle, muted);
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 std::string muteKey;
-                switch (getAudioPortType(dsHandle)) {
+                switch (portType) {
                     case dsAUDIOPORT_TYPE_SPDIF:     muteKey = "SPDIF0.audio.mute";     break;
                     case dsAUDIOPORT_TYPE_HDMI:      muteKey = "HDMI0.audio.mute";      break;
                     case dsAUDIOPORT_TYPE_SPEAKER:   muteKey = "SPEAKER0.audio.mute";   break;
@@ -1354,7 +1458,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int32_t volume = 0;
             bool portEnabled = false;
             
@@ -1444,8 +1551,11 @@ public:
         }
         
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            const dsAudioPortType_t portType = getAudioPortType(dsHandle);
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             dsAudioStereoMode_t dsMode = dsAUDIO_STEREO_UNKNOWN;
             dsError_t ret = dsERR_NONE;
 
@@ -1483,9 +1593,12 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t dsPortType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &dsPortType)) {
+                return WPEFramework::Core::ERROR_BAD_REQUEST;
+            }
             dsAudioStereoMode_t dsMode = convertToDS(mode);
-            const dsAudioPortType_t dsPortType = getAudioPortType(dsHandle);
 
             if (dsPortType == dsAUDIOPORT_TYPE_MAX) {
                 DSLOG_ERR("Unable to determine audio port type for handle=%d", handle);
@@ -1607,7 +1720,6 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
             // Use resolve function for dsSetAssociatedAudioMixing
             typedef dsError_t (*dsSetAssociatedAudioMixing_t)(intptr_t handle, bool mixing);
             static dsSetAssociatedAudioMixing_t dsSetAssociatedAudioMixingFunc = 0;
@@ -1694,7 +1806,6 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
             // Use resolve function for dsSetFaderControl
             typedef dsError_t (*dsSetFaderControl_t)(intptr_t handle, int balance);
             static dsSetFaderControl_t dsSetFaderControlFunc = 0;
@@ -1781,7 +1892,6 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
             // Use resolve function for dsSetPrimaryLanguage
             typedef dsError_t (*dsSetPrimaryLanguage_t)(intptr_t handle, const char* language);
             static dsSetPrimaryLanguage_t dsSetPrimaryLanguageFunc = 0;
@@ -1868,7 +1978,6 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
             // Use resolve function for dsSetSecondaryLanguage
             typedef dsError_t (*dsSetSecondaryLanguage_t)(intptr_t handle, const char* language);
             static dsSetSecondaryLanguage_t dsSetSecondaryLanguageFunc = 0;
@@ -1954,7 +2063,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             bool dsConnected;
             
             // dsAudio.c uses dsAudioOutIsConnected (not dsIsAudioPortEnabled)
@@ -1996,7 +2108,11 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            // Zero requests the host capability rather than a port capability.
+            if (handle != 0 && !resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // dsAtmosCapability_t should be dsATMOSCapability_t
             dsATMOSCapability_t dsCapability;
             
@@ -2040,7 +2156,6 @@ public:
 
         try {
             intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
             // Use resolve function for dsSetAudioAtmosOutputMode
             typedef dsError_t (*dsSetAudioAtmosOutputMode_t)(intptr_t handle, bool enable);
             static dsSetAudioAtmosOutputMode_t dsSetAudioAtmosOutputModeFunc = 0;
@@ -2076,6 +2191,10 @@ public:
     uint32_t IsAudioPortEnabled(const int32_t handle, bool &enabled) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             bool portEnabled = false;
             
             // Use resolve function for dsIsAudioPortEnabled
@@ -2091,7 +2210,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsIsAudioPortEnabledFunc) {
-                dsResult = dsIsAudioPortEnabledFunc(static_cast<intptr_t>(handle), &portEnabled);
+                dsResult = dsIsAudioPortEnabledFunc(dsHandle, &portEnabled);
             }
             
             if (dsResult == dsERR_NONE) {
@@ -2117,8 +2236,11 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            dsAudioPortType_t portType = getAudioPortType(dsHandle);
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
 
             // Special handling for SPEAKER port - manage audio ducking level
             if (portType == dsAUDIOPORT_TYPE_SPEAKER) {
@@ -2240,6 +2362,10 @@ public:
     uint32_t GetSupportedARCTypes(const int32_t handle, int32_t &types) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int arcTypes = 0;
             
             // Use resolve function for dsGetSupportedARCTypes
@@ -2255,7 +2381,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetSupportedARCTypesFunc) {
-                dsResult = dsGetSupportedARCTypesFunc(static_cast<intptr_t>(handle), &arcTypes);
+                dsResult = dsGetSupportedARCTypesFunc(dsHandle, &arcTypes);
             }
             
             if (dsResult == dsERR_NONE) {
@@ -2280,8 +2406,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // dsAudio.c uses dsAudioSetSAD (not dsSetSAD)
             typedef dsError_t (*dsAudioSetSAD_t)(intptr_t handle, dsAudioSADList_t sad_list);
             static dsAudioSetSAD_t dsAudioSetSADFunc = 0;
@@ -2333,7 +2461,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             dsAudioARCStatus_t dsARCStatus;
             dsARCStatus.type = static_cast<dsAudioARCTypes_t>(arcStatus.arcType);
             dsARCStatus.status = arcStatus.status;
@@ -2445,6 +2576,10 @@ public:
     uint32_t IsAudioMSDecoded(const int32_t handle, bool &hasms11Decode) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             bool ms11Decoded = false;
             
             // Use resolve function for dsIsAudioMSDecode
@@ -2460,7 +2595,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsIsAudioMSDecodeFunc) {
-                dsResult = dsIsAudioMSDecodeFunc(static_cast<intptr_t>(handle), &ms11Decoded);
+                dsResult = dsIsAudioMSDecodeFunc(dsHandle, &ms11Decoded);
             }
             
             if (dsResult == dsERR_NONE) {
@@ -2480,8 +2615,12 @@ public:
     uint32_t IsAudioMS12Decoded(const int32_t handle, bool &hasms12Decode) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             bool ms12Decoded = false;
-            dsError_t dsResult = dsIsAudioMS12Decode(static_cast<intptr_t>(handle), &ms12Decoded);
+            dsError_t dsResult = dsIsAudioMS12Decode(dsHandle, &ms12Decoded);
             if (dsResult == dsERR_NONE) {
                 hasms12Decode = ms12Decoded;
             } else {
@@ -2504,7 +2643,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             bool leEnabled;
             // Use resolve function for dsGetLEConfig
             typedef dsError_t (*dsGetLEConfig_t)(intptr_t handle, bool* enabled);
@@ -2539,7 +2681,11 @@ public:
     uint32_t EnableAudioLEConfig(const int32_t handle, const bool enable) override {
         ENTRY_LOG;
         try {
-            // dsAudio.c uses dsEnableLEConfig(handle, enable) — NOT dsEnableMS12Config
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
+            // dsAudio.c uses dsEnableLEConfig(dsHandle, enable) — NOT dsEnableMS12Config
             typedef dsError_t (*dsEnableLEConfig_t)(intptr_t handle, const bool enable);
             static dsEnableLEConfig_t dsEnableLEConfigFunc = nullptr;
             if (dsEnableLEConfigFunc == nullptr) {
@@ -2556,7 +2702,7 @@ public:
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
                 device::HostPersistence::getInstance().persistHostProperty("audio.LEEnable", enable ? "TRUE" : "FALSE");
 #endif
-                dsError_t dsResult = dsEnableLEConfigFunc(static_cast<intptr_t>(handle), enable);
+                dsError_t dsResult = dsEnableLEConfigFunc(dsHandle, enable);
                 if (dsResult != dsERR_NONE) {
                     DSLOG_ERR("dsEnableLEConfig failed with error: %d", dsResult);
                     return WPEFramework::Core::ERROR_GENERAL;
@@ -2573,6 +2719,11 @@ public:
     uint32_t SetAudioDelay(const int32_t handle, const uint32_t audioDelay) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t _portType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &_portType)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetAudioDelay
             typedef dsError_t (*dsSetAudioDelay_t)(intptr_t handle, uint32_t audioDelay);
             static dsSetAudioDelay_t dsSetAudioDelayFunc = 0;
@@ -2586,10 +2737,9 @@ public:
 
             // dsAudio.c _dsSetAudioDelay: only invoke the HAL setter while the port is enabled;
             // persistence still happens unconditionally afterward.
-            dsAudioPortType_t _portType = getAudioPortType(static_cast<intptr_t>(handle));
             uint32_t retCode = WPEFramework::Core::ERROR_NONE;
             if (_portType < dsAUDIOPORT_TYPE_MAX && _audioPortEnabled[_portType]) {
-                dsError_t dsResult = dsSetAudioDelayFunc(static_cast<intptr_t>(handle), audioDelay);
+                dsError_t dsResult = dsSetAudioDelayFunc(dsHandle, audioDelay);
                 if (dsResult == dsERR_NONE) {
                     DSLOG_INFO("success: handle=%d, delay=%u", handle, audioDelay);
                 } else {
@@ -2621,9 +2771,13 @@ public:
     uint32_t GetAudioDelay(const int32_t handle, uint32_t &audioDelay) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t _portType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &_portType)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // dsAudio.c _dsGetAudioDelay never calls a HAL getter; it always reads the
             // persisted value via dsGetAudioDelayInternal(). Mirror that exactly here.
-            dsAudioPortType_t _portType = getAudioPortType(static_cast<intptr_t>(handle));
             audioDelay = getAudioDelayInternal(_portType);
             DSLOG_INFO("success: handle=%d, delay=%u", handle, audioDelay);
         } catch (...) {
@@ -2642,8 +2796,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             typedef dsError_t (*dsSetAudioDelayOffset_t)(intptr_t handle, uint32_t delayOffset);
             static dsSetAudioDelayOffset_t dsSetAudioDelayOffsetFunc = 0;
             if (dsSetAudioDelayOffsetFunc == 0) {
@@ -2681,7 +2837,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             uint32_t dsOffset;
             
             typedef dsError_t (*dsGetAudioDelayOffset_t)(intptr_t handle, uint32_t* delayOffset);
@@ -2717,6 +2876,10 @@ public:
     uint32_t SetAudioCompression(const int32_t handle, const int32_t compressionLevel) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetAudioCompression
             typedef dsError_t (*dsSetAudioCompression_t)(intptr_t handle, int compression);
             static dsSetAudioCompression_t dsSetAudioCompressionFunc = 0;
@@ -2730,7 +2893,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsSetAudioCompressionFunc) {
-                dsResult = dsSetAudioCompressionFunc(static_cast<intptr_t>(handle), compressionLevel);
+                dsResult = dsSetAudioCompressionFunc(dsHandle, compressionLevel);
             }
             if (dsResult == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, level=%d", handle, compressionLevel);
@@ -2752,6 +2915,10 @@ public:
     uint32_t GetAudioCompression(const int32_t handle, int32_t &compressionLevel) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int compression = 0;
             // Use resolve function for dsGetAudioCompression
             typedef dsError_t (*dsGetAudioCompression_t)(intptr_t handle, int* compression);
@@ -2766,7 +2933,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetAudioCompressionFunc) {
-                dsResult = dsGetAudioCompressionFunc(static_cast<intptr_t>(handle), &compression);
+                dsResult = dsGetAudioCompressionFunc(dsHandle, &compression);
             }
             if (dsResult == dsERR_NONE) {
                 compressionLevel = compression;
@@ -2791,8 +2958,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetDialogEnhancement
             typedef dsError_t (*dsSetDialogEnhancement_t)(intptr_t handle, int level);
             static dsSetDialogEnhancement_t dsSetDialogEnhancementFunc = 0;
@@ -2829,6 +2998,10 @@ public:
     uint32_t GetAudioDialogEnhancement(const int32_t handle, int32_t &level) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int dialogLevel = 0;
             // Use resolve function for dsGetDialogEnhancement
             typedef dsError_t (*dsGetDialogEnhancement_t)(intptr_t handle, int* level);
@@ -2843,7 +3016,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetDialogEnhancementFunc) {
-                dsResult = dsGetDialogEnhancementFunc(static_cast<intptr_t>(handle), &dialogLevel);
+                dsResult = dsGetDialogEnhancementFunc(dsHandle, &dialogLevel);
             }
             if (dsResult == dsERR_NONE) {
                 level = dialogLevel;
@@ -2863,6 +3036,10 @@ public:
     uint32_t SetAudioDolbyVolumeMode(const int32_t handle, const bool enable) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetDolbyVolumeMode
             typedef dsError_t (*dsSetDolbyVolumeMode_t)(intptr_t handle, bool enable);
             static dsSetDolbyVolumeMode_t dsSetDolbyVolumeModeFunc = 0;
@@ -2876,7 +3053,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsSetDolbyVolumeModeFunc) {
-                dsResult = dsSetDolbyVolumeModeFunc(static_cast<intptr_t>(handle), enable);
+                dsResult = dsSetDolbyVolumeModeFunc(dsHandle, enable);
             }
             if (dsResult == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, enable=%s", handle, enable ? "true" : "false");
@@ -2898,6 +3075,10 @@ public:
     uint32_t GetAudioDolbyVolumeMode(const int32_t handle, bool &enabled) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             bool dolbyMode = false;
             // Use resolve function for dsGetDolbyVolumeMode
             typedef dsError_t (*dsGetDolbyVolumeMode_t)(intptr_t handle, bool* mode);
@@ -2912,7 +3093,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetDolbyVolumeModeFunc) {
-                dsResult = dsGetDolbyVolumeModeFunc(static_cast<intptr_t>(handle), &dolbyMode);
+                dsResult = dsGetDolbyVolumeModeFunc(dsHandle, &dolbyMode);
             }
             if (dsResult == dsERR_NONE) {
                 enabled = dolbyMode;
@@ -2932,6 +3113,10 @@ public:
     uint32_t SetAudioIntelligentEqualizerMode(const int32_t handle, const int32_t mode) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetIntelligentEqualizerMode
             typedef dsError_t (*dsSetIntelligentEqualizerMode_t)(intptr_t handle, int mode);
             static dsSetIntelligentEqualizerMode_t dsSetIntelligentEqualizerModeFunc = 0;
@@ -2945,7 +3130,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsSetIntelligentEqualizerModeFunc) {
-                dsResult = dsSetIntelligentEqualizerModeFunc(static_cast<intptr_t>(handle), mode);
+                dsResult = dsSetIntelligentEqualizerModeFunc(dsHandle, mode);
             }
             if (dsResult == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, mode=%d", handle, mode);
@@ -2967,6 +3152,10 @@ public:
     uint32_t GetAudioIntelligentEqualizerMode(const int32_t handle, int32_t &mode) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int eqMode = 0;
             // Use resolve function for dsGetIntelligentEqualizerMode
             typedef dsError_t (*dsGetIntelligentEqualizerMode_t)(intptr_t handle, int* mode);
@@ -2981,7 +3170,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetIntelligentEqualizerModeFunc) {
-                dsResult = dsGetIntelligentEqualizerModeFunc(static_cast<intptr_t>(handle), &eqMode);
+                dsResult = dsGetIntelligentEqualizerModeFunc(dsHandle, &eqMode);
             }
             if (dsResult == dsERR_NONE) {
                 mode = eqMode;
@@ -3006,7 +3195,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             dsVolumeLeveller_t dsVolLeveller;
             dsVolLeveller.mode = static_cast<int>(volumeLeveller.mode);
             dsVolLeveller.level = static_cast<int>(volumeLeveller.level);
@@ -3050,6 +3242,10 @@ public:
     uint32_t GetAudioVolumeLeveller(const int32_t handle, WPEFramework::Exchange::IDeviceSettingsAudio::VolumeLeveller &volumeLeveller) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             dsVolumeLeveller_t volLeveller;
             // Use resolve function for dsGetVolumeLeveller
             typedef dsError_t (*dsGetVolumeLeveller_t)(intptr_t handle, dsVolumeLeveller_t* leveller);
@@ -3064,7 +3260,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetVolumeLevellerFunc) {
-                dsResult = dsGetVolumeLevellerFunc(static_cast<intptr_t>(handle), &volLeveller);
+                dsResult = dsGetVolumeLevellerFunc(dsHandle, &volLeveller);
             }
             if (dsResult == dsERR_NONE) {
                 // Convert dsVolumeLeveller_t to VolumeLeveller enum
@@ -3090,7 +3286,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetBassEnhancer
             typedef dsError_t (*dsSetBassEnhancer_t)(intptr_t handle, int boost);
             static dsSetBassEnhancer_t dsSetBassEnhancerFunc = 0;
@@ -3126,6 +3325,10 @@ public:
     uint32_t GetAudioBassEnhancer(const int32_t handle, int32_t &boost) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int bassBoost = 0;
             // Use resolve function for dsGetBassEnhancer
             typedef dsError_t (*dsGetBassEnhancer_t)(intptr_t handle, int* boost);
@@ -3140,7 +3343,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetBassEnhancerFunc) {
-                dsResult = dsGetBassEnhancerFunc(static_cast<intptr_t>(handle), &bassBoost);
+                dsResult = dsGetBassEnhancerFunc(dsHandle, &bassBoost);
             }
             if (dsResult == dsERR_NONE) {
                 boost = bassBoost;
@@ -3164,7 +3367,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsEnableSurroundDecoder
             typedef dsError_t (*dsEnableSurroundDecoder_t)(intptr_t handle, bool enable);
             static dsEnableSurroundDecoder_t dsEnableSurroundDecoderFunc = 0;
@@ -3200,6 +3406,10 @@ public:
     uint32_t IsAudioSurroudDecoderEnabled(const int32_t handle, bool &enabled) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             bool decoderEnabled = false;
             // Use resolve function for dsIsSurroundDecoderEnabled
             typedef dsError_t (*dsIsSurroundDecoderEnabled_t)(intptr_t handle, bool* enabled);
@@ -3214,7 +3424,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsIsSurroundDecoderEnabledFunc) {
-                dsResult = dsIsSurroundDecoderEnabledFunc(static_cast<intptr_t>(handle), &decoderEnabled);
+                dsResult = dsIsSurroundDecoderEnabledFunc(dsHandle, &decoderEnabled);
             }
             if (dsResult == dsERR_NONE) {
                 enabled = decoderEnabled;
@@ -3238,7 +3448,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetDRCMode
             typedef dsError_t (*dsSetDRCMode_t)(intptr_t handle, int mode);
             static dsSetDRCMode_t dsSetDRCModeFunc = 0;
@@ -3274,6 +3487,10 @@ public:
     uint32_t GetAudioDRCMode(const int32_t handle, int32_t &drcMode) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int mode = 0;
             // Use resolve function for dsGetDRCMode
             typedef dsError_t (*dsGetDRCMode_t)(intptr_t handle, int* mode);
@@ -3288,7 +3505,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetDRCModeFunc) {
-                dsResult = dsGetDRCModeFunc(static_cast<intptr_t>(handle), &mode);
+                dsResult = dsGetDRCModeFunc(dsHandle, &mode);
             }
             if (dsResult == dsERR_NONE) {
                 drcMode = mode;
@@ -3312,7 +3529,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             dsSurroundVirtualizer_t dsSurVirtualizer;
             dsSurVirtualizer.mode = static_cast<int>(surroundVirtualizer.mode);
             dsSurVirtualizer.boost = surroundVirtualizer.boost;
@@ -3357,6 +3577,10 @@ public:
     uint32_t GetAudioSurroudVirtualizer(const int32_t handle, WPEFramework::Exchange::IDeviceSettingsAudio::SurroundVirtualizer &surroundVirtualizer) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             dsSurroundVirtualizer_t virtualizer;
             // Use resolve function for dsGetSurroundVirtualizer
             typedef dsError_t (*dsGetSurroundVirtualizer_t)(intptr_t handle, dsSurroundVirtualizer_t* virtualizer);
@@ -3371,7 +3595,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetSurroundVirtualizerFunc) {
-                dsResult = dsGetSurroundVirtualizerFunc(static_cast<intptr_t>(handle), &virtualizer);
+                dsResult = dsGetSurroundVirtualizerFunc(dsHandle, &virtualizer);
             }
             if (dsResult == dsERR_NONE) {
                 // Convert dsSurroundVirtualizer_t to SurroundVirtualizer enum
@@ -3397,7 +3621,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetMISteering
             typedef dsError_t (*dsSetMISteering_t)(intptr_t handle, bool enable);
             static dsSetMISteering_t dsSetMISteeringFunc = 0;
@@ -3433,6 +3660,10 @@ public:
     uint32_t GetAudioMISteering(const int32_t handle, bool &enable) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             bool miSteering = false;
             // Use resolve function for dsGetMISteering
             typedef dsError_t (*dsGetMISteering_t)(intptr_t handle, bool* steering);
@@ -3447,7 +3678,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetMISteeringFunc) {
-                dsResult = dsGetMISteeringFunc(static_cast<intptr_t>(handle), &miSteering);
+                dsResult = dsGetMISteeringFunc(dsHandle, &miSteering);
             }
             if (dsResult == dsERR_NONE) {
                 enable = miSteering;
@@ -3466,6 +3697,10 @@ public:
     uint32_t SetAudioGraphicEqualizerMode(const int32_t handle, const int32_t mode) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Use resolve function for dsSetGraphicEqualizerMode
             typedef dsError_t (*dsSetGraphicEqualizerMode_t)(intptr_t handle, int mode);
             static dsSetGraphicEqualizerMode_t dsSetGraphicEqualizerModeFunc = 0;
@@ -3479,7 +3714,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsSetGraphicEqualizerModeFunc) {
-                dsResult = dsSetGraphicEqualizerModeFunc(static_cast<intptr_t>(handle), mode);
+                dsResult = dsSetGraphicEqualizerModeFunc(dsHandle, mode);
             }
             if (dsResult == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, mode=%d", handle, mode);
@@ -3501,6 +3736,10 @@ public:
     uint32_t GetAudioGraphicEqualizerMode(const int32_t handle, int32_t &mode) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             int eqMode = 0;
             // Use resolve function for dsGetGraphicEqualizerMode
             typedef dsError_t (*dsGetGraphicEqualizerMode_t)(intptr_t handle, int* mode);
@@ -3515,7 +3754,7 @@ public:
             
             dsError_t dsResult = dsERR_GENERAL;
             if (0 != dsGetGraphicEqualizerModeFunc) {
-                dsResult = dsGetGraphicEqualizerModeFunc(static_cast<intptr_t>(handle), &eqMode);
+                dsResult = dsGetGraphicEqualizerModeFunc(dsHandle, &eqMode);
             }
             if (dsResult == dsERR_NONE) {
                 mode = eqMode;
@@ -3536,6 +3775,10 @@ public:
         ENTRY_LOG;
         ms12ProfileList = nullptr;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // dsAudio.c: _dsGetMS12AudioProfileList resolves and calls dsGetMS12AudioProfileList
             typedef dsError_t (*dsGetMS12AudioProfileList_t)(intptr_t handle, dsMS12AudioProfileList_t* profiles);
             static dsGetMS12AudioProfileList_t dsGetMS12AudioProfileListFunc = 0;
@@ -3549,7 +3792,7 @@ public:
 
             dsMS12AudioProfileList_t pList;
             memset(&pList, 0, sizeof(pList));
-            dsError_t dsResult = dsGetMS12AudioProfileListFunc(static_cast<intptr_t>(handle), &pList);
+            dsError_t dsResult = dsGetMS12AudioProfileListFunc(dsHandle, &pList);
             if (dsResult != dsERR_NONE) {
                 DSLOG_ERR(" dsGetMS12AudioProfileList failed, error=%d", dsResult);
                 return WPEFramework::Core::ERROR_GENERAL;
@@ -3594,8 +3837,12 @@ public:
     uint32_t GetAudioMS12Profile(const int32_t handle, string &profile) override {
         ENTRY_LOG;
         try {
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             char profileStr[256] = {0};
-            dsError_t dsResult = dsGetMS12AudioProfile(static_cast<intptr_t>(handle), profileStr);
+            dsError_t dsResult = dsGetMS12AudioProfile(dsHandle, profileStr);
             if (dsResult == dsERR_NONE) {
                 profile = std::string(profileStr);
             } else {
@@ -3618,7 +3865,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             dsError_t ret = dsSetMS12AudioProfile(dsHandle, profile.c_str());
             if (ret == dsERR_NONE) {
                 DSLOG_INFO("success: handle=%d, profile=%s", handle, profile.c_str());
@@ -3695,7 +3945,10 @@ public:
         // It orchestrates dsSetDialogEnhancement/dsSetBassEnhancer/dsSetVolumeLeveller/dsSetSurroundVirtualizer.
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             std::string _AProfile("Off");
             try { _AProfile = device::HostPersistence::getInstance().getProperty("audio.MS12Profile"); }
             catch(...) { try { _AProfile = device::HostPersistence::getInstance().getDefaultProperty("audio.MS12Profile"); } catch(...) { _AProfile = "Off"; } }
@@ -3816,7 +4069,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // dsAudio.c: _resetDialogEnhancerLevel reads default, calls dsSetDialogEnhancement, persists
             typedef dsError_t (*dsSetDialogEnhancement_t)(intptr_t handle, int enhancerLevel);
             static dsSetDialogEnhancement_t dsSetDialogEnhancementFunc = 0;
@@ -3863,7 +4119,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // dsAudio.c: _resetBassEnhancer reads default, calls dsSetBassEnhancer, persists
             typedef dsError_t (*dsSetBassEnhancer_t)(intptr_t handle, int boost);
             static dsSetBassEnhancer_t dsSetBassEnhancerFunc = 0;
@@ -3910,7 +4169,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // dsAudio.c: _resetSurroundVirtualizer reads defaults for mode+boost, calls dsSetSurroundVirtualizer, persists
             typedef dsError_t (*dsSetSurroundVirtualizer_t)(intptr_t handle, dsSurroundVirtualizer_t virtualizer);
             static dsSetSurroundVirtualizer_t dsSetSurroundVirtualizerFunc = 0;
@@ -3963,7 +4225,10 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
+            intptr_t dsHandle = 0;
+            if (!resolveAudioPortHandle(handle, dsHandle)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // dsAudio.c: _resetVolumeLeveller reads defaults for mode+level, calls dsSetVolumeLeveller, persists
             typedef dsError_t (*dsSetVolumeLeveller_t)(intptr_t handle, dsVolumeLeveller_t volLeveller);
             static dsSetVolumeLeveller_t dsSetVolumeLevellerFunc = 0;
@@ -4044,7 +4309,11 @@ public:
         }
 
         try {
-            const dsAudioPortType_t portType = getAudioPortType(static_cast<intptr_t>(handle));
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             /* Mirrors _dsGetStereoAuto: returns current runtime auto-state only, no persistence path. */
             autoMode = isStereoAutoEnabled(portType) ? 1 : 0;
             DSLOG_INFO("success: handle=%d, autoMode=%d", handle, autoMode);
@@ -4065,11 +4334,13 @@ public:
         }
 
         try {
-            intptr_t dsHandle = static_cast<intptr_t>(handle);
-            
+            intptr_t dsHandle = 0;
+            dsAudioPortType_t portType = dsAUDIOPORT_TYPE_MAX;
+            if (!resolveAudioPortHandle(handle, dsHandle, &portType)) {
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
             // Handle persistence similar to dsAudio.c _dsSetStereoAuto implementation
             if (persist) {
-                dsAudioPortType_t portType = getAudioPortType(dsHandle);
                 switch (portType) {
                     case dsAUDIOPORT_TYPE_HDMI:
                         device::HostPersistence::getInstance().persistHostProperty("HDMI0.AudioMode.AUTO", autoMode ? "TRUE" : "FALSE");
@@ -4098,7 +4369,6 @@ public:
             }
             
             // Call the HAL function - only for HDMI_ARC and SPDIF ports as per dsAudio.c logic
-            dsAudioPortType_t portType = getAudioPortType(dsHandle);
             if ((portType == dsAUDIOPORT_TYPE_HDMI_ARC) || (portType == dsAUDIOPORT_TYPE_SPDIF)) {
                 // Use resolve function for dsSetStereoAuto
                 typedef dsError_t (*dsSetStereoAuto_t)(intptr_t handle, int autoMode);
@@ -4266,9 +4536,15 @@ private:
                     }
                     
                     bool leEnabled = (leEnable == "TRUE");
-                    dsEnableLEConfigFunc(handle, leEnabled);
-                    m_LEEnabled = leEnabled;  // sync static state with what was applied to HAL
-                    DSLOG_INFO("LE (Loudness Equivalence) initialized: %s", leEnabled ? "enabled" : "disabled");
+                    const dsError_t error = dsEnableLEConfigFunc(handle, leEnabled);
+                    DEBUG_LOG("Audio LE initialization: requested=%d result=%d", leEnabled, error);
+                    if (error == dsERR_NONE) {
+                        m_LEEnabled = leEnabled;
+                        DSLOG_INFO("LE (Loudness Equivalence) initialized: %s", leEnabled ? "enabled" : "disabled");
+                    } else {
+                        DSLOG_ERR("dsEnableLEConfig failed during initialization with error: %d", error);
+                        DEBUG_LOG("Audio LE cached state unchanged after failed HAL initialization");
+                    }
                 } else {
                     DSLOG_INFO("dsEnableLEConfig(int, bool) is not available in HAL");
                 }

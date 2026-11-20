@@ -118,11 +118,14 @@ public:
                 dsError_t eError = dsHdmiInInit();
                 if (eError != dsERR_NONE) {
                     DSLOG_ERR("dsHdmiInInit failed: %d", eError);
+                    DEBUG_LOG("HDMI input initialization aborted; platform reference count unchanged");
+                    return;
                 } else {
                     DSLOG_INFO("dsHdmiInInit succeeded: %d", eError);
                 }
             }
             m_hdmiInPlatInitialized++;
+            DEBUG_LOG("HDMI input platform reference count=%d", m_hdmiInPlatInitialized);
         }
     }
 
@@ -148,6 +151,18 @@ public:
 
     static void* resolve(const std::string& libName, const std::string& symbolName) {
         return WPEFramework::Plugin::DeviceSettingsHALLoader::ResolveSymbol(libName, symbolName);
+    }
+
+    static bool validateHdmiInPort(const dsHdmiInPort_t port)
+    {
+        if (port < dsHDMI_IN_PORT_0 || port >= dsHDMI_IN_PORT_MAX) {
+            DSLOG_ERR("Invalid HDMI input port=%d; valid range=[%d,%d)",
+                static_cast<int>(port), static_cast<int>(dsHDMI_IN_PORT_0),
+                static_cast<int>(dsHDMI_IN_PORT_MAX));
+            return false;
+        }
+        DEBUG_LOG("HDMI input port bounds validated: port=%d", static_cast<int>(port));
+        return true;
     }
 
     bool getHdmiInPortPersistValue(const std::string& propertyName, int portIndex) {
@@ -189,7 +204,12 @@ public:
 
     static dsError_t setVRRSupport (dsHdmiInPort_t iHdmiPort, bool vrrSupport) {
         dsError_t eRet = dsERR_GENERAL;
+        if (!validateHdmiInPort(iHdmiPort)) {
+            return dsERR_INVALID_PARAM;
+        }
         if (!m_hdmiPortVrrCaps[iHdmiPort]) {
+            DEBUG_LOG("HDMI input VRR update skipped: port=%d has no VRR capability",
+                static_cast<int>(iHdmiPort));
             return dsERR_OPERATION_NOT_SUPPORTED;
         }
         typedef dsError_t (*dsHdmiInSetVRRSupport_t)(dsHdmiInPort_t iHdmiPort, bool vrrSupport);
@@ -347,8 +367,15 @@ public:
         if (0 != dsGetEdidVersionFunc) {
             tv_hdmi_edid_version_t EdidVersion;
             eRet = dsGetEdidVersionFunc (iHdmiPort, &EdidVersion);
-            int EdidVer = static_cast<int>(EdidVersion);
-            *iEdidVersion = EdidVer;
+            if (eRet == dsERR_NONE) {
+                *iEdidVersion = static_cast<int>(EdidVersion);
+                DEBUG_LOG("HDMI input EDID version accepted: port=%d version=%d",
+                    static_cast<int>(iHdmiPort), *iEdidVersion);
+            } else {
+                DSLOG_ERR("dsGetEdidVersion failed for port=%d, error=%d",
+                    static_cast<int>(iHdmiPort), eRet);
+                DEBUG_LOG("HDMI input EDID version output unchanged after HAL failure");
+            }
             DSLOG_INFO("dsGetEdidVersionFunc eRet: %d", eRet);
         }
         else {
@@ -578,7 +605,12 @@ public:
             // Mirrors dsHdmiIn.c _dsHdmiInInit: bound all per-port loops by the HAL-reported input count
             // so every supported port (not just a hardcoded subset) gets its ARC/ALLM/VRR/EDID state loaded.
             uint8_t noOfSupportedHdmiInputs = 0;
-            dsHdmiInGetNumberOfInputs(&noOfSupportedHdmiInputs);
+            const dsError_t error = dsHdmiInGetNumberOfInputs(&noOfSupportedHdmiInputs);
+            if (error != dsERR_NONE) {
+                DSLOG_ERR("dsHdmiInGetNumberOfInputs failed during initialization: %d", error);
+                DEBUG_LOG("HDMI input persistence initialization remains incomplete; per-port state not loaded");
+                return;
+            }
             DSLOG_INFO("Number of Inputs: %d", noOfSupportedHdmiInputs);
 
             int itr = 0;
@@ -870,7 +902,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
-        if (hdmiPort < dsHDMI_IN_PORT_MAX) {
+        if (validateHdmiInPort(hdmiPort)) {
             allmSupport = m_edidallmsupport[hdmiPort];
             DSLOG_INFO(" port=%d, allmSupport=%s", hdmiPort, allmSupport ? "true" : "false");
             retCode = WPEFramework::Core::ERROR_NONE;
@@ -882,7 +914,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
-        if (hdmiPort < dsHDMI_IN_PORT_MAX) {
+        if (validateHdmiInPort(hdmiPort)) {
             DSLOG_INFO("In SetHDMIInEdid2AllmSupport, checking m_edidversion of port %d : %d", hdmiPort, m_edidversion[hdmiPort]);
             // Legacy behaviour: the HAL is programmed only for EDID 2.0, but for other versions the
             // call still succeeds and the requested value is persisted/cached.
@@ -1061,6 +1093,9 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
+        if (!validateHdmiInPort(hdmiPort)) {
+            return retCode;
+        }
         tv_hdmi_edid_version_t edidVer = static_cast<tv_hdmi_edid_version_t>(edidVersion);
         if (setEdidVersion(hdmiPort, edidVer) == dsERR_NONE) {
             m_edidversion[hdmiPort] = edidVer;
@@ -1135,7 +1170,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
-        if (hdmiPort < dsHDMI_IN_PORT_MAX) {
+        if (validateHdmiInPort(hdmiPort)) {
             DSLOG_INFO("In SetVRRSupport, checking m_edidversion of port %d : %d", hdmiPort, m_edidversion[hdmiPort]);
             if(m_edidversion[hdmiPort] == HDMI_EDID_VER_20) { // if the edidver is 2.0, then only set the vrr bit in edid
                 if (setVRRSupport(hdmiPort, vrrSupport) == dsERR_NONE) {
@@ -1156,7 +1191,7 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         dsHdmiInPort_t hdmiPort = static_cast<dsHdmiInPort_t>(port);
-        if (hdmiPort < dsHDMI_IN_PORT_MAX) {
+        if (validateHdmiInPort(hdmiPort)) {
             vrrSupport = m_vrrsupport[hdmiPort];
             DSLOG_INFO(" port=%d, vrrSupport=%d", hdmiPort, vrrSupport);
             retCode = WPEFramework::Core::ERROR_NONE;
