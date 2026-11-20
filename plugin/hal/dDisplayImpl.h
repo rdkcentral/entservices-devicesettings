@@ -76,6 +76,9 @@ class dDisplayImpl : public hal::dDisplay::IPlatform {
     dDisplayImpl(const dDisplayImpl&) = delete; 
     dDisplayImpl& operator=(const dDisplayImpl&) = delete;
 
+    mutable std::mutex _displayHandleMutex;
+    mutable DeviceSettingsHAL::VideoPortHandleCache<VideoPortPortConfig> _displayHandleCache;
+
 public:
     dDisplayImpl()
     {
@@ -139,7 +142,12 @@ public:
             // Load persistence values after successful initialization
             getPersistenceValue();
             
-            display_isPlatInitialized = 1;
+            {
+                std::lock_guard<std::mutex> lock(_displayHandleMutex);
+                _displayHandleCache.Clear();
+                populateDisplayHandleCacheLocked();
+                display_isPlatInitialized = 1;
+            }
             DSLOG_INFO("completed: display_isPlatInitialized=%d, display_isInitialized=%d",
                     display_isPlatInitialized, display_isInitialized);
         }
@@ -147,10 +155,17 @@ public:
 
     void DeInitialiseHAL()
     {
-        if (display_isPlatInitialized)
+        bool wasInitialized = false;
+        {
+            std::lock_guard<std::mutex> lock(_displayHandleMutex);
+            _displayHandleCache.Clear();
+            wasInitialized = display_isPlatInitialized != 0;
+            display_isPlatInitialized = 0;
+            DSLOG_INFO("Display handle cache invalidated: platformWasInitialized=%d", wasInitialized);
+        }
+        if (wasInitialized)
         {
             dsDisplayTerm();
-            display_isPlatInitialized = 0;
         }
         display_isInitialized = 0;
     }
@@ -166,7 +181,10 @@ public:
             g_DisplayHDMIHotPlugCallback.Set(bundle.OnDisplayHDMIHotPlug);
 
             // Register HAL callbacks
-            registerDisplayEventCallbacks();
+            if (!registerDisplayEventCallbacks()) {
+                DSLOG_ERR("Display callback registration incomplete; initialization can be retried");
+                return;
+            }
             
             display_isInitialized = 1;
             DSLOG_INFO("dDisplayImpl setAllCallbacks: Display callbacks registered successfully");
@@ -187,6 +205,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" videoPortHandle=%d", videoPortHandle);
+        intptr_t halHandle = 0;
+        if (!resolveHandle(videoPortHandle, HandleSource::VideoPort, halHandle)) {
+            return retCode;
+        }
         
         pthread_mutex_lock(&dsDisplayLock);
         
@@ -198,7 +220,7 @@ public:
         }
         
         if (func != 0) {
-            dsError_t eError = func(static_cast<intptr_t>(videoPortHandle), &isConnected);
+            dsError_t eError = func(halHandle, &isConnected);
             if (eError == dsERR_NONE) {
                 retCode = WPEFramework::Core::ERROR_NONE;
                 DSLOG_INFO(" SUCCESS - isConnected=%s", isConnected ? "true" : "false");
@@ -217,6 +239,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" videoPortHandle=%d", videoPortHandle);
+        intptr_t halHandle = 0;
+        if (!resolveHandle(videoPortHandle, HandleSource::VideoPort, halHandle)) {
+            return retCode;
+        }
         
         pthread_mutex_lock(&dsDisplayLock);
         
@@ -229,7 +255,7 @@ public:
         
         if (func != 0) {
             int dsSurroundMode = 0;
-            dsError_t eError = func(static_cast<intptr_t>(videoPortHandle), &dsSurroundMode);
+            dsError_t eError = func(halHandle, &dsSurroundMode);
             if (eError == dsERR_NONE) {
                 surroundMode = static_cast<VideoPortSurroundMode>(dsSurroundMode);
                 retCode = WPEFramework::Core::ERROR_NONE;
@@ -254,6 +280,11 @@ public:
             DSLOG_ERR(" FAILED - Invalid parameters");
             return WPEFramework::Core::ERROR_BAD_REQUEST;
         }
+        // Despite the legacy parameter name, dsGetEDIDBytes consumes a display handle.
+        intptr_t halHandle = 0;
+        if (!resolveHandle(videoPortHandle, HandleSource::Display, halHandle)) {
+            return retCode;
+        }
         
         pthread_mutex_lock(&dsDisplayLock);
         
@@ -266,7 +297,7 @@ public:
         
         if (func != 0) {
             int actualLength = edidBytesLength;
-            dsError_t eError = func(static_cast<intptr_t>(videoPortHandle), edidBytes, &actualLength);
+            dsError_t eError = func(halHandle, edidBytes, &actualLength);
             if (eError == dsERR_NONE && actualLength <= edidBytesLength) {
                 retCode = WPEFramework::Core::ERROR_NONE;
                 DSLOG_INFO(" SUCCESS - actualLength=%d", actualLength);
@@ -288,6 +319,10 @@ public:
         
         if (edIdBytes == nullptr || edidLength == 0) {
             DSLOG_ERR(" FAILED - Invalid parameters");
+            return retCode;
+        }
+        intptr_t halHandle = 0;
+        if (!resolveHandle(handle, HandleSource::Display, halHandle)) {
             return retCode;
         }
 
@@ -313,7 +348,7 @@ public:
         
         if (func != 0) {
             int actualLength = 0;
-            dsError_t eError = func(handle, edIdBytes, &actualLength);
+            dsError_t eError = func(halHandle, edIdBytes, &actualLength);
             if (eError == dsERR_NONE && actualLength > 0 &&
                 actualLength <= static_cast<int>(edidLength) &&
                 actualLength <= static_cast<int>(sizeof(s_edidBytesCache))) {
@@ -386,12 +421,16 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d", handle);
+        intptr_t halHandle = 0;
+        if (!resolveHandle(handle, HandleSource::Display, halHandle)) {
+            return retCode;
+        }
         
         pthread_mutex_lock(&dsDisplayLock);
         
         // Use direct call for dsGetDisplayAspectRatio (matches dsDisplay.c _dsGetDisplayAspectRatio pattern)
         dsVideoAspectRatio_t halAspectRatio;
-        dsError_t eError = dsGetDisplayAspectRatio(handle, &halAspectRatio);
+        dsError_t eError = dsGetDisplayAspectRatio(halHandle, &halAspectRatio);
         if (eError == dsERR_NONE) {
             // Convert DS HAL type to WPE Framework type
             aspectRatio = (halAspectRatio == dsVIDEO_ASPECT_RATIO_4x3) ? 
@@ -412,6 +451,10 @@ public:
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d", handle);
         supportedResolutionList = nullptr;
+        intptr_t halHandle = 0;
+        if (!resolveHandle(handle, HandleSource::Display, halHandle)) {
+            return retCode;
+        }
 
         pthread_mutex_lock(&dsDisplayLock);
 
@@ -444,11 +487,12 @@ public:
         // (~13KB) to avoid an oversized stack frame; still guarded by dsDisplayLock.
         dsDisplayEDID_t& halEdid = s_edidStructCache;
         memset(&halEdid, 0, sizeof(halEdid));
-        dsError_t eError = dsGetEDID(handle, &halEdid);
+        dsError_t eError = dsGetEDID(halHandle, &halEdid);
         if (eError == dsERR_NONE) {
+            DEBUG_LOG("Display EDID read succeeded; filtering, caching, and conversion permitted");
             /* Mirror dsDisplay.c _dsGetEDID: filter the sink's advertised resolutions
              * down to those the platform can actually output, before caching/dumping. */
-            filterEDIDResolution(handle, halEdid);
+            filterEDIDResolution(halHandle, halEdid);
 
             /* halEdid already refers to s_edidStructCache — mirrors dsDisplay.c pattern */
             isEdidCached = true;
@@ -473,6 +517,7 @@ public:
             DSLOG_INFO(" SUCCESS (cached for next call)");
         } else {
             DSLOG_ERR(" FAILED - dsGetEDID error=%d", eError);
+            DEBUG_LOG("Display EDID output rejected; skipping filtering, cache-valid marking, and conversion");
         }
         
         pthread_mutex_unlock(&dsDisplayLock);
@@ -611,6 +656,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, enabled=%s", handle, enabled ? "true" : "false");
+        intptr_t halHandle = 0;
+        if (!resolveHandle(handle, HandleSource::Display, halHandle)) {
+            return retCode;
+        }
         
         pthread_mutex_lock(&dsDisplayLock);
         
@@ -626,7 +675,7 @@ public:
         
         if (func_dsGetAllmEnabled != 0 && func_dsSetAllmEnabled != 0) {
             bool currentALLMState = false;
-            dsError_t eError = func_dsGetAllmEnabled(handle, &currentALLMState);
+            dsError_t eError = func_dsGetAllmEnabled(halHandle, &currentALLMState);
             if (eError == dsERR_NONE) {
                 if (currentALLMState == enabled) {
                     DSLOG_INFO(" ALLM mode already %s", enabled ? "Enabled" : "Disabled");
@@ -634,7 +683,7 @@ public:
                 } else {
                     DSLOG_INFO(" Current ALLM state %s, Requested to %s",
                            currentALLMState ? "Enabled" : "Disabled", enabled ? "Enabled" : "Disabled");
-                    eError = func_dsSetAllmEnabled(handle, enabled);
+                    eError = func_dsSetAllmEnabled(halHandle, enabled);
                     if (eError == dsERR_NONE) {
                         retCode = WPEFramework::Core::ERROR_NONE;
                         DSLOG_INFO(" SUCCESS");
@@ -657,6 +706,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, contentType=%d", handle, contentType);
+        intptr_t halHandle = 0;
+        if (!resolveHandle(handle, HandleSource::Display, halHandle)) {
+            return retCode;
+        }
         
         pthread_mutex_lock(&dsDisplayLock);
         
@@ -672,7 +725,7 @@ public:
         
         if (func_dsGetAVIContentType != 0 && func_dsSetAVIContentType != 0) {
             dsAviContentType_t currentContentType = dsAVICONTENT_TYPE_NOT_SIGNALLED;
-            dsError_t eError = func_dsGetAVIContentType(handle, &currentContentType);
+            dsError_t eError = func_dsGetAVIContentType(halHandle, &currentContentType);
             if (eError == dsERR_NONE) {
                 if (currentContentType == static_cast<dsAviContentType_t>(contentType)) {
                     DSLOG_INFO(" HDMI AVI content type already set to %d", contentType);
@@ -680,7 +733,7 @@ public:
                 } else {
                     DSLOG_INFO(" Current AVI content type %d, requested content type %d",
                            currentContentType, contentType);
-                    eError = func_dsSetAVIContentType(handle, static_cast<dsAviContentType_t>(contentType));
+                    eError = func_dsSetAVIContentType(halHandle, static_cast<dsAviContentType_t>(contentType));
                     if (eError == dsERR_NONE) {
                         retCode = WPEFramework::Core::ERROR_NONE;
                         DSLOG_INFO(" SUCCESS");
@@ -703,6 +756,10 @@ public:
     {
         uint32_t retCode = WPEFramework::Core::ERROR_GENERAL;
         DSLOG_INFO(" handle=%d, scanInfo=%d", handle, scanInfo);
+        intptr_t halHandle = 0;
+        if (!resolveHandle(handle, HandleSource::Display, halHandle)) {
+            return retCode;
+        }
         
         pthread_mutex_lock(&dsDisplayLock);
         
@@ -718,7 +775,7 @@ public:
         
         if (func_dsGetAVIScanInfo != 0 && func_dsSetAVIScanInfo != 0) {
             dsAVIScanInformation_t currentScanInfo = dsAVI_SCAN_TYPE_NO_DATA;
-            dsError_t eError = func_dsGetAVIScanInfo(handle, &currentScanInfo);
+            dsError_t eError = func_dsGetAVIScanInfo(halHandle, &currentScanInfo);
             if (eError == dsERR_NONE) {
                 if (currentScanInfo == static_cast<dsAVIScanInformation_t>(scanInfo)) {
                     DSLOG_INFO(" HDMI AVI scan Info already set to %d", scanInfo);
@@ -726,7 +783,7 @@ public:
                 } else {
                     DSLOG_INFO(" Current AVI scan Info %d, requested scan Info %d",
                            currentScanInfo, scanInfo);
-                    eError = func_dsSetAVIScanInfo(handle, static_cast<dsAVIScanInformation_t>(scanInfo));
+                    eError = func_dsSetAVIScanInfo(halHandle, static_cast<dsAVIScanInformation_t>(scanInfo));
                     if (eError == dsERR_NONE) {
                         retCode = WPEFramework::Core::ERROR_NONE;
                         DSLOG_INFO(" SUCCESS");
@@ -746,8 +803,91 @@ public:
     }
 
 private:
-    void registerDisplayEventCallbacks()
+    enum class HandleSource { Display, VideoPort };
+
+    bool populateDisplayHandleCacheLocked() const
     {
+        DSLOG_INFO("Display handle cache build started");
+        const int lockError = pthread_mutex_lock(&dsDisplayLock);
+        if (lockError != 0) {
+            DSLOG_ERR("Could not lock display handle lookup, error=%d", lockError);
+            return false;
+        }
+        struct ScopedUnlock {
+            ~ScopedUnlock()
+            {
+                const int error = pthread_mutex_unlock(&dsDisplayLock);
+                if (error != 0) {
+                    DSLOG_ERR("Could not unlock display handle lookup, error=%d", error);
+                }
+            }
+        } unlock;
+        std::vector<VideoPortTypeConfig> types;
+        std::vector<VideoPortPortConfig> ports;
+        DeviceSettingsHAL::PopulateVideoPortConfig(types, ports);
+        const bool populated = _displayHandleCache.Populate(ports,
+            [](const VideoPortPortConfig& port, intptr_t& candidate) {
+                const auto type = static_cast<dsVideoPortType_t>(port.videoPortType);
+                const dsError_t error = dsGetDisplay(type, port.videoPortIndex, &candidate);
+                DEBUG_LOG("Display handle cache lookup: type=%d index=%d result=%d",
+                    type, port.videoPortIndex, error);
+                // A configured video port need not have a display; skip only explicit non-support.
+                if (error == dsERR_OPERATION_NOT_SUPPORTED) {
+                    return DeviceSettingsHAL::HandleLookupResult::Unsupported;
+                }
+                if (error != dsERR_NONE) {
+                    DSLOG_ERR("Display handle lookup failed for type=%d index=%d, error=%d",
+                        type, port.videoPortIndex, error);
+                    return DeviceSettingsHAL::HandleLookupResult::Failed;
+                }
+                return DeviceSettingsHAL::HandleLookupResult::Found;
+            });
+        if (!populated) {
+            DSLOG_ERR("Unable to populate complete display handle cache");
+        } else {
+            DSLOG_INFO("Display handle enumeration cached: configured ports=%zu; unsupported ports skipped",
+                ports.size());
+        }
+        return populated;
+    }
+
+    bool resolveHandle(const int32_t handle, const HandleSource source, intptr_t& halHandle) const
+    {
+        std::lock_guard<std::mutex> lock(_displayHandleMutex);
+        DEBUG_LOG("Display handle validation: handle=%d source=%d initialized=%d cacheReady=%d",
+            handle, static_cast<int>(source), display_isPlatInitialized, _displayHandleCache.IsReady());
+        if (!display_isPlatInitialized) {
+            DSLOG_ERR("Display platform not initialized");
+            return false;
+        }
+        if (source == HandleSource::VideoPort) {
+            DEBUG_LOG("Display handle validation: delegating handle=%d to owning VideoPort cache", handle);
+            const auto* videoPort = dVideoPortImpl::getInstance();
+            if (videoPort == nullptr) {
+                DSLOG_ERR("Video port platform unavailable for display handle lookup");
+                return false;
+            }
+            return videoPort->ResolveVideoPortHandle(handle, halHandle);
+        }
+        if (!_displayHandleCache.IsReady() && !populateDisplayHandleCacheLocked()) {
+            return false;
+        }
+        VideoPortPortConfig resolvedPort {};
+        const bool resolved = _displayHandleCache.Resolve(handle, halHandle, resolvedPort);
+        if (!resolved) {
+            DSLOG_ERR("Invalid, ambiguous, or unavailable handle=%d source=%d",
+                handle, static_cast<int>(source));
+        } else {
+            DEBUG_LOG("Display handle validated: handle=%d type=%d index=%d",
+                handle, static_cast<int>(resolvedPort.videoPortType), resolvedPort.videoPortIndex);
+        }
+        return resolved;
+    }
+
+    bool registerDisplayEventCallbacks()
+    {
+        DEBUG_LOG("Display callback registration attempt: platformInitialized=%d callbacksInitialized=%d",
+            display_isPlatInitialized, display_isInitialized);
         
         // Use direct calls matching dsDisplay.c _dsDisplayInit pattern
         intptr_t handle = 0;
@@ -757,17 +897,19 @@ private:
             eReturn = dsGetDisplay(dsVIDEOPORT_TYPE_INTERNAL, 0, &handle);
             if (dsERR_NONE != eReturn) {
                 DSLOG_ERR(" FAILED - dsGetDisplay for INTERNAL also failed, error=%d", eReturn);
-                return;
+                return false;
             }
         }
         
         // Register display event callback using wrapper that adapts int to intptr_t
         dsError_t eError = dsRegisterDisplayEventCallback(handle, dsDisplayEventCallbackWrapper);
+        DEBUG_LOG("Display event callback registration result=%d", eError);
         if (eError == dsERR_NONE) {
             DSLOG_INFO(" SUCCESS - registered with handle=%d", static_cast<int>(handle));
         } else {
             DSLOG_ERR(" FAILED - error=%d", eError);
         }
+        return eError == dsERR_NONE;
     }
 
     // Wrapper callback that adapts int handle to intptr_t (for legacy devicesettings API compatibility)
