@@ -373,7 +373,7 @@ public:
 
     static WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution convertToWPEDisplayVideoPortResolution(DisplayVideoPortResolution resolution)
     {
-        WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution wpeResolution;
+        WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoPortResolution wpeResolution{};
         wpeResolution.name = std::move(resolution.name);
         wpeResolution.pixelResolution = static_cast<WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayTVResolution>(resolution.pixelResolution);
         wpeResolution.aspectRatio = static_cast<WPEFramework::Exchange::IDeviceSettingsCompositeIn::DisplayVideoAspectRatio>(resolution.aspectRatio);
@@ -507,7 +507,7 @@ private:
         WPEFramework::Exchange::IDeviceSettingsCompositeIn::CompositeInPort wpePort = convertToWPECompositeInPort(static_cast<CompositeInPort>(port));
         
         // Convert DS HAL dsVideoPortResolution_t to DisplayVideoPortResolution
-        DisplayVideoPortResolution halResolution;
+        DisplayVideoPortResolution halResolution{};
         halResolution.name = std::string(videoResolution.name);
         halResolution.pixelResolution = static_cast<DisplayTVResolution>(videoResolution.pixelResolution);
         halResolution.aspectRatio = static_cast<DisplayVideoAspectRatio>(videoResolution.aspectRatio);
