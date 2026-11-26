@@ -103,7 +103,7 @@ namespace Plugin {
                 case EV_RESOLUTION_POST_CHANGE: {
                     const string& clientName = entry.first;
                     auto* notification = entry.second;
-                    ResolutionChange res;
+                    ResolutionChange res{};
                     res.width = std::get<0>(params);
                     res.height = std::get<1>(params);
                     auto start = std::chrono::steady_clock::now();

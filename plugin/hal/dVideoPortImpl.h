@@ -1711,7 +1711,7 @@ public:
         DSLOG_INFO(" pixelResolution=%d", resolution->pixelResolution);
         
         // Convert dsVideoPortResolution_t to ResolutionChange structure - based on dsVideoPort.c
-        ResolutionChange resolutionChange;
+        ResolutionChange resolutionChange{};
         switch(resolution->pixelResolution) {
             case dsVIDEO_PIXELRES_720x480:
                 resolutionChange.width = 720;
@@ -1761,7 +1761,7 @@ public:
 
         DSLOG_INFO(" pixelResolution=%d", resolution->pixelResolution);
 
-        ResolutionChange resolutionChange;
+        ResolutionChange resolutionChange{};
         switch(resolution->pixelResolution) {
             case dsVIDEO_PIXELRES_720x480:
                 resolutionChange.width = 720;
@@ -1898,7 +1898,7 @@ private:
             case dsVIDEOPORT_TYPE_RF:
                 return persistence.getProperty("RF0.resolution", defaultResolution);
             default:
-                return std::move(defaultResolution);
+                return defaultResolution;
         }
     }
 
