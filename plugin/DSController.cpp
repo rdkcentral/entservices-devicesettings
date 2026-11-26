@@ -85,6 +85,8 @@ namespace Plugin {
     int DSController::_initResolutionFlag = 0;
     int DSController::_resolutionRetryCount = 5;
     bool DSController::_hdcpAuthenticated = false;
+    std::atomic<int> DSController::_lastHdcpStatus(dsHDCP_STATUS_UNPOWERED);
+    std::atomic<bool> DSController::_iarmBusReady(false);
     bool DSController::_ignoreEdid = false;
     bool DSController::_bootupFlagEnabled = true;
     dsDisplayEvent_t DSController::_displayEventStatus = dsDISPLAY_EVENT_MAX;
@@ -162,13 +164,17 @@ namespace Plugin {
     uint32_t DSController::Start()
     {
         setupPlatformConfig();
-        InitializeDeviceSettingsComponents();
 
         setvbuf(stdout, NULL, _IOLBF, 0);
 
+        // The IARM bus must be up before InitializeDeviceSettingsComponents() registers for the
+        // HDMI hotplug / HDCP notifications, otherwise early events would not reach IARM listeners.
         IARM_Bus_Init(IARM_BUS_DSMGR_PLUGIN_NAME);
         IARM_Bus_Connect();
         IARM_Bus_RegisterEvent(IARM_BUS_DSMGR_EVENT_MAX);
+        _iarmBusReady = true;
+
+        InitializeDeviceSettingsComponents();
 
         Init();
 
@@ -250,6 +256,7 @@ namespace Plugin {
         
         Deinit();
         
+        _iarmBusReady = false;
         IARM_Bus_Disconnect();
         IARM_Bus_Term();
         
@@ -1050,6 +1057,66 @@ namespace Plugin {
     }
     
     // Display::INotification implementation - Only for HDMI hotplug events
+    namespace {
+        // The IARM_BUS_DSMGR_* payload carries HAL values (dsHdcpStatus_t / dsDisplayEvent_t), not the
+        // DeviceSettings interface enums, so convert explicitly instead of relying on equal numbering.
+        bool ToDsHdcpStatus(const VideoPortHdcpStatus in, dsHdcpStatus_t& out) {
+            switch (in) {
+                case DeviceSettingsVideoPort::DS_HDCP_STATUS_UNPOWERED:             out = dsHDCP_STATUS_UNPOWERED;             return true;
+                case DeviceSettingsVideoPort::DS_HDCP_STATUS_UNAUTHENTICATED:       out = dsHDCP_STATUS_UNAUTHENTICATED;       return true;
+                case DeviceSettingsVideoPort::DS_HDCP_STATUS_AUTHENTICATED:         out = dsHDCP_STATUS_AUTHENTICATED;         return true;
+                case DeviceSettingsVideoPort::DS_HDCP_STATUS_AUTHENTICATIONFAILURE: out = dsHDCP_STATUS_AUTHENTICATIONFAILURE; return true;
+                case DeviceSettingsVideoPort::DS_HDCP_STATUS_INPROGRESS:            out = dsHDCP_STATUS_INPROGRESS;            return true;
+                case DeviceSettingsVideoPort::DS_HDCP_STATUS_PORTDISABLED:          out = dsHDCP_STATUS_PORTDISABLED;          return true;
+                default:                                                            return false;
+            }
+        }
+
+        // Only the two events the legacy dsMgr published for HDMI hotplug.
+        bool ToDsDisplayEvent(const DisplayEvent in, dsDisplayEvent_t& out) {
+            switch (in) {
+                case DisplayEvent::DS_DISPLAY_EVENT_CONNECTED:    out = dsDISPLAY_EVENT_CONNECTED;    return true;
+                case DisplayEvent::DS_DISPLAY_EVENT_DISCONNECTED: out = dsDISPLAY_EVENT_DISCONNECTED; return true;
+                default:                                          return false;
+            }
+        }
+    }
+
+    // Publishes IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG / IARM_BUS_DSMGR_EVENT_HDCP_STATUS on the IARM bus under the
+    // legacy DSMGR owner name, exactly like the legacy dsMgr HAL callbacks did, so listeners registered with
+    // IARM_Bus_RegisterEventHandler(IARM_BUS_DSMGR_NAME, ...) (the Widevine CDM) keep receiving them.
+    // These are the only two DSMGR events the plugin republishes. `value` is a HAL value
+    // (dsDisplayEvent_t for hotplug, dsHdcpStatus_t for HDCP status).
+    void DSController::BroadcastDsMgrEvent(IARM_Bus_DSMgr_EventId_t eventId, int value) {
+        if (!_iarmBusReady) {
+            DSLOG_WARN("IARM bus not ready, event %d (value %d) not broadcast", static_cast<int>(eventId), value);
+            return;
+        }
+
+        IARM_Bus_DSMgr_EventData_t eventData;
+        memset(&eventData, 0, sizeof(eventData));
+
+        switch (eventId) {
+            case IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG:
+                eventData.data.hdmi_hpd.event = value;
+                break;
+            case IARM_BUS_DSMGR_EVENT_HDCP_STATUS:
+                eventData.data.hdmi_hdcp.hdcpStatus = value;
+                break;
+            default:
+                DSLOG_ERR("unsupported DSMGR event %d", static_cast<int>(eventId));
+                return;
+        }
+
+        const IARM_Result_t rc = IARM_Bus_BroadcastEvent(IARM_BUS_DSMGR_NAME, static_cast<IARM_EventId_t>(eventId),
+                                                         static_cast<void*>(&eventData), sizeof(eventData));
+        if (rc == IARM_RESULT_SUCCESS) {
+            DSLOG_INFO("broadcast DSMGR event %d, value %d", static_cast<int>(eventId), value);
+        } else {
+            DSLOG_ERR("broadcast of DSMGR event %d (value %d) failed, rc=%d", static_cast<int>(eventId), value, static_cast<int>(rc));
+        }
+    }
+
     void DSController::OnDisplayRxSense(const DisplayEvent displayEvent) {
         DSLOG_INFO("displayEvent = %d", static_cast<int>(displayEvent));
     }
@@ -1057,11 +1124,25 @@ namespace Plugin {
     void DSController::OnDisplayHDCPStatus(const int32_t hdcpStatus) {
         DSLOG_INFO("hdcpStatus = %d", hdcpStatus);
         HandleHDCPStatus(hdcpStatus);
+        // HDCP protocol change from the display HAL: the legacy dsMgr published it as an
+        // IARM_BUS_DSMGR_EVENT_HDCP_STATUS event too, carry the last known authentication status
+        // (kept as a dsHdcpStatus_t).
+        BroadcastDsMgrEvent(IARM_BUS_DSMGR_EVENT_HDCP_STATUS, _lastHdcpStatus.load());
     }
 
     void DSController::OnHDCPStatusChange(const VideoPortHdcpStatus hdcpStatus) {
         DSLOG_INFO("hdcpStatus = %d", static_cast<int>(hdcpStatus));
-        HandleHDCPStatus(static_cast<int32_t>(hdcpStatus));
+        int32_t status = static_cast<int32_t>(hdcpStatus);
+        dsHdcpStatus_t dsStatus = dsHDCP_STATUS_MAX;
+        if (ToDsHdcpStatus(hdcpStatus, dsStatus)) {
+            status = static_cast<int32_t>(dsStatus);
+            _lastHdcpStatus = status;
+            // Broadcast first: listeners only invalidate cached state, the resolution handling below may take long
+            BroadcastDsMgrEvent(IARM_BUS_DSMGR_EVENT_HDCP_STATUS, status);
+        } else {
+            DSLOG_ERR("unknown HDCP status %d, IARM_BUS_DSMGR_EVENT_HDCP_STATUS not broadcast", static_cast<int>(hdcpStatus));
+        }
+        HandleHDCPStatus(status);
     }
 
     void DSController::HandleHDCPStatus(int32_t hdcpStatus) {
@@ -1103,6 +1184,13 @@ namespace Plugin {
 
     void DSController::OnDisplayHDMIHotPlug(const DisplayEvent displayEvent) {
         DSLOG_INFO("displayEvent = %d", static_cast<int>(displayEvent));
+
+        dsDisplayEvent_t dsEvent = dsDISPLAY_EVENT_MAX;
+        if (ToDsDisplayEvent(displayEvent, dsEvent)) {
+            BroadcastDsMgrEvent(IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG, static_cast<int>(dsEvent));
+        } else {
+            DSLOG_WARN("displayEvent %d is not an HDMI hotplug event, IARM_BUS_DSMGR_EVENT_HDMI_HOTPLUG not broadcast", static_cast<int>(displayEvent));
+        }
 
         SetBackgroundColor(dsVIDEO_BGCOLOR_NONE);
 

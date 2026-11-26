@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -132,6 +133,9 @@ namespace Plugin {
         void OnVideoFormatUpdate(const HDRStandard videoFormatHDR) override {};
         
     private:
+        // Re-publishes HAL display events on the IARM bus as the legacy DSMGR owner.
+        void BroadcastDsMgrEvent(IARM_Bus_DSMgr_EventId_t eventId, int value);
+
         uint32_t AddRefImpl(std::false_type) const {
             return Core::InterlockedIncrement(m_refCount);
         }
@@ -210,6 +214,8 @@ namespace Plugin {
         static int _initResolutionFlag;
         static int _resolutionRetryCount;
         static bool _hdcpAuthenticated;
+        static std::atomic<int> _lastHdcpStatus;  // last dsHdcpStatus_t reported by the HAL
+        static std::atomic<bool> _iarmBusReady;   // IARM_Bus_Init/Connect done, cleared before teardown
         static bool _ignoreEdid;
         static bool _bootupFlagEnabled;
         static dsDisplayEvent_t _displayEventStatus;

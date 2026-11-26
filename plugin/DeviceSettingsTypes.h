@@ -333,7 +333,14 @@ using IDeviceSettingsVideoCodecProfileSupportIterator = DeviceSettingsVideoDevic
 #endif
 
 #ifndef IARM_BUS_DSMGR_PLUGIN_NAME
-#define IARM_BUS_DSMGR_PLUGIN_NAME "DSMgr_Plugin"
+#define IARM_BUS_DSMGR_PLUGIN_NAME "DSMgr"
+#endif
+
+// Owner name the legacy dsMgr used for its IARM events. The plugin broadcasts the HDMI hotplug /
+// HDCP status / RxSense events under this name so legacy IARM listeners (e.g. the Widevine CDM)
+// keep working without any change.
+#ifndef IARM_BUS_DSMGR_NAME
+#define IARM_BUS_DSMGR_NAME "DSMgr"
 #endif
 
 typedef enum _DSMgr_EventId_t {
@@ -381,6 +388,9 @@ typedef struct _DSMgr_EventData_t {
         struct {
             int hdcpStatus;
         } hdmi_hdcp;
+        // The legacy payload is a union of many larger events (resolution, audio language ...).
+        // Listeners may size their copy by the legacy struct, so never send less than that.
+        unsigned char legacyPadding[256];
     } data;
 } IARM_Bus_DSMgr_EventData_t;
 
