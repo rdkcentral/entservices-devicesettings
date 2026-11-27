@@ -969,7 +969,8 @@ uint32_t WPEFramework::Plugin::DSPwrEventListener::ConfigureAudioPort(const std:
             if (requestEnable) {
                 // Check if port should be enabled based on persistent settings
                 bool persistEnabled = true;
-                result = _deviceSettings->IsAudioPortEnabled(handle, persistEnabled);
+                std::string persistPortName(portName);
+                result = _deviceSettings->GetAudioEnablePersist(handle, persistEnabled, persistPortName);
                 if (result == WPEFramework::Core::ERROR_NONE) {
                     if (!persistEnabled) {
                         *isConfigurationSkippedPtr = true;
