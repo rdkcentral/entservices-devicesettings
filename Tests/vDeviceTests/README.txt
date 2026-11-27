@@ -111,6 +111,20 @@ TCID29_InvalidPortStartStopInput  - rejects startInput with invalid portId 10,
                                    then verifies normal stop/start still works.
 TCID30_AviInfoFrameNotification  - posts the AVI InfoFrame YAML and captures the
                                    aviContentTypeUpdate notification.
+TCID31_MissingMandatoryParameters - rejects lifecycle/setter requests with
+                                    required fields omitted.
+TCID32_IncorrectParameterTypes    - rejects valid parameter names carrying
+                                    incompatible JSON value types.
+TCID33_InvalidEdidData            - rejects malformed EDID data and verifies the
+                                    stored EDID remains unchanged.
+TCID34_InvalidLifecycleSequences  - rejects invalid starts before/during a valid
+                                    session and verifies stop/recovery behavior.
+TCID35_FailedSettersPreserveState - verifies rejected EDID/ALLM/VRR setters do
+                                    not modify their previous values.
+TCID36_InvalidEventRegistration   - rejects unknown/empty event registrations
+                                    and invalid listener identifiers.
+TCID37_RejectedRequestsDoNotEmitEvents - verifies rejected startInput requests
+                                         emit no input-status notifications.
 
 VERIFIED JSON-RPC CONTRACT
 --------------------------

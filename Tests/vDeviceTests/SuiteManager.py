@@ -94,6 +94,14 @@ SUITES = {
             "TCID28_NoSigToStableSignalTransition",
             "TCID29_InvalidPortStartStopInput",
             "TCID30_AviInfoFrameNotification",
+            # Extended negative validation and state-safety coverage
+            "TCID31_MissingMandatoryParameters",
+            "TCID32_IncorrectParameterTypes",
+            "TCID33_InvalidEdidData",
+            "TCID34_InvalidLifecycleSequences",
+            "TCID35_FailedSettersPreserveState",
+            "TCID36_InvalidEventRegistration",
+            "TCID37_RejectedRequestsDoNotEmitEvents",
         ],
     },
 }

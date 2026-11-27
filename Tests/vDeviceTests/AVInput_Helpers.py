@@ -10,6 +10,8 @@
  */
 """
 
+import json
+
 from utils import parse_result
 
 
@@ -17,6 +19,22 @@ def result_success(curl_response):
     """True when result is a dict with success == True (SuccessResult shape)."""
     result = parse_result(curl_response)
     return isinstance(result, dict) and result.get("success") is True
+
+
+def result_rejected(curl_response):
+    """True for a JSON-RPC error or a plugin result with success == False."""
+    if not curl_response:
+        return False
+    try:
+        body = json.loads(curl_response)
+    except (json.JSONDecodeError, TypeError):
+        return False
+    if not isinstance(body, dict):
+        return False
+    if "error" in body:
+        return body.get("error") is not None
+    result = body.get("result")
+    return isinstance(result, dict) and result.get("success") is False
 
 
 def parse_number_of_inputs(curl_response):

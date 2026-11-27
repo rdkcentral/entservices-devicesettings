@@ -85,6 +85,11 @@ def _curl_raw(method, params=None, timeout=5, request_id=42):
     ]
 
 
+def raw_api_request(method, params=None, timeout=5, request_id=42):
+    """Build an AVInput request without normalizing parameter names or values."""
+    return _curl(method, params=params, timeout=timeout, request_id=request_id)
+
+
 # ---------------------------------------------------------------------------
 # Getters (safe, no side effects)
 # ---------------------------------------------------------------------------
@@ -217,6 +222,10 @@ def controller_deactivate(callsign=CALLSIGN, timeout=8):
 # Negative / malformed variants (invalid portId / typeOfInput) for robustness.
 # Mirrors the malformed requests at the bottom of curl_extract.txt.
 # ---------------------------------------------------------------------------
+def malformed_request(method, params=None):
+    return _curl(method, params=params)
+
+
 get_edid2_allm_support_invalid_port = _curl(
     "getEdid2AllmSupport", params={"portId": "S"}
 )

@@ -350,7 +350,21 @@ class JsonRpcEventListener:
                 lambda message: message.get("id") == request_id,
                 self.timeout,
             )
-            if not response or "error" in response or "result" not in response:
+            result = response.get("result") if response else None
+            rejected_result = (
+                result is None
+                or result is False
+                or (
+                    isinstance(result, dict)
+                    and result.get("success") is False
+                )
+            )
+            if (
+                not response
+                or "error" in response
+                or "result" not in response
+                or rejected_result
+            ):
                 log_error(f"Event registration rejected: {response}")
                 self.close()
                 return False
@@ -555,6 +569,22 @@ def is_ok(curl_response):
         and isinstance(result, dict)
         and result.get("success") is True
     )
+
+
+def is_rejected(curl_response):
+    """Return True only when a valid JSON-RPC response explicitly rejects a request."""
+    if not curl_response or curl_response.startswith("< No response"):
+        return False
+    try:
+        body = json.loads(curl_response)
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(body, dict):
+        return False
+    if "error" in body:
+        return isinstance(body["error"], dict)
+    result = body.get("result")
+    return isinstance(result, dict) and result.get("success") is False
 
 
 def responded(curl_response):
