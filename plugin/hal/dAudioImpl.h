@@ -3763,10 +3763,16 @@ public:
                         }
                     }
                 } else if (profileSettingsName == "VolumeLevellerMode") {
-                    if (validateMS12ProfileSetting(profileSettingsName, profileSettingValue))
+                    if (profileState == "ADD" && validateMS12ProfileSetting(profileSettingsName, profileSettingValue))
                         device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.mode"), profileSettingValue);
                     else if (profileState == "ADD")
                         result = WPEFramework::Core::ERROR_GENERAL;
+                    /** REMOVE does not require a value; restore the platform default instead. */
+                    else if (profileState == "REMOVE") {
+                        std::string _p = getCurrentProfileProperty("VolumeLeveller.mode");
+                        std::string _def("0"); try { _def = device::HostPersistence::getInstance().getDefaultProperty(_p); } catch(...) {}
+                        device::HostPersistence::getInstance().persistHostProperty(_p, _def);
+                    }
                 } else if (profileSettingsName == "VolumeLevellerLevel") {
                     typedef dsError_t (*dsSetVolumeLeveller_t)(intptr_t h, dsVolumeLeveller_t vl);
                     dsSetVolumeLeveller_t fn = (dsSetVolumeLeveller_t)resolve(RDK_DSHAL_NAME, "dsSetVolumeLeveller");
@@ -3804,10 +3810,16 @@ public:
                         }
                     }
                 } else if (profileSettingsName == "SurroundVirtualizerMode") {
-                    if (validateMS12ProfileSetting(profileSettingsName, profileSettingValue))
+                    if (profileState == "ADD" && validateMS12ProfileSetting(profileSettingsName, profileSettingValue))
                         device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.mode"), profileSettingValue);
                     else if (profileState == "ADD")
                         result = WPEFramework::Core::ERROR_GENERAL;
+                    /** REMOVE does not require a value; restore the platform default instead. */
+                    else if (profileState == "REMOVE") {
+                        std::string _p = getCurrentProfileProperty("SurroundVirtualizer.mode");
+                        std::string _def("0"); try { _def = device::HostPersistence::getInstance().getDefaultProperty(_p); } catch(...) {}
+                        device::HostPersistence::getInstance().persistHostProperty(_p, _def);
+                    }
                 } else if (profileSettingsName == "SurroundVirtualizerLevel") {
                     typedef dsError_t (*dsSetSurroundVirtualizer_t)(intptr_t h, dsSurroundVirtualizer_t virt);
                     dsSetSurroundVirtualizer_t fn = (dsSetSurroundVirtualizer_t)resolve(RDK_DSHAL_NAME, "dsSetSurroundVirtualizer");
