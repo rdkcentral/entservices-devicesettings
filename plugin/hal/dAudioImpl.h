@@ -116,6 +116,39 @@ private:
     bool _audioPortEnabled[dsAUDIOPORT_TYPE_MAX];
 
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
+    static bool parseMS12Integer(const string& value, int& parsedValue)
+    {
+        if (value.empty()) {
+            return false;
+        }
+        char* end = nullptr;
+        errno = 0;
+        const long valueAsLong = std::strtol(value.c_str(), &end, 10);
+        if (errno == ERANGE || end == value.c_str() ||
+            end != value.c_str() + value.size() ||
+            valueAsLong < INT_MIN || valueAsLong > INT_MAX) {
+            return false;
+        }
+        parsedValue = static_cast<int>(valueAsLong);
+        return true;
+    }
+
+    static bool validateMS12ProfileSetting(const string& settingName, const string& value)
+    {
+        int parsedValue = 0;
+        if (!parseMS12Integer(value, parsedValue)) {
+            return false;
+        }
+        if (settingName == "VolumeLevellerMode") {
+            return parsedValue == 0 || parsedValue == 1;
+        }
+        if (settingName == "SurroundVirtualizerMode") {
+            return parsedValue >= 0 && parsedValue <= 2;
+        }
+        return settingName == "DialogEnhance" || settingName == "VolumeLevellerLevel" ||
+               settingName == "BassEnhancer" || settingName == "SurroundVirtualizerLevel";
+    }
+
     static void persistAudioLevelIfChanged(const char* key, float& previousLevel, const float currentLevel)
     {
         if (currentLevel != previousLevel) {
@@ -3700,25 +3733,15 @@ public:
         // It orchestrates dsSetDialogEnhancement/dsSetBassEnhancer/dsSetVolumeLeveller/dsSetSurroundVirtualizer.
 #ifdef DS_AUDIO_SETTINGS_PERSISTENCE
         try {
-            const auto parseInteger = [](const string& value, int& parsedValue) {
-                if (value.empty()) {
-                    return false;
-                }
-                char* end = nullptr;
-                errno = 0;
-                const long valueAsLong = std::strtol(value.c_str(), &end, 10);
-                if (errno == ERANGE || end == value.c_str() ||
-                    end != value.c_str() + value.size() ||
-                    valueAsLong < INT_MIN || valueAsLong > INT_MAX) {
-                    return false;
-                }
-                parsedValue = static_cast<int>(valueAsLong);
-                return true;
-            };
             intptr_t dsHandle = static_cast<intptr_t>(handle);
             std::string _AProfile("Off");
             try { _AProfile = device::HostPersistence::getInstance().getProperty("audio.MS12Profile"); }
             catch(...) { try { _AProfile = device::HostPersistence::getInstance().getDefaultProperty("audio.MS12Profile"); } catch(...) { _AProfile = "Off"; } }
+
+            if (profileState == "ADD" && !validateMS12ProfileSetting(profileSettingsName, profileSettingValue)) {
+                DSLOG_ERR("Invalid MS12 setting: %s=%s", profileSettingsName.c_str(), profileSettingValue.c_str());
+                return WPEFramework::Core::ERROR_GENERAL;
+            }
 
             if (profileName == _AProfile) {
                 // Active profile — apply the setting immediately via HAL
@@ -3728,7 +3751,7 @@ public:
                     if (fn) {
                         if (profileState == "ADD") {
                             int val = 0;
-                            if (parseInteger(profileSettingValue, val) && fn(dsHandle, val) == dsERR_NONE)
+                            if (parseMS12Integer(profileSettingValue, val) && fn(dsHandle, val) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("EnhancerLevel"), profileSettingValue);
                             else
                                 result = WPEFramework::Core::ERROR_GENERAL;
@@ -3740,8 +3763,7 @@ public:
                         }
                     }
                 } else if (profileSettingsName == "VolumeLevellerMode") {
-                    int m = 0;
-                    if (parseInteger(profileSettingValue, m) && (m == 0 || m == 1))
+                    if (validateMS12ProfileSetting(profileSettingsName, profileSettingValue))
                         device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.mode"), profileSettingValue);
                     else if (profileState == "ADD")
                         result = WPEFramework::Core::ERROR_GENERAL;
@@ -3753,7 +3775,7 @@ public:
                             std::string _pMode = getCurrentProfileProperty("VolumeLeveller.mode");
                             dsVolumeLeveller_t vl;
                             try { vl.mode = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str()); } catch(...) { vl.mode = 0; }
-                            if (parseInteger(profileSettingValue, vl.level) && fn(dsHandle, vl) == dsERR_NONE)
+                            if (parseMS12Integer(profileSettingValue, vl.level) && fn(dsHandle, vl) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("VolumeLeveller.level"), profileSettingValue);
                             else
                                 result = WPEFramework::Core::ERROR_GENERAL;
@@ -3770,7 +3792,7 @@ public:
                     if (fn) {
                         if (profileState == "ADD") {
                             int boost = 0;
-                            if (parseInteger(profileSettingValue, boost) && fn(dsHandle, boost) == dsERR_NONE)
+                            if (parseMS12Integer(profileSettingValue, boost) && fn(dsHandle, boost) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty("audio.BassBoost", profileSettingValue);
                             else
                                 result = WPEFramework::Core::ERROR_GENERAL;
@@ -3782,8 +3804,7 @@ public:
                         }
                     }
                 } else if (profileSettingsName == "SurroundVirtualizerMode") {
-                    int m = 0;
-                    if (parseInteger(profileSettingValue, m) && m >= 0 && m <= 2)
+                    if (validateMS12ProfileSetting(profileSettingsName, profileSettingValue))
                         device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.mode"), profileSettingValue);
                     else if (profileState == "ADD")
                         result = WPEFramework::Core::ERROR_GENERAL;
@@ -3795,7 +3816,7 @@ public:
                             std::string _pMode = getCurrentProfileProperty("SurroundVirtualizer.mode");
                             dsSurroundVirtualizer_t virt;
                             try { virt.mode = atoi(device::HostPersistence::getInstance().getProperty(_pMode).c_str()); } catch(...) { virt.mode = 0; }
-                            if (parseInteger(profileSettingValue, virt.boost) && fn(dsHandle, virt) == dsERR_NONE)
+                            if (parseMS12Integer(profileSettingValue, virt.boost) && fn(dsHandle, virt) == dsERR_NONE)
                                 device::HostPersistence::getInstance().persistHostProperty(getCurrentProfileProperty("SurroundVirtualizer.boost"), profileSettingValue);
                             else
                                 result = WPEFramework::Core::ERROR_GENERAL;
@@ -3822,9 +3843,13 @@ public:
                 else { DSLOG_WARN(" Unknown setting name: %s", profileSettingsName.c_str()); return WPEFramework::Core::ERROR_GENERAL; }
 
                 if (profileState == "ADD") {
+                    DSLOG_INFO("Persisting inactive MS12 profile setting: profile=%s, setting=%s, property=%s, value=%s",
+                               profileName.c_str(), profileSettingsName.c_str(), hostProperty.c_str(), profileSettingValue.c_str());
                     device::HostPersistence::getInstance().persistHostProperty(hostProperty, profileSettingValue);
                 } else if (profileState == "REMOVE") {
                     std::string _def("0"); try { _def = device::HostPersistence::getInstance().getDefaultProperty(hostProperty); } catch(...) {}
+                    DSLOG_INFO("Restoring inactive MS12 profile setting: profile=%s, setting=%s, property=%s, value=%s",
+                               profileName.c_str(), profileSettingsName.c_str(), hostProperty.c_str(), _def.c_str());
                     device::HostPersistence::getInstance().persistHostProperty(hostProperty, _def);
                 }
             }

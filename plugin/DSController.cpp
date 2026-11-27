@@ -42,6 +42,11 @@ extern "C" {
 }
 
 #include <glib.h>
+
+namespace {
+constexpr uint16_t kMaxEdidDataSize = 1024;
+}
+
 // For glib APIs - conditional include
 #ifdef GLIB_AVAILABLE
 #include <glib.h>
@@ -948,11 +953,16 @@ namespace Plugin {
                 static int cached_EDID_checksum = 0;
                 int current_EDID_checksum = 0;
                 
-                uint8_t edidBytes[1024] = {0};
+                uint8_t edidBytes[kMaxEdidDataSize] = {0};
                 uint16_t length = sizeof(edidBytes);
                 
                 result = _instance->_deviceSettings->GetDisplayEdidBytes(displayHandle, edidBytes, length);
-                if (result == Core::ERROR_NONE && length > 0 && length <= sizeof(edidBytes)) {
+                if (result != Core::ERROR_NONE) {
+                    DSLOG_ERR("Failed to update HDMI EDID checksum: GetDisplayEdidBytes returned %u", result);
+                } else if (length == 0 || length > sizeof(edidBytes)) {
+                    DSLOG_ERR("Failed to update HDMI EDID checksum: invalid EDID length %u (capacity %zu)",
+                              length, sizeof(edidBytes));
+                } else {
                     for (int i = 0; i < (length / 128); i++)
                         current_EDID_checksum += edidBytes[(i+1)*128 - 1];
                     
