@@ -323,12 +323,8 @@ bool UXControllerTvEu::ApplyPostRebootConfig(PowerState targetState,
                                             PowerState lastKnownState)
 {
     bool ret = true;
-    
-    if ((WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == lastKnownState) && (WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY == targetState)) {
-        SyncDisplayPortsWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
-    } else {
-        SyncDisplayPortsWithPowerState(targetState);
-    }
+
+    SyncDisplayPortsWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
 
     mfrBlPattern_t pattern = mfrBL_PATTERN_NORMAL;
     switch (targetState) {
@@ -387,21 +383,8 @@ bool UXControllerStbEu::ApplyPostRebootConfig(PowerState targetState,
                                              PowerState lastKnownState)
 {
     bool ret = true;
-    
-    if ((WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == lastKnownState) && (WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY == targetState)) {
-/* Sync bootup LEDs is disabling the bootup LED pattern.
-Now the LED pattern is set by IUI after bootup we modifying this behavior based on conditions */
-#ifdef ENABLE_LED_SYNC_IN_BOOTUP
-        SyncPowerLedWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
-#endif
-        SyncDisplayPortsWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
-    } else {
-#ifdef ENABLE_LED_SYNC_IN_BOOTUP
-        SyncPowerLedWithPowerState(targetState);
-#endif
-        SyncDisplayPortsWithPowerState(targetState);
-    }
 
+    SyncDisplayPortsWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
     ret = SetBootloaderPatternFaultTolerant(mfrBL_PATTERN_NORMAL);
     return ret;
 }
@@ -452,14 +435,8 @@ bool UXControllerTv::ApplyPostRebootConfig(PowerState targetState,
                                           PowerState lastKnownState)
 {
     bool ret = true;
-#ifdef ENABLE_LED_SYNC_IN_BOOTUP
-    SyncPowerLedWithPowerState(targetState);
-#endif
-    if ((WPEFramework::Exchange::IPowerManager::POWER_STATE_ON == lastKnownState) && (WPEFramework::Exchange::IPowerManager::POWER_STATE_STANDBY == targetState)) {
-        SyncDisplayPortsWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
-    } else {
-        SyncDisplayPortsWithPowerState(targetState);
-    }
+
+    SyncDisplayPortsWithPowerState(WPEFramework::Exchange::IPowerManager::POWER_STATE_ON);
 
     mfrBlPattern_t pattern = mfrBL_PATTERN_NORMAL;
     switch (targetState) {
@@ -525,10 +502,8 @@ bool UXControllerStb::ApplyPreMaintenanceRebootConfig(PowerState currentState)
 bool UXControllerStb::ApplyPostRebootConfig(PowerState targetState, 
                                            PowerState lastKnownState)
 {
-    bool ret = true;
-    SyncPowerLedWithPowerState(targetState);
     SyncDisplayPortsWithPowerState(targetState);
-    return ret;
+    return true;
 }
 
 PowerState UXControllerStb::GetPreferredPostRebootPowerState(
