@@ -28,7 +28,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
-find_package(WPEFrameworkHelpers REQUIRED)
+find_package(${NAMESPACE}Helpers CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 find_library(PROCPS_LIBRARIES NAMES procps)
@@ -153,7 +153,7 @@ target_link_libraries(${PLUGIN_IMPLEMENTATION}
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
-        WPEFrameworkHelpers::WPEFrameworkHelpers
+        ${NAMESPACE}::${NAMESPACE}Helpers
         ${GLIB2_LIBRARIES})
 
 install(TARGETS ${PLUGIN_IMPLEMENTATION}
