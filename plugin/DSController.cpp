@@ -1066,6 +1066,7 @@ namespace Plugin {
 
     void DSController::HandleHDCPStatus(int32_t hdcpStatus) {
         IARM_Bus_SYSMgr_EventData_t HDCPeventData;
+        memset(&HDCPeventData, 0, sizeof(HDCPeventData));
         HDCPeventData.data.systemStates.stateId = IARM_BUS_SYSMGR_SYSSTATE_HDCP_ENABLED;
         HDCPeventData.data.systemStates.state = 1;
 

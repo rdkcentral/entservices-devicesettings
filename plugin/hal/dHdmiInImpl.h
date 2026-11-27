@@ -769,7 +769,7 @@ public:
         DSLOG_INFO("DS_OnHDMIInVideoModeUpdateEvent event Received: port=%d", port); // adjust as needed
         DSLOG_INFO("Video Mode: %s pixelResolution %d aspectRatio %d stereoScopicMode %d frameRate %d", videoPortResolution.name, videoPortResolution.pixelResolution, videoPortResolution.aspectRatio, videoPortResolution.stereoScopicMode, videoPortResolution.frameRate);
 
-        HDMIVideoPortResolution res;
+        HDMIVideoPortResolution res{};
         res.name              = std::string(videoPortResolution.name);
         res.pixelResolution   = static_cast<HDMIInVideoResolution>(videoPortResolution.pixelResolution);
         res.aspectRatio       = static_cast<HDMIVideoAspectRatio>(videoPortResolution.aspectRatio);
