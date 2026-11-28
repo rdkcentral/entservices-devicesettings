@@ -426,6 +426,37 @@ void DSPwrEventListener::HandlePwrEventData(const PowerState currentState,
 #endif
         SetAVPortsPowerState(newState);
     }
+
+    if (currentState == PowerState::POWER_STATE_STANDBY_DEEP_SLEEP
+        && newState != PowerState::POWER_STATE_STANDBY_DEEP_SLEEP) {
+        std::vector<VideoPortEntry> videoPorts;
+        if (!BuildVideoPortEntries(videoPorts)) {
+            DSLOG_ERR("Failed to enumerate video ports for HDCP status check after deep sleep");
+            return;
+        }
+
+        for (const auto& port : videoPorts) {
+            if (port.type != VideoPortType::DS_VIDEO_PORT_TYPE_HDMI
+                && port.type != VideoPortType::DS_VIDEO_PORT_TYPE_INTERNAL) {
+                continue;
+            }
+
+            int32_t handle = 0;
+            uint32_t result = _deviceSettings->GetVideoPort(port.type, port.index, handle);
+            if (result != Core::ERROR_NONE || handle == 0) {
+                DSLOG_ERR("Failed to get video port %s for HDCP status check, error: %u", port.name.c_str(), result);
+                continue;
+            }
+
+            Exchange::IDeviceSettingsVideoPort::HDCPStatus status;
+            result = _deviceSettings->GetHDCPStatusOnVideoPort(handle, status);
+            if (result != Core::ERROR_NONE) {
+                DSLOG_ERR("Failed to get HDCP status after deep sleep for %s, error: %u", port.name.c_str(), result);
+            } else {
+                DSLOG_INFO("HDCP status after deep sleep for %s: %d", port.name.c_str(), static_cast<int>(status));
+            }
+        }
+    }
 }
 
 int DSPwrEventListener::SetLEDStatus(PowerState powerState)
